@@ -1,0 +1,49 @@
+@import "../styles/variables.css";
+
+.not-found-container {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.not-found-code {
+  font-size: 5rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: var(--spacing-sm);
+}
+
+.not-found-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.not-found-desc {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  margin-bottom: var(--spacing-xl);
+}
+
+.not-found-btn {
+  display: inline-block;
+  padding: 0.625rem 1.25rem;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.not-found-btn:hover {
+  background-color: var(--color-primary-hover);
+  text-decoration: none;
+}

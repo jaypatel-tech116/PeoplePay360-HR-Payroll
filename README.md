@@ -1,0 +1,1 @@
+PeoplePay360 is a full-stack HR & Payroll platform built with React, Node.js, Express.js, and PostgreSQL. It manages employees, contracts, attendance, leave, salary rules, payruns, payslips, payroll validation, PDF generation, dashboards, and role-based access through an integrated end-to-end workflow.
