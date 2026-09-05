@@ -1,0 +1,87 @@
+/* ==========================================================================
+   Top Header Styles
+   ========================================================================== */
+
+.app-topbar {
+  height: 56px;
+  min-height: 56px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-xl);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.topbar-page-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.topbar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.topbar-chip:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.time-chip {
+  color: var(--color-text-muted);
+}
+
+.company-chip {
+  color: var(--color-primary);
+  border-color: var(--color-border-hover);
+  background-color: var(--color-primary-light);
+}
+
+.chip-text {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.security-chip {
+  color: var(--color-success);
+  background-color: var(--color-success-light);
+  border-color: var(--color-success-border);
+}
+
+@media (max-width: 900px) {
+  .time-chip,
+  .security-chip {
+    display: none;
+  }
+}

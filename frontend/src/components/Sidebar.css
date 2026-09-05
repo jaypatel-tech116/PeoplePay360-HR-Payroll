@@ -1,0 +1,375 @@
+/* ==========================================================================
+   Vertical Sidebar Navigation Styles (Modern Enterprise SaaS Theme)
+   ========================================================================== */
+
+.app-sidebar {
+  width: 256px;
+  min-width: 256px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+}
+
+/* Brand Header */
+.sidebar-brand {
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--color-surface);
+}
+
+.brand-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-inverse);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  flex-shrink: 0;
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.brand-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.brand-version {
+  color: var(--color-primary);
+}
+
+.tenant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+  margin-top: 2px;
+}
+
+/* Navigation List */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.nav-section-label {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  padding: var(--spacing-sm) var(--spacing-sm) 4px;
+  margin-top: var(--spacing-xs);
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 8px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.nav-item .nav-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.nav-item:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  transform: translateX(2px);
+}
+
+.nav-item:hover .nav-icon {
+  color: var(--color-primary);
+}
+
+.nav-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-item.active .nav-icon {
+  color: var(--color-primary);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background-color: var(--color-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.nav-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  position: relative;
+}
+
+/* Demo Switcher */
+.demo-switch-container {
+  position: relative;
+}
+
+.demo-switch-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+}
+
+.demo-switch-btn:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+}
+
+.demo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+  margin-right: 4px;
+}
+
+.demo-label {
+  flex: 1;
+  text-align: left;
+}
+
+.demo-chevron {
+  transition: transform var(--transition-fast);
+}
+
+.demo-chevron.open {
+  transform: rotate(180deg);
+}
+
+.demo-dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 6px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+}
+
+.demo-dropdown-header {
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  letter-spacing: 0.05em;
+}
+
+.demo-option-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+  text-align: left;
+  width: 100%;
+}
+
+.demo-option-item:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.demo-option-item.current {
+  background-color: var(--color-primary-light);
+}
+
+.demo-opt-role {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.demo-opt-email {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+/* User Profile Card */
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.user-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-details-block {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-display-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+
+.logout-action-btn:hover {
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Role Badges */
+.role-badge {
+  display: inline-block;
+  font-size: 0.625rem; /* 10px */
+  font-weight: var(--font-weight-bold);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  max-width: fit-content;
+}
+
+.role-admin {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.role-hr {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.role-payroll-mgr {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.role-payroll-user {
+  background-color: #ccfbf1;
+  color: #0f766e;
+}
+
+.role-employee {
+  background-color: #f1f5f9;
+  color: #475569;
+}
