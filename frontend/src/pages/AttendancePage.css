@@ -1,0 +1,53 @@
+.kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-danger-light {
+  background-color: var(--danger-bg);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.current-time-display {
+  text-align: center;
+  padding: 32px 0;
+  background: var(--bg-app);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+
+.current-time-display h2 {
+  font-size: 2.5rem;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.current-time-display p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.punch-btn {
+  padding: 14px;
+  font-size: 1.0625rem;
+  justify-content: center;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.font-medium {
+  font-weight: 500;
+}

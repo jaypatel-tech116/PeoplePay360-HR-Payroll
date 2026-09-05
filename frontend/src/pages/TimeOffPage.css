@@ -1,0 +1,52 @@
+.tab-pane {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tab-badge {
+  background: var(--primary);
+  color: white;
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 700;
+}
+
+.req-emp-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mt-6 {
+  margin-top: 24px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.timeoff-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}

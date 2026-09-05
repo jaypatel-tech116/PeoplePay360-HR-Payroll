@@ -1,0 +1,24 @@
+.contracts-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contract-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contract-guard-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-alt);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  margin-top: 4px;
+}

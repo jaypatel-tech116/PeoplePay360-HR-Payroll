@@ -1,0 +1,53 @@
+.mb-6 {
+  margin-bottom: 24px;
+}
+
+.td-payrun-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.text-main {
+  color: var(--text-main);
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mt-6 {
+  margin-top: 24px;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}
+
+.kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

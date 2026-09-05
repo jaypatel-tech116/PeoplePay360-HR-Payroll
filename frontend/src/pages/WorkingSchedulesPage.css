@@ -1,0 +1,88 @@
+.schedules-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.schedule-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.derived-hours-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--color-primary-soft);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.calculator-icon {
+  color: var(--color-primary);
+}
+
+.derived-hours-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.derived-hours-val {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.derived-hours-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.lines-grid-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-surface-alt);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.lines-grid-header {
+  display: grid;
+  grid-template-columns: 100px 70px 1fr 1fr 100px;
+  gap: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.line-row {
+  display: grid;
+  grid-template-columns: 100px 70px 1fr 1fr 100px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.line-row.disabled {
+  opacity: 0.45;
+}
+
+.day-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.line-time-input, .line-break-input {
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+}

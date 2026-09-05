@@ -1,0 +1,45 @@
+.header-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.border-danger {
+  border-color: var(--danger) !important;
+}
+
+.border-danger:hover {
+  background-color: var(--danger-bg) !important;
+}
+
+.locked-badge-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: var(--bg-surface-alt);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.border-warning {
+  border: 1px solid var(--warning);
+}
+
+.bg-warning-light {
+  background-color: var(--warning-bg);
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-bold {
+  font-weight: 700;
+}

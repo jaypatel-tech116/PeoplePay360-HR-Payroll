@@ -1,0 +1,77 @@
+.user-role-select {
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-alt);
+  border-color: var(--border-subtle);
+  width: 180px;
+}
+
+.td-employee {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.td-avatar {
+  width: 32px;
+  height: 32px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.td-emp-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.td-emp-name {
+  font-weight: 500;
+  color: var(--text-main);
+  font-size: 0.875rem;
+}
+
+.td-emp-sub {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mt-6 {
+  margin-top: 24px;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--bg-surface-alt);
+  color: var(--text-main);
+}
+
+.table-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}

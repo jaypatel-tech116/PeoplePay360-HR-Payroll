@@ -1,0 +1,60 @@
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+}
+
+.alert-warning {
+  background: var(--color-warning-soft);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--color-warning-text);
+}
+
+.alert-danger {
+  background: var(--color-danger-soft);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--color-danger-text);
+}
+
+.alert-info {
+  background: var(--color-info-soft);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: var(--color-info-text);
+}
+
+.alert-success {
+  background: var(--color-success-soft);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--color-success-text);
+}
+
+.alert-icon-box {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.alert-message {
+  font-size: 0.8125rem;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.alert-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
