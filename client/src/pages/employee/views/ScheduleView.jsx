@@ -1,6 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { getEmployeeSchedule } from "../../../api/employee.api";
 
-const ScheduleView = () => {
+const ScheduleView = ({ refreshKey }) => {
+  const [schedule, setSchedule] = useState({
+    name: "General (Mon - Fri)",
+    weeklyHours: "40 Hours",
+    workingDays: "5 Days",
+    dailyHours: "8 Hours",
+    breakTime: "1 Hour",
+    validFrom: "01 Sep 2023",
+    status: "Active",
+    description: "Standard full-time working schedule (Monday to Friday)",
+    timeZone: "Asia/Kolkata",
+    days: [
+      { day: "Monday", startTime: "09:00 AM", endTime: "06:00 PM", breakMinutes: 60, workingHours: "8.00", status: "Working" },
+      { day: "Tuesday", startTime: "09:00 AM", endTime: "06:00 PM", breakMinutes: 60, workingHours: "8.00", status: "Working" },
+      { day: "Wednesday", startTime: "09:00 AM", endTime: "06:00 PM", breakMinutes: 60, workingHours: "8.00", status: "Working" },
+      { day: "Thursday", startTime: "09:00 AM", endTime: "06:00 PM", breakMinutes: 60, workingHours: "8.00", status: "Working" },
+      { day: "Friday", startTime: "09:00 AM", endTime: "06:00 PM", breakMinutes: 60, workingHours: "8.00", status: "Working" },
+      { day: "Saturday", startTime: "-", endTime: "-", breakMinutes: "-", workingHours: "0.00", status: "Off" },
+      { day: "Sunday", startTime: "-", endTime: "-", breakMinutes: "-", workingHours: "0.00", status: "Off" },
+    ],
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSchedule = async () => {
+      try {
+        const res = await getEmployeeSchedule();
+        if (isMounted && res?.data?.schedule) {
+          setSchedule(res.data.schedule);
+        }
+      } catch (err) {
+        console.warn("Could not load employee schedule:", err);
+      }
+    };
+    fetchSchedule();
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey]);
+
   return (
     <div className="employee-schedule-view">
       {/* Header */}
@@ -30,31 +70,31 @@ const ScheduleView = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.8rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Schedule Name</span>
-              <span style={{ fontWeight: 600 }}>General (Mon - Fri)</span>
+              <span style={{ fontWeight: 600 }}>{schedule.name}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Weekly Hours</span>
-              <span style={{ fontWeight: 600 }}>40 Hours</span>
+              <span style={{ fontWeight: 600 }}>{schedule.weeklyHours}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Working Days</span>
-              <span style={{ fontWeight: 600 }}>5 Days</span>
+              <span style={{ fontWeight: 600 }}>{schedule.workingDays}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Daily Hours</span>
-              <span style={{ fontWeight: 600 }}>8 Hours</span>
+              <span style={{ fontWeight: 600 }}>{schedule.dailyHours}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Break Time</span>
-              <span style={{ fontWeight: 600 }}>1 Hour</span>
+              <span style={{ fontWeight: 600 }}>{schedule.breakTime}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Valid From</span>
-              <span style={{ fontWeight: 600 }}>01 Sep 2023</span>
+              <span style={{ fontWeight: 600 }}>{schedule.validFrom}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Status</span>
-              <span className="odoo-badge odoo-badge-green">Active</span>
+              <span className="odoo-badge odoo-badge-green">{schedule.status}</span>
             </div>
           </div>
         </div>
@@ -78,62 +118,26 @@ const ScheduleView = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Monday</td>
-                  <td>09:00 AM</td>
-                  <td>06:00 PM</td>
-                  <td>60</td>
-                  <td>8.00</td>
-                  <td><span className="odoo-badge odoo-badge-green">Working</span></td>
-                </tr>
-                <tr>
-                  <td>Tuesday</td>
-                  <td>09:00 AM</td>
-                  <td>06:00 PM</td>
-                  <td>60</td>
-                  <td>8.00</td>
-                  <td><span className="odoo-badge odoo-badge-green">Working</span></td>
-                </tr>
-                <tr>
-                  <td>Wednesday</td>
-                  <td>09:00 AM</td>
-                  <td>06:00 PM</td>
-                  <td>60</td>
-                  <td>8.00</td>
-                  <td><span className="odoo-badge odoo-badge-green">Working</span></td>
-                </tr>
-                <tr>
-                  <td>Thursday</td>
-                  <td>09:00 AM</td>
-                  <td>06:00 PM</td>
-                  <td>60</td>
-                  <td>8.00</td>
-                  <td><span className="odoo-badge odoo-badge-green">Working</span></td>
-                </tr>
-                <tr>
-                  <td>Friday</td>
-                  <td>09:00 AM</td>
-                  <td>06:00 PM</td>
-                  <td>60</td>
-                  <td>8.00</td>
-                  <td><span className="odoo-badge odoo-badge-green">Working</span></td>
-                </tr>
-                <tr>
-                  <td>Saturday</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>0.00</td>
-                  <td><span className="odoo-badge odoo-badge-red">Off</span></td>
-                </tr>
-                <tr>
-                  <td>Sunday</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>0.00</td>
-                  <td><span className="odoo-badge odoo-badge-red">Off</span></td>
-                </tr>
+                {schedule.days.map((d, index) => (
+                  <tr key={index}>
+                    <td>{d.day}</td>
+                    <td>{d.startTime}</td>
+                    <td>{d.endTime}</td>
+                    <td>{d.breakMinutes}</td>
+                    <td>{d.workingHours}</td>
+                    <td>
+                      <span
+                        className={`odoo-badge ${
+                          d.status === "Working"
+                            ? "odoo-badge-green"
+                            : "odoo-badge-red"
+                        }`}
+                      >
+                        {d.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -158,7 +162,7 @@ const ScheduleView = () => {
                 fontWeight: 500,
               }}
             >
-              Standard full-time working schedule (Monday to Friday)
+              {schedule.description}
             </div>
           </div>
 
@@ -173,7 +177,7 @@ const ScheduleView = () => {
                 fontWeight: 500,
               }}
             >
-              Asia/Kolkata
+              {schedule.timeZone}
             </div>
           </div>
         </div>

@@ -1,8 +1,8 @@
-const { pool } = require("../config/db");
+const { pool } = require("../config/mysqlDb");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 
 /**
- * Controller to provide complete database analysis and metadata
+ * Controller to provide complete database analysis and metadata for MySQL 8.0
  */
 const getDatabaseAnalysis = async (req, res) => {
   try {
@@ -25,15 +25,17 @@ const getDatabaseAnalysis = async (req, res) => {
       "audit_logs",
     ];
 
-    // 1. Fetch tables present in public schema
+    const dbName = process.env.MYSQL_DATABASE || "peoplepay360";
+
+    // 1. Fetch tables present in database
     const tablesQuery = `
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+      WHERE table_schema = ? AND table_type = 'BASE TABLE'
       ORDER BY table_name;
     `;
-    const tablesResult = await pool.query(tablesQuery);
-    const existingTableNames = tablesResult.rows.map((r) => r.table_name);
+    const [tablesResult] = await pool.query(tablesQuery, [dbName]);
+    const existingTableNames = tablesResult.map((r) => r.TABLE_NAME || r.table_name);
 
     // 2. Fetch column details for all existing tables
     const columnsQuery = `
@@ -44,28 +46,22 @@ const getDatabaseAnalysis = async (req, res) => {
         is_nullable,
         column_default
       FROM information_schema.columns
-      WHERE table_schema = 'public'
+      WHERE table_schema = ?
       ORDER BY table_name, ordinal_position;
     `;
-    const columnsResult = await pool.query(columnsQuery);
+    const [columnsResult] = await pool.query(columnsQuery, [dbName]);
 
     // 3. Fetch foreign key relationships
     const fkQuery = `
       SELECT
-        tc.table_name, 
-        kcu.column_name, 
-        ccu.table_name AS foreign_table_name,
-        ccu.column_name AS foreign_column_name 
-      FROM information_schema.table_constraints AS tc 
-      JOIN information_schema.key_column_usage AS kcu
-        ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-      JOIN information_schema.constraint_column_usage AS ccu
-        ON ccu.constraint_name = tc.constraint_name
-        AND ccu.table_schema = tc.table_schema
-      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
+        TABLE_NAME AS table_name, 
+        COLUMN_NAME AS column_name, 
+        REFERENCED_TABLE_NAME AS foreign_table_name,
+        REFERENCED_COLUMN_NAME AS foreign_column_name 
+      FROM information_schema.KEY_COLUMN_USAGE 
+      WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL;
     `;
-    const fkResult = await pool.query(fkQuery);
+    const [fkResult] = await pool.query(fkQuery, [dbName]);
 
     // 4. Query row counts for each table
     const tableDetails = [];
@@ -77,16 +73,16 @@ const getDatabaseAnalysis = async (req, res) => {
 
       if (exists) {
         try {
-          const countRes = await pool.query(`SELECT COUNT(*)::int AS count FROM public.${tableName};`);
-          count = countRes.rows[0]?.count || 0;
+          const [countRes] = await pool.query(`SELECT COUNT(*) AS count FROM \`${tableName}\`;`);
+          count = countRes[0]?.count || 0;
           totalRowCount += count;
         } catch {
           count = -1;
         }
       }
 
-      const columns = columnsResult.rows.filter((c) => c.table_name === tableName);
-      const foreignKeys = fkResult.rows.filter((fk) => fk.table_name === tableName);
+      const columns = columnsResult.filter((c) => (c.TABLE_NAME || c.table_name) === tableName);
+      const foreignKeys = fkResult.filter((fk) => (fk.TABLE_NAME || fk.table_name) === tableName);
 
       tableDetails.push({
         name: tableName,
@@ -94,35 +90,35 @@ const getDatabaseAnalysis = async (req, res) => {
         rowCount: count,
         columnCount: columns.length,
         columns: columns.map((c) => ({
-          name: c.column_name,
-          type: c.data_type,
-          nullable: c.is_nullable === "YES",
-          default: c.column_default,
+          name: c.COLUMN_NAME || c.column_name,
+          type: c.DATA_TYPE || c.data_type,
+          nullable: (c.IS_NULLABLE || c.is_nullable) === "YES",
+          default: c.COLUMN_DEFAULT || c.column_default,
         })),
         foreignKeys: foreignKeys.map((fk) => ({
-          column: fk.column_name,
-          referencesTable: fk.foreign_table_name,
-          referencesColumn: fk.foreign_column_name,
+          column: fk.COLUMN_NAME || fk.column_name,
+          referencesTable: fk.REFERENCED_TABLE_NAME || fk.foreign_table_name,
+          referencesColumn: fk.REFERENCED_COLUMN_NAME || fk.foreign_column_name,
         })),
       });
     }
 
-    // 5. Query PostgreSQL database info
-    const versionRes = await pool.query(`SELECT version();`);
+    // 5. Query MySQL database info
+    const [versionRes] = await pool.query(`SELECT VERSION() AS version;`);
 
     return successResponse(res, {
       statusCode: 200,
       message: "Database analysis retrieved successfully.",
       data: {
-        databaseEngine: "PostgreSQL / Supabase",
-        version: versionRes.rows[0]?.version,
-        schema: "public",
+        databaseEngine: "MySQL 8.0 (Local)",
+        version: versionRes[0]?.version,
+        schema: dbName,
         totalExpectedTables: expectedTables.length,
         totalExistingTables: existingTableNames.length,
         totalRecords: totalRowCount,
         isFullyCompliant: expectedTables.every((t) => existingTableNames.includes(t)),
         architectureFlow: [
-          "1. Roles & Users (auth.users -> public.users)",
+          "1. Roles & Users (roles, users)",
           "2. Core Master Data (departments, working_schedules, employees)",
           "3. Workforce Tracking (contracts, attendance, leave_types, leave_allocations, leave_requests)",
           "4. Payroll Engine (salary_structures, salary_rules, payruns, payslips, payslip_lines)",

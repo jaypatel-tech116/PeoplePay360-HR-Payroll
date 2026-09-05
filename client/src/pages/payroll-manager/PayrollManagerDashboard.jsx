@@ -1,218 +1,319 @@
 import React, { useState } from "react";
-import PortalLayout from "../../components/layout/PortalLayout";
-import StatCard from "../../components/ui/StatCard";
-import DataTable from "../../components/ui/DataTable";
-import Badge from "../../components/ui/Badge";
-import "./PayrollManagerDashboard.css";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import "./PayrollManagerPortal.css";
 
-const MOCK_RUNS = [
-  { id: "RUN-2026-03", cycle: "March 2026", employees: 94, gross: "$287,950.00", deductions: "$42,150.00", net: "$245,800.00", status: "Pending Approval", submittedBy: "Emma Davis (Operator)" },
-  { id: "RUN-2026-02", cycle: "February 2026", employees: 92, gross: "$281,400.00", deductions: "$41,200.00", net: "$240,200.00", status: "Disbursed", submittedBy: "Emma Davis (Operator)" },
-  { id: "RUN-2026-01", cycle: "January 2026", employees: 90, gross: "$276,000.00", deductions: "$40,100.00", net: "$235,900.00", status: "Disbursed", submittedBy: "Emma Davis (Operator)" },
-];
-
-const MOCK_GRADES = [
-  { id: "G-A", name: "Grade A - Leadership & Staff", base: "60%", hra: "20%", special: "20%", standardPf: "12%", staffCount: 12 },
-  { id: "G-B", name: "Grade B - Mid & Senior Level", base: "50%", hra: "25%", special: "25%", standardPf: "12%", staffCount: 48 },
-  { id: "G-C", name: "Grade C - Associate & Entry", base: "50%", hra: "30%", special: "20%", standardPf: "12%", staffCount: 34 },
-];
+// View components matching the 16 screens in the reference image
+import ManagerDashboardView from "./views/ManagerDashboardView";
+import PayCyclesListView from "./views/PayCyclesListView";
+import CreatePayCycleWizardView from "./views/CreatePayCycleWizardView";
+import ProcessPayrollListView from "./views/ProcessPayrollListView";
+import VerifyPayrollView from "./views/VerifyPayrollView";
+import PayrollProcessingView from "./views/PayrollProcessingView";
+import ProcessCompletedView from "./views/ProcessCompletedView";
+import ManagerPaySlipsView from "./views/ManagerPaySlipsView";
+import ManagerPaySlipDetailView from "./views/ManagerPaySlipDetailView";
+import ManagerReportsView from "./views/ManagerReportsView";
+import SalaryStructuresView from "./views/SalaryStructuresView";
+import SalaryRulesView from "./views/SalaryRulesView";
+import EmployeesKanbanView from "./views/EmployeesKanbanView";
+import AttendancePayrollView from "./views/AttendancePayrollView";
 
 const PayrollManagerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("runs");
-  const [runs, setRuns] = useState(MOCK_RUNS);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const handleApproveBatch = (runId) => {
-    setRuns((prev) =>
-      prev.map((r) =>
-        r.id === runId ? { ...r, status: "Approved & Queued" } : r
-      )
-    );
-    alert(`Batch ${runId} has been successfully APPROVED and locked for bank disbursement!`);
+  // Active navigation / sub-view state
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [selectedPaySlip, setSelectedPaySlip] = useState(null);
+
+  // Handle logout
+  const handleLogout = () => {
+    if (logout) logout();
+    navigate("/login");
   };
 
-  const runColumns = [
-    { key: "id", header: "Batch Code", width: "130px" },
-    { key: "cycle", header: "Cycle" },
-    { key: "employees", header: "Employees" },
-    { key: "gross", header: "Gross Sum" },
-    { key: "deductions", header: "Deductions" },
-    {
-      key: "net",
-      header: "Net Payout",
-      render: (row) => <strong>{row.net}</strong>,
-    },
-    {
-      key: "status",
-      header: "Approval State",
-      render: (row) => {
-        let variant = "neutral";
-        if (row.status === "Disbursed") variant = "success";
-        if (row.status === "Pending Approval") variant = "warning";
-        if (row.status === "Approved & Queued") variant = "info";
-        return <Badge variant={variant}>{row.status}</Badge>;
-      },
-    },
-    {
-      key: "action",
-      header: "Action Decision",
-      render: (row) => {
-        if (row.status === "Pending Approval") {
-          return (
-            <button
-              type="button"
-              className="btn-approve-batch"
-              onClick={() => handleApproveBatch(row.id)}
-            >
-              ✓ Approve & Authorize
-            </button>
-          );
-        }
-        return <span className="text-muted-xs">Locked</span>;
-      },
-    },
+  // Nav menu items matching sidebar from image
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: "📊" },
+    { id: "pay-cycles", label: "Pay Cycles", icon: "🔄" },
+    { id: "pay-slips", label: "Pay Slips", icon: "📄" },
+    { id: "reports", label: "Reports", icon: "📈" },
+    { id: "salary-structures", label: "Salary Structures", icon: "📐" },
+    { id: "salary-rules", label: "Salary Rules", icon: "⚖️" },
+    { id: "employees", label: "Employees", icon: "👥" },
+    { id: "attendance", label: "Attendance", icon: "📅" },
   ];
 
-  const gradeColumns = [
-    { key: "id", header: "Grade Code", width: "100px" },
-    { key: "name", header: "Salary Structure Title" },
-    { key: "base", header: "Basic Pay %" },
-    { key: "hra", header: "HRA %" },
-    { key: "special", header: "Special Allowance %" },
-    { key: "standardPf", header: "Statutory PF %" },
-    {
-      key: "staffCount",
-      header: "Enrolled Employees",
-      render: (row) => <Badge variant="neutral" size="sm">{row.staffCount} Staff</Badge>,
-    },
+  // Screen shortcuts for directly previewing all 16 screens from composite image
+  const screenShortcuts = [
+    { id: "dashboard", label: "1. Dashboard" },
+    { id: "pay-cycles", label: "2. Pay Cycles" },
+    { id: "create-cycle", label: "4-5. Create Pay Cycle" },
+    { id: "process-payroll", label: "6. Process Payroll" },
+    { id: "verify-payroll", label: "7. Verify Payroll" },
+    { id: "processing", label: "8. Processing" },
+    { id: "completed", label: "9. Completed" },
+    { id: "pay-slips", label: "10. Pay Slips" },
+    { id: "payslip-detail", label: "11. Payslip Detail" },
+    { id: "salary-structures", label: "13. Structures" },
+    { id: "salary-rules", label: "14. Rules" },
+    { id: "employees", label: "15. Employees" },
+    { id: "attendance", label: "16. Attendance" },
+    { id: "reports", label: "18. Reports" },
   ];
+
+  // Helper to select a payslip and navigate to detail view
+  const handleSelectPaySlip = (slip) => {
+    setSelectedPaySlip(slip);
+    setActiveTab("payslip-detail");
+  };
 
   return (
-    <PortalLayout title="Payroll Governance & Approvals">
-      {/* Metrics Row */}
-      <div className="stats-grid">
-        <StatCard
-          title="Monthly Payroll Sum"
-          value="$245,800.00"
-          subtitle="March 2026 cycle estimate"
-          icon="💰"
-          variant="primary"
-          trend="+2.3% vs last month"
-        />
-        <StatCard
-          title="Pending Authorization"
-          value="1 Batch"
-          subtitle="March 2026 Run awaiting review"
-          icon="⏳"
-          variant="warning"
-        />
-        <StatCard
-          title="Tax & Statutory Withholding"
-          value="$42,150.00"
-          subtitle="TDS, PF, and Medical Insurance"
-          icon="📑"
-          variant="info"
-        />
-        <StatCard
-          title="Next Payout Date"
-          value="Mar 31, 2026"
-          subtitle="Bank ACH transfer scheduled"
-          icon="🏦"
-          variant="success"
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="admin-tabs-bar">
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "runs" ? "active" : ""}`}
-          onClick={() => setActiveTab("runs")}
-        >
-          🔄 Payroll Runs & Final Approvals
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "structures" ? "active" : ""}`}
-          onClick={() => setActiveTab("structures")}
-        >
-          📐 Salary Structures & Grades
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "compliance" ? "active" : ""}`}
-          onClick={() => setActiveTab("compliance")}
-        >
-          🏛️ Compliance & Tax Reports
-        </button>
-      </div>
-
-      {/* Tab 1: Runs */}
-      {activeTab === "runs" && (
-        <div className="tab-content">
-          <DataTable
-            title="Monthly Payroll Batches"
-            subtitle="Review gross-to-net calculations, tax withholdings, and grant final disbursement sign-off."
-            columns={runColumns}
-            data={runs}
-          />
-        </div>
-      )}
-
-      {/* Tab 2: Structures */}
-      {activeTab === "structures" && (
-        <div className="tab-content">
-          <DataTable
-            title="Company Compensation Structures"
-            subtitle="Define basic salary allocations, tax-exempt allowances, and statutory deduction policies."
-            columns={gradeColumns}
-            data={MOCK_GRADES}
-            actions={
-              <button
-                type="button"
-                className="btn-create-user"
-                onClick={() => alert("Open New Structure Modal")}
-              >
-                + Define New Grade
-              </button>
-            }
-          />
-        </div>
-      )}
-
-      {/* Tab 3: Compliance */}
-      {activeTab === "compliance" && (
-        <div className="tab-content">
-          <div className="settings-grid">
-            <div className="settings-card">
-              <h3 className="settings-card-title">📄 Provident Fund / 401k Statement</h3>
-              <p className="settings-card-desc">Monthly employee and employer matching contribution statement.</p>
-              <div className="compliance-stat">Total PF Fund: <strong>$22,540.00</strong></div>
-              <button type="button" className="action-btn-secondary" style={{ marginTop: "12px" }}>
-                Export ECR File (.csv)
-              </button>
-            </div>
-
-            <div className="settings-card">
-              <h3 className="settings-card-title">🏥 Health & Medical Insurance (ESI)</h3>
-              <p className="settings-card-desc">Comprehensive group health insurance coverage deduction report.</p>
-              <div className="compliance-stat">Total Insurance: <strong>$8,200.00</strong></div>
-              <button type="button" className="action-btn-secondary" style={{ marginTop: "12px" }}>
-                Download Return Sheet
-              </button>
-            </div>
-
-            <div className="settings-card">
-              <h3 className="settings-card-title">🏛️ Income Tax (TDS / Withholding)</h3>
-              <p className="settings-card-desc">Government tax deducted at source ready for quarterly filing.</p>
-              <div className="compliance-stat">Total TDS Withheld: <strong>$11,410.00</strong></div>
-              <button type="button" className="action-btn-secondary" style={{ marginTop: "12px" }}>
-                Generate Tax Challan
-              </button>
-            </div>
+    <div className="mgr-shell">
+      {/* Sidebar matching Odoo Plum #714B67 design */}
+      <aside className={`mgr-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="mgr-sidebar-brand">
+          <div className="mgr-logo-text">
+            {isSidebarCollapsed ? "P" : "PeoplePay360"}
           </div>
         </div>
-      )}
-    </PortalLayout>
+
+        <ul className="mgr-sidebar-menu">
+          {menuItems.map((item) => {
+            const isActive =
+              activeTab === item.id ||
+              (item.id === "pay-cycles" &&
+                ["pay-cycles", "create-cycle", "process-payroll", "verify-payroll", "processing", "completed"].includes(activeTab)) ||
+              (item.id === "pay-slips" && ["pay-slips", "payslip-detail"].includes(activeTab));
+
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={`mgr-nav-item ${isActive ? "active" : ""}`}
+                  onClick={() => setActiveTab(item.id)}
+                  title={item.label}
+                >
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mgr-sidebar-footer">
+          <button
+            type="button"
+            className="mgr-collapse-btn"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? "→" : "←"}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Container */}
+      <div className="mgr-main">
+        {/* Top Header Bar */}
+        <header className="mgr-topbar">
+          <div className="mgr-topbar-left">
+            <span className="mgr-topbar-appname">PeoplePay360</span>
+            <div className="mgr-topbar-search-box">
+              <span style={{ color: "rgba(255,255,255,0.7)" }}>🔍</span>
+              <input
+                type="text"
+                className="mgr-topbar-search-input"
+                placeholder="Search employees, pay cycles, reports..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="mgr-topbar-right">
+            {/* Quick Screen Jumper */}
+            <div style={{ display: "flex", alignItems: "center", marginRight: "6px" }}>
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "5px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  backgroundColor: "rgba(0,0,0,0.2)",
+                  color: "#ffffff",
+                  fontSize: "0.76rem",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                title="Jump to any of the 16 screens directly"
+              >
+                {screenShortcuts.map((s) => (
+                  <option key={s.id} value={s.id} style={{ background: "#58374f", color: "#fff" }}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notification Bell */}
+            <button type="button" className="mgr-icon-badge-btn" title="Notifications">
+              <span>🔔</span>
+              <span className="mgr-badge-count">3</span>
+            </button>
+
+            {/* Quick Settings Icon */}
+            <button type="button" className="mgr-icon-badge-btn" title="Settings">
+              <span>⚙️</span>
+            </button>
+
+            {/* User Profile Pill */}
+            <div style={{ position: "relative" }}>
+              <div
+                className="mgr-user-pill"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              >
+                <div className="mgr-user-avatar">HM</div>
+                <span className="mgr-user-name">HR Payroll Manager</span>
+                <span className="mgr-user-caret">⌵</span>
+              </div>
+
+              {/* Profile Dropdown */}
+              {isProfileMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "40px",
+                    width: "200px",
+                    backgroundColor: "#ffffff",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                    border: "1px solid #e5e7eb",
+                    zIndex: 100,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
+                      {user?.name || "HR Payroll Manager"}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      {user?.email || "payroll.mgr@peoplepay360.com"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      color: "#dc2626",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span>🚪</span> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* View Content Renderer */}
+        <main>
+          {activeTab === "dashboard" && (
+            <ManagerDashboardView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
+
+          {activeTab === "pay-cycles" && (
+            <PayCyclesListView
+              onOpenCreateWizard={() => setActiveTab("create-cycle")}
+              onSelectCycle={() => setActiveTab("process-payroll")}
+            />
+          )}
+
+          {activeTab === "create-cycle" && (
+            <CreatePayCycleWizardView
+              onBack={() => setActiveTab("pay-cycles")}
+              onComplete={() => setActiveTab("process-payroll")}
+            />
+          )}
+
+          {activeTab === "process-payroll" && (
+            <ProcessPayrollListView
+              onProceedToVerify={() => setActiveTab("verify-payroll")}
+            />
+          )}
+
+          {activeTab === "verify-payroll" && (
+            <VerifyPayrollView
+              onBack={() => setActiveTab("process-payroll")}
+              onProcessPayroll={() => setActiveTab("processing")}
+            />
+          )}
+
+          {activeTab === "processing" && (
+            <PayrollProcessingView
+              onFinish={() => setActiveTab("completed")}
+            />
+          )}
+
+          {activeTab === "completed" && (
+            <ProcessCompletedView
+              onViewPaySlips={() => setActiveTab("pay-slips")}
+              onBackToDashboard={() => setActiveTab("dashboard")}
+            />
+          )}
+
+          {activeTab === "pay-slips" && (
+            <ManagerPaySlipsView
+              onSelectPaySlip={handleSelectPaySlip}
+            />
+          )}
+
+          {activeTab === "payslip-detail" && (
+            <ManagerPaySlipDetailView
+              slip={selectedPaySlip}
+              onBack={() => setActiveTab("pay-slips")}
+            />
+          )}
+
+          {activeTab === "reports" && (
+            <ManagerReportsView />
+          )}
+
+          {activeTab === "salary-structures" && (
+            <SalaryStructuresView />
+          )}
+
+          {activeTab === "salary-rules" && (
+            <SalaryRulesView />
+          )}
+
+          {activeTab === "employees" && (
+            <EmployeesKanbanView />
+          )}
+
+          {activeTab === "attendance" && (
+            <AttendancePayrollView />
+          )}
+        </main>
+      </div>
+    </div>
   );
 };
 

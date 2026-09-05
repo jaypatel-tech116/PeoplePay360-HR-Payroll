@@ -1,27 +1,27 @@
 const app = require("./src/app");
-const { pool } = require("./src/config/db");
+const { pool } = require("./src/config/mysqlDb");
 
 const PORT = process.env.PORT || 5000;
 
-// Test database connection before listening for requests
-pool
-  .connect()
-  .then((client) => {
-    client.release();
-    console.log("✅ Database pool connected and ready.");
+// Test MySQL database connection before listening for requests
+async function startServer() {
+  try {
+    const connection = await pool.getConnection();
+    console.log("✅ MySQL Database pool connected and ready (peoplepay360).");
+    connection.release();
 
     const server = app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`🚀 PeoplePay360 Server running on http://localhost:${PORT}`);
       console.log(`🔒 Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
     // Graceful shutdown handlers
     const shutdown = async (signal) => {
-      console.log(`\n🛑 Received ${signal}. Closing HTTP server and database pool...`);
+      console.log(`\n🛑 Received ${signal}. Closing HTTP server and MySQL pool...`);
       server.close(async () => {
         try {
           await pool.end();
-          console.log("🔌 Database pool closed. Server terminated cleanly.");
+          console.log("🔌 MySQL pool closed. Server terminated cleanly.");
           process.exit(0);
         } catch (err) {
           console.error("❌ Error during shutdown:", err.message);
@@ -32,8 +32,10 @@ pool
 
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
-  })
-  .catch((err) => {
-    console.error("❌ Failed to connect to PostgreSQL database on startup:", err.message);
+  } catch (err) {
+    console.error("❌ Failed to connect to MySQL database on startup:", err.message);
     process.exit(1);
-  });
+  }
+}
+
+startServer();

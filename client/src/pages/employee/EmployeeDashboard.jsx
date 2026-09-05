@@ -1,6 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+  getEmployeeDashboard,
+  getEmployeeAttendance,
+  punchAttendance,
+  submitLeaveRequest,
+  updateEmployeeProfile,
+  getPayslipDetails,
+} from "../../api/employee.api";
 import DashboardView from "./views/DashboardView";
 import ProfileView from "./views/ProfileView";
 import ContractView from "./views/ContractView";
@@ -17,14 +25,17 @@ const EmployeeDashboard = () => {
 
   // Tab State
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Interactive Live State
-  const [checkedIn, setCheckedIn] = useState(true);
+  const [checkedIn, setCheckedIn] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [payslipModalData, setPayslipModalData] = useState(null);
+  const [payslipModalContent, setPayslipModalContent] = useState(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [employeeInfo, setEmployeeInfo] = useState(null);
   const [profileData, setProfileData] = useState({
-    phone: "+91 9876543210",
+    phone: "+91 98765 43210",
     address: "123, Green Park, Bangalore, Karnataka 560001, India",
     emergencyContact: "+91 9876543211 (Spouse)",
   });
@@ -35,6 +46,18 @@ const EmployeeDashboard = () => {
     days: 2,
     reason: "Family function",
   });
+
+  // Calculate days when fromDate or toDate changes
+  useEffect(() => {
+    if (leaveForm.fromDate && leaveForm.toDate) {
+      const start = new Date(leaveForm.fromDate);
+      const end = new Date(leaveForm.toDate);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1);
+        setLeaveForm((prev) => ({ ...prev, days: diffDays }));
+      }
+    }
+  }, [leaveForm.fromDate, leaveForm.toDate]);
 
   // Sync tab from URL query params (e.g. /employee?tab=attendance)
   useEffect(() => {
@@ -48,27 +71,89 @@ const EmployeeDashboard = () => {
     }
   }, [location.search]);
 
+  // Load live employee punch state & profile
+  const loadLiveState = useCallback(async () => {
+    try {
+      const attData = await getEmployeeAttendance();
+      if (attData?.data?.checkedIn !== undefined) {
+        setCheckedIn(attData.data.checkedIn);
+      }
+      const dashData = await getEmployeeDashboard();
+      if (dashData?.data?.employee) {
+        setEmployeeInfo(dashData.data.employee);
+        setProfileData((prev) => ({
+          ...prev,
+          phone: dashData.data.employee.phone || prev.phone,
+          address: dashData.data.employee.address || prev.address,
+        }));
+      }
+    } catch (err) {
+      console.warn("Could not load employee status:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLiveState();
+  }, [loadLiveState, refreshKey]);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     navigate(`/employee?tab=${tab}`, { replace: true });
   };
 
-  const handleToggleCheckIn = () => {
-    const nextState = !checkedIn;
-    setCheckedIn(nextState);
-    alert(nextState ? "⏱️ Clocked in at " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "↪ Clocked out successfully.");
+  const handleToggleCheckIn = async () => {
+    try {
+      const res = await punchAttendance();
+      if (res?.data?.checkedIn !== undefined) {
+        setCheckedIn(res.data.checkedIn);
+      }
+      alert(res?.message || (checkedIn ? "↪ Clocked out successfully." : "⏱️ Clocked in successfully."));
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Attendance punch failed:", err);
+      alert(err.response?.data?.message || "Failed to update attendance punch.");
+    }
   };
 
-  const handleSaveLeaveRequest = (e) => {
+  const handleSaveLeaveRequest = async (e) => {
     e.preventDefault();
-    alert("Leave request submitted successfully for approval!");
-    setLeaveModalOpen(false);
+    try {
+      await submitLeaveRequest(leaveForm);
+      alert("Leave request submitted successfully for approval!");
+      setLeaveModalOpen(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Leave request error:", err);
+      alert(err.response?.data?.message || "Failed to submit leave request.");
+    }
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    alert("Profile details updated successfully!");
-    setEditProfileOpen(false);
+    try {
+      await updateEmployeeProfile({
+        phone: profileData.phone,
+        address: profileData.address,
+      });
+      alert("Profile details updated successfully!");
+      setEditProfileOpen(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Profile update error:", err);
+      alert(err.response?.data?.message || "Failed to update profile.");
+    }
+  };
+
+  const handleOpenPayslipModal = async (periodOrId) => {
+    setPayslipModalData(periodOrId);
+    try {
+      const res = await getPayslipDetails(periodOrId);
+      if (res?.data?.payslip) {
+        setPayslipModalContent(res.data.payslip);
+      }
+    } catch (err) {
+      console.warn("Failed to load itemized payslip breakdown:", err);
+    }
   };
 
   const handleLogout = async () => {
@@ -91,7 +176,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
               onClick={() => handleTabChange("dashboard")}
             >
-              <span className="odoo-nav-icon">🏠</span>
               <span>Dashboard</span>
             </button>
           </li>
@@ -102,7 +186,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "profile" ? "active" : ""}`}
               onClick={() => handleTabChange("profile")}
             >
-              <span className="odoo-nav-icon">👤</span>
               <span>My Profile</span>
             </button>
           </li>
@@ -113,7 +196,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "contract" ? "active" : ""}`}
               onClick={() => handleTabChange("contract")}
             >
-              <span className="odoo-nav-icon">📄</span>
               <span>My Contract</span>
             </button>
           </li>
@@ -124,7 +206,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "schedule" ? "active" : ""}`}
               onClick={() => handleTabChange("schedule")}
             >
-              <span className="odoo-nav-icon">📅</span>
               <span>My Schedule</span>
             </button>
           </li>
@@ -135,7 +216,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "attendance" ? "active" : ""}`}
               onClick={() => handleTabChange("attendance")}
             >
-              <span className="odoo-nav-icon">⏱️</span>
               <span>My Attendance</span>
             </button>
           </li>
@@ -146,7 +226,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "leaves" ? "active" : ""}`}
               onClick={() => handleTabChange("leaves")}
             >
-              <span className="odoo-nav-icon">🌴</span>
               <span>My Leaves</span>
             </button>
           </li>
@@ -157,7 +236,6 @@ const EmployeeDashboard = () => {
               className={`odoo-nav-item ${activeTab === "payslips" ? "active" : ""}`}
               onClick={() => handleTabChange("payslips")}
             >
-              <span className="odoo-nav-icon">💳</span>
               <span>My Payslips</span>
             </button>
           </li>
@@ -192,11 +270,11 @@ const EmployeeDashboard = () => {
               title="Click to sign out"
             >
               <div className="odoo-avatar-circle">
-                {user?.name ? user.name.charAt(0).toUpperCase() : "R"}
+                {employeeInfo?.initials || (user?.name ? user.name.charAt(0).toUpperCase() : "R")}
               </div>
               <div className="odoo-user-meta">
                 <span className="odoo-user-fullname">
-                  {user?.name || "Rahul Sharma"}
+                  {employeeInfo?.fullName || user?.name || "Rahul Sharma"}
                 </span>
                 <span className="odoo-user-role-label">Employee</span>
               </div>
@@ -213,32 +291,41 @@ const EmployeeDashboard = () => {
               checkedIn={checkedIn}
               onToggleCheckIn={handleToggleCheckIn}
               onOpenLeaveModal={() => setLeaveModalOpen(true)}
-              onViewPayslip={(period) => setPayslipModalData(period)}
+              onViewPayslip={handleOpenPayslipModal}
+              refreshKey={refreshKey}
             />
           )}
 
           {activeTab === "profile" && (
-            <ProfileView onEditProfile={() => setEditProfileOpen(true)} />
+            <ProfileView
+              onEditProfile={() => setEditProfileOpen(true)}
+              refreshKey={refreshKey}
+            />
           )}
 
-          {activeTab === "contract" && <ContractView />}
+          {activeTab === "contract" && <ContractView refreshKey={refreshKey} />}
 
-          {activeTab === "schedule" && <ScheduleView />}
+          {activeTab === "schedule" && <ScheduleView refreshKey={refreshKey} />}
 
           {activeTab === "attendance" && (
             <AttendanceView
               checkedIn={checkedIn}
               onToggleCheckIn={handleToggleCheckIn}
+              refreshKey={refreshKey}
             />
           )}
 
           {activeTab === "leaves" && (
-            <LeavesView onOpenLeaveModal={() => setLeaveModalOpen(true)} />
+            <LeavesView
+              onOpenLeaveModal={() => setLeaveModalOpen(true)}
+              refreshKey={refreshKey}
+            />
           )}
 
           {activeTab === "payslips" && (
             <PayslipsView
-              onViewPayslip={(period) => setPayslipModalData(period)}
+              onViewPayslip={handleOpenPayslipModal}
+              refreshKey={refreshKey}
             />
           )}
         </main>
@@ -387,57 +474,83 @@ const EmployeeDashboard = () => {
             <div className="odoo-modal-body" style={{ fontSize: "0.85rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--odoo-border)", paddingBottom: "10px" }}>
                 <div>
-                  <strong>Rahul Sharma</strong> (EMP001)
-                  <div style={{ color: "var(--odoo-text-muted)", fontSize: "0.75rem" }}>Software Developer • Engineering</div>
+                  <strong>{payslipModalContent?.employeeName || employeeInfo?.fullName || "Rahul Sharma"}</strong> ({payslipModalContent?.employeeCode || employeeInfo?.employeeCode || "EMP001"})
+                  <div style={{ color: "var(--odoo-text-muted)", fontSize: "0.75rem" }}>
+                    {payslipModalContent?.designation || employeeInfo?.jobPosition || "Software Developer"} • {payslipModalContent?.department || employeeInfo?.department || "Engineering"}
+                  </div>
                 </div>
                 <div>
-                  <span className="odoo-badge odoo-badge-green">Paid</span>
+                  <span className={`odoo-badge ${payslipModalContent?.paymentStatus === "Paid" ? "odoo-badge-green" : "odoo-badge-orange"}`}>
+                    {payslipModalContent?.paymentStatus || "Paid"}
+                  </span>
                 </div>
               </div>
 
               <div>
                 <strong style={{ display: "block", color: "var(--odoo-text-secondary)", marginBottom: "6px" }}>Earnings</strong>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>Basic Salary</span>
-                  <span>₹ 35,000.00</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>House Rent Allowance (HRA)</span>
-                  <span>₹ 17,500.00</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>Special Allowance</span>
-                  <span>₹ 14,500.00</span>
-                </div>
+                {payslipModalContent?.earnings && payslipModalContent.earnings.length > 0 ? (
+                  payslipModalContent.earnings.map((earn, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>{earn.name}</span>
+                      <span>{earn.amount}</span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>Basic Salary</span>
+                      <span>₹ 30,000.00</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>House Rent Allowance (HRA)</span>
+                      <span>₹ 12,000.00</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>Special Allowance</span>
+                      <span>₹ 5,000.00</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px dashed var(--odoo-border)", paddingTop: "6px", marginTop: "6px" }}>
                   <span>Total Gross Earnings</span>
-                  <span>₹ 67,000.00</span>
+                  <span>{payslipModalContent?.grossAmount || "₹ 51,000.00"}</span>
                 </div>
               </div>
 
               <div>
                 <strong style={{ display: "block", color: "var(--odoo-text-secondary)", marginBottom: "6px" }}>Deductions</strong>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>Provident Fund (PF)</span>
-                  <span>₹ 4,200.00</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>Professional Tax (PT)</span>
-                  <span>₹ 200.00</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>Income Tax (TDS)</span>
-                  <span>₹ 8,100.00</span>
-                </div>
+                {payslipModalContent?.deductions && payslipModalContent.deductions.length > 0 ? (
+                  payslipModalContent.deductions.map((ded, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>{ded.name}</span>
+                      <span style={{ color: "var(--odoo-badge-red-text)" }}>{ded.amount}</span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>Provident Fund (PF)</span>
+                      <span>₹ 3,600.00</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>Professional Tax (PT)</span>
+                      <span>₹ 200.00</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span>Income Tax (TDS)</span>
+                      <span>₹ 1,500.00</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px dashed var(--odoo-border)", paddingTop: "6px", marginTop: "6px" }}>
                   <span>Total Deductions</span>
-                  <span style={{ color: "var(--odoo-badge-red-text)" }}>₹ 12,500.00</span>
+                  <span style={{ color: "var(--odoo-badge-red-text)" }}>{payslipModalContent?.deductionAmount || "₹ 5,300.00"}</span>
                 </div>
               </div>
 
               <div style={{ backgroundColor: "#f3ebf1", padding: "12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, color: "var(--odoo-plum-primary)" }}>Net Payout Disbursed</span>
-                <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--odoo-plum-primary)" }}>₹ 54,500.00</span>
+                <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--odoo-plum-primary)" }}>{payslipModalContent?.netAmount || "₹ 45,700.00"}</span>
               </div>
             </div>
 

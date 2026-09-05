@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getEmployeeProfile, updateEmployeeProfile } from "../../../api/employee.api";
 
-const ProfileView = () => {
+const ProfileView = ({ refreshKey }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     employeeCode: "EMP001",
@@ -11,19 +12,49 @@ const ProfileView = () => {
     manager: "Priya Mehta",
     email: "rahul.sharma@company.com",
     employeeType: "Full Time",
-    phone: "+91 9876543210",
+    phone: "+91 98765 43210",
     joiningDate: "01 Sep 2023",
     dateOfBirth: "15 Jan 2000",
     workSchedule: "General (Mon - Fri)",
     gender: "Male",
     status: "Active",
     address: "123, Green Park, Bangalore, Karnataka - 560001, India",
+    initials: "RS",
   });
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProfile = async () => {
+      try {
+        const res = await getEmployeeProfile();
+        if (isMounted && res?.data?.profile) {
+          setFormData(res.data.profile);
+        }
+      } catch (err) {
+        console.warn("Could not load employee profile:", err);
+      }
+    };
+    fetchProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey]);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setIsEditing(false);
-    alert("Personal information updated successfully!");
+    try {
+      await updateEmployeeProfile({
+        phone: formData.phone,
+        address: formData.address,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+      setIsEditing(false);
+      alert("Personal information updated successfully!");
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      alert("Failed to update profile. Please try again.");
+    }
   };
 
   // State 1: Edit Profile (Image 2 Top Left)
@@ -112,12 +143,10 @@ const ProfileView = () => {
                   <select
                     className="odoo-form-select"
                     value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
                   >
-                    <option value="Engineering">Engineering</option>
-                    <option value="Human Resources">Human Resources</option>
-                    <option value="Product">Product</option>
-                    <option value="Finance">Finance</option>
+                    <option value={formData.department}>{formData.department}</option>
                   </select>
                 </div>
 
@@ -137,11 +166,10 @@ const ProfileView = () => {
                   <select
                     className="odoo-form-select"
                     value={formData.jobPosition}
-                    onChange={(e) => setFormData({ ...formData, jobPosition: e.target.value })}
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
                   >
-                    <option value="Software Developer">Software Developer</option>
-                    <option value="Senior Developer">Senior Developer</option>
-                    <option value="QA Lead">QA Lead</option>
+                    <option value={formData.jobPosition}>{formData.jobPosition}</option>
                   </select>
                 </div>
 
@@ -158,14 +186,13 @@ const ProfileView = () => {
 
                 <div className="odoo-form-group">
                   <label className="odoo-form-label">Manager</label>
-                  <select
-                    className="odoo-form-select"
+                  <input
+                    type="text"
+                    className="odoo-form-input"
                     value={formData.manager}
-                    onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                  >
-                    <option value="Priya Mehta">Priya Mehta</option>
-                    <option value="Alexander Wright">Alexander Wright</option>
-                  </select>
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                  />
                 </div>
 
                 <div className="odoo-form-group">
@@ -174,22 +201,20 @@ const ProfileView = () => {
                     type="email"
                     className="odoo-form-input"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
                   />
                 </div>
 
                 <div className="odoo-form-group">
                   <label className="odoo-form-label">Employee Type</label>
-                  <select
-                    className="odoo-form-select"
+                  <input
+                    type="text"
+                    className="odoo-form-input"
                     value={formData.employeeType}
-                    onChange={(e) => setFormData({ ...formData, employeeType: e.target.value })}
-                  >
-                    <option value="Full Time">Full Time</option>
-                    <option value="Part Time">Part Time</option>
-                    <option value="Contract">Contract</option>
-                  </select>
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                  />
                 </div>
 
                 <div className="odoo-form-group">
@@ -210,6 +235,7 @@ const ProfileView = () => {
                     className="odoo-form-input"
                     value={formData.joiningDate + " 📅"}
                     readOnly
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
                   />
                 </div>
 
@@ -220,19 +246,19 @@ const ProfileView = () => {
                     className="odoo-form-input"
                     value={formData.dateOfBirth + " 📅"}
                     readOnly
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
                   />
                 </div>
 
                 <div className="odoo-form-group">
                   <label className="odoo-form-label">Work Schedule</label>
-                  <select
-                    className="odoo-form-select"
+                  <input
+                    type="text"
+                    className="odoo-form-input"
                     value={formData.workSchedule}
-                    onChange={(e) => setFormData({ ...formData, workSchedule: e.target.value })}
-                  >
-                    <option value="General (Mon - Fri)">General (Mon - Fri)</option>
-                    <option value="Night Shift">Night Shift</option>
-                  </select>
+                    disabled
+                    style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                  />
                 </div>
 
                 <div className="odoo-form-group">
@@ -313,7 +339,7 @@ const ProfileView = () => {
               margin: "0 auto 16px auto",
             }}
           >
-            RS
+            {formData.initials || "RS"}
           </div>
 
           <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 4px 0" }}>

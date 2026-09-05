@@ -1,7 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getEmployeeContract } from "../../../api/employee.api";
 
-const ContractView = () => {
+const ContractView = ({ refreshKey }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [activeContract, setActiveContract] = useState({
+    contractReference: "CNT-EMP001",
+    contractType: "Permanent",
+    startDate: "01 Sep 2023",
+    endDate: "31 Dec 2026",
+    payFrequency: "Monthly",
+    workingSchedule: "General (Mon - Fri)",
+    salaryStructure: "Regular Monthly Salary",
+    status: "Active",
+    wage: "₹ 56,000.00",
+    probationEndDate: "28 Feb 2024",
+    currency: "INR",
+    noticePeriod: "30 Days",
+    department: "Engineering",
+    jobPosition: "Software Developer",
+    manager: "Priya Mehta",
+    employeeType: "Full Time",
+    createdOn: "28 Aug 2023",
+    createdBy: "HR Manager",
+    workingDays: "5 Days",
+    dailyHours: "8 Hours",
+    weeklyHours: "40 Hours",
+    breakTime: "1 Hour",
+  });
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchContract = async () => {
+      try {
+        const res = await getEmployeeContract();
+        if (isMounted && res?.data) {
+          if (res.data.activeContract) setActiveContract(res.data.activeContract);
+          if (res.data.history) setHistory(res.data.history);
+        }
+      } catch (err) {
+        console.warn("Could not load contract details:", err);
+      }
+    };
+    fetchContract();
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey]);
 
   // State 2: Contract History (Image 2 Bottom Right)
   if (showHistory) {
@@ -28,138 +73,62 @@ const ContractView = () => {
 
         {/* Timeline List */}
         <div className="odoo-contract-timeline">
-          {/* Contract 1: Current Active */}
-          <div className="odoo-timeline-item">
-            <div className="odoo-timeline-dot active" />
-            <div className="odoo-timeline-card">
-              <div className="odoo-timeline-card-header">
-                <div className="odoo-timeline-header-left">
-                  <span className="odoo-timeline-code">CT-2023-001</span>
-                  <span className="odoo-timeline-tag">(Current Contract)</span>
-                  <span className="odoo-badge odoo-badge-green">Active</span>
-                  <span className="odoo-timeline-dates">01 Sep 2023 - 31 Dec 2026</span>
+          {history.map((c) => (
+            <div className="odoo-timeline-item" key={c.id}>
+              <div className={`odoo-timeline-dot ${c.isCurrent ? "active" : "expired"}`} />
+              <div className="odoo-timeline-card">
+                <div className="odoo-timeline-card-header">
+                  <div className="odoo-timeline-header-left">
+                    <span className="odoo-timeline-code">{c.code}</span>
+                    {c.isCurrent && <span className="odoo-timeline-tag">(Current Contract)</span>}
+                    <span
+                      className={`odoo-badge ${
+                        c.status === "Active" ? "odoo-badge-green" : ""
+                      }`}
+                      style={
+                        c.status !== "Active"
+                          ? { backgroundColor: "#f3f4f6", color: "#6b7280" }
+                          : {}
+                      }
+                    >
+                      {c.status}
+                    </span>
+                    <span className="odoo-timeline-dates">{c.dateRange}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="odoo-table-action-btn"
+                    onClick={() => setShowHistory(false)}
+                  >
+                    👁 View
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="odoo-table-action-btn"
-                  onClick={() => setShowHistory(false)}
-                >
-                  👁 View
-                </button>
-              </div>
 
-              <div className="odoo-timeline-grid">
-                <div className="odoo-timeline-grid-item">
-                  <span>Contract Type</span>
-                  <span>Permanent</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Salary Structure</span>
-                  <span>Regular Monthly Salary</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Wage</span>
-                  <span>₹ 50,000.00</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Pay Frequency</span>
-                  <span>Monthly</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Working Schedule</span>
-                  <span>General (Mon - Fri)</span>
+                <div className="odoo-timeline-grid">
+                  <div className="odoo-timeline-grid-item">
+                    <span>Contract Type</span>
+                    <span>{c.contractType}</span>
+                  </div>
+                  <div className="odoo-timeline-grid-item">
+                    <span>Salary Structure</span>
+                    <span>{c.salaryStructure}</span>
+                  </div>
+                  <div className="odoo-timeline-grid-item">
+                    <span>Wage</span>
+                    <span>{c.wage}</span>
+                  </div>
+                  <div className="odoo-timeline-grid-item">
+                    <span>Pay Frequency</span>
+                    <span>{c.payFrequency}</span>
+                  </div>
+                  <div className="odoo-timeline-grid-item">
+                    <span>Working Schedule</span>
+                    <span>{c.workingSchedule}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Contract 2: Expired 2022 */}
-          <div className="odoo-timeline-item">
-            <div className="odoo-timeline-dot expired" />
-            <div className="odoo-timeline-card">
-              <div className="odoo-timeline-card-header">
-                <div className="odoo-timeline-header-left">
-                  <span className="odoo-timeline-code">CT-2022-001</span>
-                  <span className="odoo-badge" style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}>Expired</span>
-                  <span className="odoo-timeline-dates">01 Sep 2022 - 31 Aug 2023</span>
-                </div>
-                <button
-                  type="button"
-                  className="odoo-table-action-btn"
-                  onClick={() => alert("Viewing archived contract CT-2022-001 details...")}
-                >
-                  👁 View
-                </button>
-              </div>
-
-              <div className="odoo-timeline-grid">
-                <div className="odoo-timeline-grid-item">
-                  <span>Contract Type</span>
-                  <span>Fixed Term</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Salary Structure</span>
-                  <span>Regular Monthly Salary</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Wage</span>
-                  <span>₹ 45,000.00</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Pay Frequency</span>
-                  <span>Monthly</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Working Schedule</span>
-                  <span>General (Mon - Fri)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contract 3: Expired 2021 */}
-          <div className="odoo-timeline-item">
-            <div className="odoo-timeline-dot expired" />
-            <div className="odoo-timeline-card">
-              <div className="odoo-timeline-card-header">
-                <div className="odoo-timeline-header-left">
-                  <span className="odoo-timeline-code">CT-2021-001</span>
-                  <span className="odoo-badge" style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}>Expired</span>
-                  <span className="odoo-timeline-dates">01 Mar 2021 - 31 Aug 2022</span>
-                </div>
-                <button
-                  type="button"
-                  className="odoo-table-action-btn"
-                  onClick={() => alert("Viewing archived contract CT-2021-001 details...")}
-                >
-                  👁 View
-                </button>
-              </div>
-
-              <div className="odoo-timeline-grid">
-                <div className="odoo-timeline-grid-item">
-                  <span>Contract Type</span>
-                  <span>Fixed Term</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Salary Structure</span>
-                  <span>Regular Monthly Salary</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Wage</span>
-                  <span>₹ 40,000.00</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Pay Frequency</span>
-                  <span>Monthly</span>
-                </div>
-                <div className="odoo-timeline-grid-item">
-                  <span>Working Schedule</span>
-                  <span>General (Mon - Fri)</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     );
@@ -212,62 +181,62 @@ const ContractView = () => {
           >
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Contract Reference</span>
-              <span style={{ fontWeight: 600 }}>CT-2023-001</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.contractReference}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Contract Type</span>
-              <span style={{ fontWeight: 600 }}>Permanent</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.contractType}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Start Date</span>
-              <span style={{ fontWeight: 600 }}>01 Sep 2023</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.startDate}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Pay Frequency</span>
-              <span style={{ fontWeight: 600 }}>Monthly</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.payFrequency}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>End Date</span>
-              <span style={{ fontWeight: 600 }}>31 Dec 2026</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.endDate}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Working Schedule</span>
-              <span style={{ fontWeight: 600 }}>General (Mon - Fri)</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.workingSchedule}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Salary Structure</span>
-              <span style={{ fontWeight: 600 }}>Regular Monthly Salary</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.salaryStructure}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Status</span>
-              <span className="odoo-badge odoo-badge-green">Active</span>
+              <span className="odoo-badge odoo-badge-green">{activeContract.status}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Wage (Monthly)</span>
-              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111827" }}>₹ 50,000.00</span>
+              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111827" }}>{activeContract.wage}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Probation End Date</span>
-              <span style={{ fontWeight: 600 }}>28 Feb 2024</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.probationEndDate}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Currency</span>
-              <span style={{ fontWeight: 600 }}>INR</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.currency}</span>
             </div>
 
             <div>
               <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Notice Period</span>
-              <span style={{ fontWeight: 600 }}>30 Days</span>
+              <span style={{ fontWeight: 600 }}>{activeContract.noticePeriod}</span>
             </div>
           </div>
         </div>
@@ -283,27 +252,27 @@ const ContractView = () => {
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Department</span>
-                <span style={{ fontWeight: 600 }}>Engineering</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.department}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Job Position</span>
-                <span style={{ fontWeight: 600 }}>Software Developer</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.jobPosition}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Manager</span>
-                <span style={{ fontWeight: 600 }}>Priya Mehta</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.manager}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Employee Type</span>
-                <span style={{ fontWeight: 600 }}>Full Time</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.employeeType}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Created On</span>
-                <span style={{ fontWeight: 600 }}>28 Aug 2023</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.createdOn}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Created By</span>
-                <span style={{ fontWeight: 600 }}>HR Manager</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.createdBy}</span>
               </div>
             </div>
           </div>
@@ -317,19 +286,19 @@ const ContractView = () => {
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Working Days</span>
-                <span style={{ fontWeight: 600 }}>5 Days</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.workingDays}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Daily Hours</span>
-                <span style={{ fontWeight: 600 }}>8 Hours</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.dailyHours}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Weekly Hours</span>
-                <span style={{ fontWeight: 600 }}>40 Hours</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.weeklyHours}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--odoo-text-muted)" }}>Break Time</span>
-                <span style={{ fontWeight: 600 }}>1 Hour</span>
+                <span style={{ fontWeight: 600 }}>{activeContract.breakTime}</span>
               </div>
             </div>
           </div>

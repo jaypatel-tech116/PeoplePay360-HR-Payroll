@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "db:init:mysql": "node scripts/init-mysql.js",
+    "db:counts:mysql": "node scripts/check-mysql-counts.js",
+    "test:api": "node scripts/test-api.js"
   },
   "keywords": [
     "postgresql",
@@ -34,6 +37,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
+    "mysql2": "^3.24.3",
     "pg": "^8.16.0"
   },
   "devDependencies": {

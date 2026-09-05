@@ -1,261 +1,411 @@
-import React, { useState } from "react";
-import PortalLayout from "../../components/layout/PortalLayout";
-import StatCard from "../../components/ui/StatCard";
-import DataTable from "../../components/ui/DataTable";
-import Badge from "../../components/ui/Badge";
-import "./PayrollUserDashboard.css";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import PayrollDashboardView from "./views/PayrollDashboardView";
+import EmployeesPayrollView from "./views/EmployeesPayrollView";
+import EmployeeDetailsView from "./views/EmployeeDetailsView";
+import PayCyclesView from "./views/PayCyclesView";
+import ProcessPayrollView from "./views/ProcessPayrollView";
+import PaySlipsListView from "./views/PaySlipsListView";
+import PaySlipDocumentView from "./views/PaySlipDocumentView";
+import PayrollReportsView from "./views/PayrollReportsView";
+import PayrollSettingsView from "./views/PayrollSettingsView";
+import AddEmployeePayrollModal from "./modals/AddEmployeePayrollModal";
+import CreatePayCycleModal from "./modals/CreatePayCycleModal";
+import AddComponentModal from "./modals/AddComponentModal";
+import "./PayrollPortal.css";
 
-const INITIAL_TIMESHEETS = [
-  { id: 1, name: "James Wilson", code: "EMP-1042", totalDays: 22, payableDays: 22, lwp: 0, overtimeHours: 4, verified: true },
-  { id: 2, name: "Olivia Taylor", code: "EMP-1033", totalDays: 22, payableDays: 22, lwp: 0, overtimeHours: 0, verified: true },
-  { id: 3, name: "Ethan Brown", code: "EMP-1021", totalDays: 22, payableDays: 20, lwp: 2, overtimeHours: 0, verified: false },
-  { id: 4, name: "Lucas Scott", code: "EMP-1055", totalDays: 22, payableDays: 21, lwp: 1, overtimeHours: 8, verified: true },
-  { id: 5, name: "Mia Chen", code: "EMP-1060", totalDays: 22, payableDays: 22, lwp: 0, overtimeHours: 2, verified: false },
-];
-
-const MOCK_ADJUSTMENTS = [
-  { id: 1, employee: "Lucas Scott", code: "EMP-1055", type: "Sales Performance Bonus", amount: "+$850.00", category: "Earning", note: "Q1 Target Achieved" },
-  { id: 2, employee: "Ethan Brown", code: "EMP-1021", type: "Salary Advance Deduction", amount: "-$300.00", category: "Deduction", note: "Installment 2 of 3" },
-  { id: 3, employee: "James Wilson", code: "EMP-1042", type: "On-Call Project Allowance", amount: "+$400.00", category: "Earning", note: "Weekend release support" },
+const INITIAL_EMPLOYEES_PAYROLL = [
+  { code: "EMP001", name: "Rahul Sharma", department: "Engineering", jobTitle: "Software Developer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "01 Sep 2023" },
+  { code: "EMP002", name: "Priya Mehta", department: "HR", jobTitle: "HR Manager", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "15 Jun 2022" },
+  { code: "EMP003", name: "Vikram Rao", department: "Sales", jobTitle: "Sales Executive", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "10 Jan 2023" },
+  { code: "EMP004", name: "Sneha Iyer", department: "Product", jobTitle: "UI/UX Designer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "01 Mar 2024" },
+  { code: "EMP005", name: "Aditya Gupta", department: "Engineering", jobTitle: "DevOps Engineer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "20 Feb 2024" },
+  { code: "EMP006", name: "Neha Patel", department: "HR", jobTitle: "HR Executive", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "15 Sep 2025" },
+  { code: "EMP007", name: "Rohan Desai", department: "Marketing", jobTitle: "Marketing Specialist", employeeType: "Full Time", payrollStatus: "Inactive", joinedDate: "01 Oct 2024" },
+  { code: "EMP008", name: "Meera Nair", department: "Finance", jobTitle: "Accountant", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "08 Sep 2024" },
 ];
 
 const PayrollUserDashboard = () => {
-  const [activeTab, setActiveTab] = useState("timesheets");
-  const [timesheets, setTimesheets] = useState(INITIAL_TIMESHEETS);
-  const [draftSubmitted, setDraftSubmitted] = useState(false);
+  const { logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const toggleVerify = (id) => {
-    setTimesheets((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, verified: !t.verified } : t))
-    );
+  // Active view tab state
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  // Data states
+  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES_PAYROLL);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedPaySlip, setSelectedPaySlip] = useState(null);
+
+  // Modals state
+  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
+  const [isCreateCycleOpen, setIsCreateCycleOpen] = useState(false);
+  const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
+
+  // Read tab from query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    if (
+      tabParam &&
+      [
+        "dashboard",
+        "employees",
+        "employee-details",
+        "pay-cycles",
+        "process-payroll",
+        "payslips",
+        "payslip-detail",
+        "reports",
+        "settings",
+      ].includes(tabParam)
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(`/payroll-user?tab=${tab}`, { replace: true });
   };
 
-  const handleCompileDraft = () => {
-    setDraftSubmitted(true);
-    alert("March 2026 Payroll Draft has been compiled and sent to the HR Payroll Manager for review!");
+  const handleSelectEmployee = (emp) => {
+    setSelectedEmployee(emp);
+    handleTabChange("employee-details");
   };
 
-  const timesheetColumns = [
-    {
-      key: "name",
-      header: "Employee",
-      render: (row) => (
-        <div>
-          <div className="emp-table-name">{row.name}</div>
-          <div className="emp-table-sub">{row.code}</div>
-        </div>
-      ),
-    },
-    { key: "totalDays", header: "Total Working Days" },
-    { key: "payableDays", header: "Payable Days" },
-    {
-      key: "lwp",
-      header: "Loss of Pay (LWP)",
-      render: (row) => (
-        <span style={{ color: row.lwp > 0 ? "var(--color-danger)" : "inherit", fontWeight: row.lwp > 0 ? "bold" : "normal" }}>
-          {row.lwp} Days
-        </span>
-      ),
-    },
-    { key: "overtimeHours", header: "Overtime (Hrs)" },
-    {
-      key: "verified",
-      header: "Validation Status",
-      render: (row) => (
-        <Badge variant={row.verified ? "success" : "warning"}>
-          {row.verified ? "Verified" : "Pending Check"}
-        </Badge>
-      ),
-    },
-    {
-      key: "action",
-      header: "Action",
-      render: (row) => (
-        <button
-          type="button"
-          className="action-btn-secondary"
-          onClick={() => toggleVerify(row.id)}
-        >
-          {row.verified ? "Undo" : "✓ Mark Verified"}
-        </button>
-      ),
-    },
-  ];
+  const handleSelectPaySlip = (slip) => {
+    setSelectedPaySlip(slip);
+    handleTabChange("payslip-detail");
+  };
 
-  const adjustmentColumns = [
-    {
-      key: "employee",
-      header: "Employee",
-      render: (row) => (
-        <div>
-          <div className="emp-table-name">{row.employee}</div>
-          <div className="emp-table-sub">{row.code}</div>
-        </div>
-      ),
-    },
-    { key: "type", header: "Adjustment Component" },
-    {
-      key: "category",
-      header: "Type",
-      render: (row) => (
-        <Badge variant={row.category === "Earning" ? "success" : "danger"} size="sm">
-          {row.category}
-        </Badge>
-      ),
-    },
-    {
-      key: "amount",
-      header: "Amount",
-      render: (row) => <strong>{row.amount}</strong>,
-    },
-    { key: "note", header: "Remarks / Approval Note" },
-  ];
+  const handleAddEmployee = (newEmp) => {
+    setEmployees((prev) => [newEmp, ...prev]);
+    alert(`Employee ${newEmp.name} (${newEmp.code}) added to payroll system!`);
+  };
 
-  const verifiedCount = timesheets.filter((t) => t.verified).length;
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
-    <PortalLayout title="Payroll Operations & Data Entry">
-      {/* Metrics Row */}
-      <div className="stats-grid">
-        <StatCard
-          title="Verified Timesheets"
-          value={`${verifiedCount} / ${timesheets.length}`}
-          subtitle={`${timesheets.length - verifiedCount} remaining to audit`}
-          icon="🕒"
-          variant={verifiedCount === timesheets.length ? "success" : "warning"}
-        />
-        <StatCard
-          title="Unpaid Leaves (LWP)"
-          value="3 Days"
-          subtitle="Deductions calculated automatically"
-          icon="📉"
-          variant="info"
-        />
-        <StatCard
-          title="Variable Pay Adjustments"
-          value="$950.00"
-          subtitle="3 manual entries logged"
-          icon="✏️"
-          variant="primary"
-        />
-        <StatCard
-          title="Cycle Draft Status"
-          value={draftSubmitted ? "Submitted" : "Draft In Progress"}
-          subtitle="March 2026 period"
-          icon="🚀"
-          variant={draftSubmitted ? "success" : "warning"}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="admin-tabs-bar">
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "timesheets" ? "active" : ""}`}
-          onClick={() => setActiveTab("timesheets")}
-        >
-          🕒 Monthly Timesheet Inputs
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "adjustments" ? "active" : ""}`}
-          onClick={() => setActiveTab("adjustments")}
-        >
-          ✏️ Variable Pay & Deductions
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "compile" ? "active" : ""}`}
-          onClick={() => setActiveTab("compile")}
-        >
-          🚀 Compile & Submit Draft
-        </button>
-      </div>
-
-      {/* Tab 1: Timesheets */}
-      {activeTab === "timesheets" && (
-        <div className="tab-content">
-          <DataTable
-            title="Attendance & Timesheet Verification"
-            subtitle="Verify payable days, loss-of-pay deductions, and overtime hours before compiling draft payroll."
-            columns={timesheetColumns}
-            data={timesheets}
-          />
+    <div className="pay-shell">
+      {/* 1. Left Sidebar */}
+      <aside className={`pay-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="pay-sidebar-brand">
+          <span className="pay-logo-text">odoo</span>
         </div>
-      )}
 
-      {/* Tab 2: Adjustments */}
-      {activeTab === "adjustments" && (
-        <div className="tab-content">
-          <DataTable
-            title="Manual Earnings & Salary Advances"
-            subtitle="Add one-off commissions, project stipends, or loan repayments for this month's calculation."
-            columns={adjustmentColumns}
-            data={MOCK_ADJUSTMENTS}
-            actions={
+        <ul className="pay-sidebar-menu">
+          <li>
+            <button
+              type="button"
+              className={`pay-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => handleTabChange("dashboard")}
+            >
+              <span>Dashboard</span>
+            </button>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              className={`pay-nav-item ${
+                activeTab === "employees" || activeTab === "employee-details"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => handleTabChange("employees")}
+            >
+              <span>Employees</span>
+            </button>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              className="pay-nav-item"
+              onClick={() => navigate("/hr-manager?tab=leaves")}
+            >
+              <span>Leaves</span>
+            </button>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              className="pay-nav-item"
+              onClick={() => navigate("/hr-manager?tab=attendance")}
+            >
+              <span>Attendance</span>
+            </button>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              className={`pay-nav-item ${
+                [
+                  "dashboard",
+                  "pay-cycles",
+                  "process-payroll",
+                  "payslips",
+                  "payslip-detail",
+                  "settings",
+                ].includes(activeTab)
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => handleTabChange("dashboard")}
+            >
+              <span>Payroll</span>
+            </button>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              className={`pay-nav-item ${activeTab === "reports" ? "active" : ""}`}
+              onClick={() => handleTabChange("reports")}
+            >
+              <span>Reports</span>
+            </button>
+          </li>
+        </ul>
+
+        <div className="pay-sidebar-footer">
+          <button
+            type="button"
+            className="pay-collapse-btn"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? "›" : "‹"}
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. Main Content */}
+      <div className="pay-main">
+        {/* Topbar */}
+        <header className="pay-topbar">
+          <div className="pay-topbar-left">
+            <span className="pay-topbar-appname">PeoplePay360</span>
+
+            {/* Sub-nav quick switcher for the 9 screens */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "14px" }}>
               <button
                 type="button"
-                className="btn-create-user"
-                onClick={() => alert("Open Add Adjustment Modal")}
+                className={`pay-subtab-btn ${activeTab === "dashboard" ? "active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                onClick={() => handleTabChange("dashboard")}
               >
-                + Add Adjustment
+                Overview
               </button>
-            }
-          />
-        </div>
-      )}
-
-      {/* Tab 3: Compile */}
-      {activeTab === "compile" && (
-        <div className="tab-content">
-          <div className="compile-card">
-            <h3 className="settings-card-title">📦 March 2026 Draft Summary</h3>
-            <p className="settings-card-desc">
-              All monthly inputs have been audited. Review the gross-to-net compilation below before forwarding to the Payroll Manager.
-            </p>
-
-            <div className="compile-breakdown">
-              <div className="compile-row">
-                <span>Total Headcount</span>
-                <strong>94 Active Employees</strong>
-              </div>
-              <div className="compile-row">
-                <span>Gross Compensation</span>
-                <strong>$287,950.00</strong>
-              </div>
-              <div className="compile-row">
-                <span>Variable Additions (Bonuses / Overtime)</span>
-                <strong style={{ color: "var(--color-success)" }}>+$1,250.00</strong>
-              </div>
-              <div className="compile-row">
-                <span>Total Deductions (Taxes + PF + LWP)</span>
-                <strong style={{ color: "var(--color-danger)" }}>-$42,150.00</strong>
-              </div>
-              <div className="compile-row total">
-                <span>Net Disbursement Payout</span>
-                <strong className="compile-net">$245,800.00</strong>
-              </div>
+              <button
+                type="button"
+                className={`pay-subtab-btn ${activeTab === "pay-cycles" ? "active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                onClick={() => handleTabChange("pay-cycles")}
+              >
+                Pay Cycles
+              </button>
+              <button
+                type="button"
+                className={`pay-subtab-btn ${activeTab === "process-payroll" ? "active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                onClick={() => handleTabChange("process-payroll")}
+              >
+                Process Wizard
+              </button>
+              <button
+                type="button"
+                className={`pay-subtab-btn ${
+                  activeTab === "payslips" || activeTab === "payslip-detail"
+                    ? "active"
+                    : ""
+                }`}
+                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                onClick={() => handleTabChange("payslips")}
+              >
+                Pay Slips
+              </button>
+              <button
+                type="button"
+                className={`pay-subtab-btn ${activeTab === "settings" ? "active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                onClick={() => handleTabChange("settings")}
+              >
+                Settings
+              </button>
             </div>
+          </div>
 
-            <div className="compile-actions">
-              {draftSubmitted ? (
-                <div className="compile-success-badge">
-                  ✅ Draft Batch successfully forwarded to Liam Patel (Payroll Manager) for final approval!
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-compile-submit"
-                  onClick={handleCompileDraft}
+          <div className="pay-topbar-right">
+            <button
+              type="button"
+              className="pay-icon-badge-btn"
+              title="3 Messages"
+              onClick={() => alert("3 new payroll notifications")}
+            >
+              💬
+              <span className="pay-badge-count">3</span>
+            </button>
+
+            <button
+              type="button"
+              className="pay-icon-badge-btn"
+              title="12 Alerts"
+              onClick={() => alert("12 payroll items awaiting sign-off")}
+            >
+              🔔
+              <span className="pay-badge-count">12</span>
+            </button>
+
+            <div style={{ position: "relative" }}>
+              <div
+                className="pay-user-pill"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              >
+                <div className="pay-user-avatar">HM</div>
+                <span className="pay-user-name">HR Manager</span>
+                <span className="pay-user-caret">⌵</span>
+              </div>
+
+              {isProfileMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "44px",
+                    right: 0,
+                    width: "200px",
+                    backgroundColor: "#ffffff",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                    border: "1px solid #e2e8f0",
+                    padding: "8px 0",
+                    zIndex: 100,
+                  }}
                 >
-                  🚀 Compile & Submit to Payroll Manager
-                </button>
+                  <div style={{ padding: "8px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>
+                      HR Payroll User
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>
+                      payroll@peoplepay360.com
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "8px 16px",
+                      background: "none",
+                      border: "none",
+                      fontSize: "0.82rem",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                    }}
+                    onClick={handleLogout}
+                  >
+                    ↪ Sign Out
+                  </button>
+                </div>
               )}
             </div>
           </div>
-        </div>
-      )}
-    </PortalLayout>
+        </header>
+
+        {/* 3. Screen Views Dispatcher */}
+        {activeTab === "dashboard" && (
+          <PayrollDashboardView
+            onNavigateTab={handleTabChange}
+            onSelectEmployee={handleSelectEmployee}
+          />
+        )}
+
+        {activeTab === "employees" && (
+          <EmployeesPayrollView
+            employees={employees}
+            onOpenAddModal={() => setIsAddEmployeeOpen(true)}
+            onSelectEmployee={handleSelectEmployee}
+          />
+        )}
+
+        {activeTab === "employee-details" && (
+          <EmployeeDetailsView
+            employee={selectedEmployee}
+            onBack={() => handleTabChange("employees")}
+            onNavigateTab={handleTabChange}
+          />
+        )}
+
+        {activeTab === "pay-cycles" && (
+          <PayCyclesView
+            onOpenCreateModal={() => setIsCreateCycleOpen(true)}
+            onSelectCycle={() => handleTabChange("process-payroll")}
+          />
+        )}
+
+        {activeTab === "process-payroll" && (
+          <ProcessPayrollView
+            onBack={() => handleTabChange("pay-cycles")}
+            onComplete={() => handleTabChange("pay-cycles")}
+          />
+        )}
+
+        {activeTab === "payslips" && (
+          <PaySlipsListView
+            onSelectPaySlip={handleSelectPaySlip}
+          />
+        )}
+
+        {activeTab === "payslip-detail" && (
+          <PaySlipDocumentView
+            slip={selectedPaySlip}
+            onBack={() => handleTabChange("payslips")}
+          />
+        )}
+
+        {activeTab === "reports" && <PayrollReportsView />}
+
+        {activeTab === "settings" && (
+          <PayrollSettingsView
+            onOpenAddComponent={() => setIsAddComponentOpen(true)}
+          />
+        )}
+      </div>
+
+      {/* 4. Modals */}
+      <AddEmployeePayrollModal
+        isOpen={isAddEmployeeOpen}
+        onClose={() => setIsAddEmployeeOpen(false)}
+        onAdd={handleAddEmployee}
+      />
+
+      <CreatePayCycleModal
+        isOpen={isCreateCycleOpen}
+        onClose={() => setIsCreateCycleOpen(false)}
+        onCreate={(c) => {
+          alert(`Pay cycle for ${c.month} ${c.year} created!`);
+          handleTabChange("process-payroll");
+        }}
+      />
+
+      <AddComponentModal
+        isOpen={isAddComponentOpen}
+        onClose={() => setIsAddComponentOpen(false)}
+        onAdd={(comp) => {
+          alert(`Component "${comp.name}" added successfully!`);
+        }}
+      />
+    </div>
   );
 };
 

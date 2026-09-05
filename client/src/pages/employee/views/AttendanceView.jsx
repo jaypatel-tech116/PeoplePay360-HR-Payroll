@@ -1,21 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getEmployeeAttendance } from "../../../api/employee.api";
 
-const INITIAL_RECORDS = [
-  { id: 1, date: "26 Aug 2025", checkIn: "09:00 AM", checkOut: "-", hours: "-", status: "Present", location: "Bangalore Office" },
-  { id: 2, date: "25 Aug 2025", checkIn: "09:15 AM", checkOut: "06:00 PM", hours: "8.75", status: "Present", location: "Bangalore Office" },
-  { id: 3, date: "22 Aug 2025", checkIn: "09:00 AM", checkOut: "06:00 PM", hours: "9.00", status: "Present", location: "Bangalore Office" },
-  { id: 4, date: "21 Aug 2025", checkIn: "09:30 AM", checkOut: "06:30 PM", hours: "8.50", status: "Late", location: "Bangalore Office" },
-  { id: 5, date: "20 Aug 2025", checkIn: "09:00 AM", checkOut: "06:00 PM", hours: "9.00", status: "Present", location: "Bangalore Office" },
-];
-
-const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
+const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
   const [selectedMonth, setSelectedMonth] = useState("Aug 2025");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [data, setData] = useState(null);
 
-  const filteredRecords = INITIAL_RECORDS.filter((r) => {
-    if (statusFilter === "All Status") return true;
-    return r.status === statusFilter;
-  });
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAttendance = async () => {
+      try {
+        const res = await getEmployeeAttendance({
+          month: selectedMonth,
+          status: statusFilter,
+        });
+        if (isMounted && res?.data) {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.warn("Failed to load attendance records:", err);
+      }
+    };
+    fetchAttendance();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedMonth, statusFilter, refreshKey, checkedIn]);
+
+  const todayDetails = data?.todayDetails || {
+    currentDate: new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" }),
+    clock: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    checkIn: checkedIn ? "09:05 AM" : "--:--",
+    checkOut: "--:--",
+    workedHours: "-",
+    status: checkedIn ? "Present" : "Not Checked In",
+    location: "Bangalore Office",
+    remarks: "-",
+    workedToday: checkedIn ? "00h 12m" : "00h 00m",
+    sinceText: checkedIn ? "Since 09:00 AM" : "Shift Completed",
+  };
+
+  const todaySchedule = data?.todaySchedule || {
+    shift: "General (Mon - Fri)",
+    startTime: "09:00 AM",
+    endTime: "06:00 PM",
+    breakTime: "60 minutes",
+    expectedHours: "8.00",
+  };
+
+  const records = data?.records || [
+    { id: 1, date: "26 Aug 2025", checkIn: "09:00 AM", checkOut: "-", hours: "-", status: "Present", location: "Bangalore Office" },
+    { id: 2, date: "25 Aug 2025", checkIn: "09:15 AM", checkOut: "06:00 PM", hours: "8.75", status: "Present", location: "Bangalore Office" },
+    { id: 3, date: "22 Aug 2025", checkIn: "09:00 AM", checkOut: "06:00 PM", hours: "9.00", status: "Present", location: "Bangalore Office" },
+    { id: 4, date: "21 Aug 2025", checkIn: "09:30 AM", checkOut: "06:30 PM", hours: "8.50", status: "Late", location: "Bangalore Office" },
+    { id: 5, date: "20 Aug 2025", checkIn: "09:00 AM", checkOut: "06:00 PM", hours: "9.00", status: "Present", location: "Bangalore Office" },
+  ];
 
   return (
     <div className="employee-attendance-view">
@@ -34,13 +73,12 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
           <div className="attendance-time-icon">📅</div>
           <div>
             <div style={{ fontSize: "0.85rem", color: "var(--odoo-text-secondary)", fontWeight: 500 }}>
-              Thursday, 26 Aug 2025
+              {todayDetails.currentDate}
             </div>
             <div className="attendance-time-clock">
-              {checkedIn ? "09:12 AM" : "06:12 PM"}
+              {todayDetails.clock}
             </div>
             <div className="attendance-checked-in-status">
-              <span style={{ color: checkedIn ? "#10b981" : "#d97706" }}>●</span>
               <span>{checkedIn ? "You are checked in" : "You are checked out"}</span>
             </div>
           </div>
@@ -59,7 +97,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
               <span>Check In</span>
             </button>
             <span className="attendance-action-sub">
-              {checkedIn ? "Checked in at 09:00 AM" : "Not checked in"}
+              {checkedIn ? `Checked in at ${todayDetails.checkIn}` : "Not checked in"}
             </span>
           </div>
 
@@ -74,7 +112,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
               <span>Check Out</span>
             </button>
             <span className="attendance-action-sub">
-              {checkedIn ? "Last check out -- : --" : "Checked out at 06:12 PM"}
+              {checkedIn ? "Last check out -- : --" : (todayDetails.checkOut !== "--:--" ? `Checked out at ${todayDetails.checkOut}` : "Last check out -- : --")}
             </span>
           </div>
         </div>
@@ -91,10 +129,10 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
             <div>
               <div className="attendance-working-label">Worked Today</div>
               <div className="attendance-working-timer">
-                {checkedIn ? "00h 12m" : "08h 45m"}
+                {todayDetails.workedToday}
               </div>
               <div className="attendance-working-since">
-                {checkedIn ? "Since 09:00 AM" : "Shift Completed"}
+                {todayDetails.sinceText}
               </div>
             </div>
           </div>
@@ -119,27 +157,29 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.8rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Check In</span>
-              <span style={{ fontWeight: 600 }}>09:00 AM</span>
+              <span style={{ fontWeight: 600 }}>{todayDetails.checkIn}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Check Out</span>
-              <span style={{ fontWeight: 600 }}>-</span>
+              <span style={{ fontWeight: 600 }}>{todayDetails.checkOut}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Worked Hours</span>
-              <span style={{ fontWeight: 600 }}>-</span>
+              <span style={{ fontWeight: 600 }}>{todayDetails.workedHours}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Status</span>
-              <span className="odoo-badge odoo-badge-green">Present</span>
+              <span className={`odoo-badge ${todayDetails.status === "Present" ? "odoo-badge-green" : "odoo-badge-orange"}`}>
+                {todayDetails.status}
+              </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Location</span>
-              <span style={{ fontWeight: 600 }}>Bangalore Office</span>
+              <span style={{ fontWeight: 600 }}>{todayDetails.location}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Remarks</span>
-              <span style={{ fontWeight: 600 }}>-</span>
+              <span style={{ fontWeight: 600 }}>{todayDetails.remarks}</span>
             </div>
           </div>
         </div>
@@ -153,23 +193,23 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.8rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Shift</span>
-              <span style={{ fontWeight: 600 }}>General (Mon - Fri)</span>
+              <span style={{ fontWeight: 600 }}>{todaySchedule.shift}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Start Time</span>
-              <span style={{ fontWeight: 600 }}>09:00 AM</span>
+              <span style={{ fontWeight: 600 }}>{todaySchedule.startTime}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>End Time</span>
-              <span style={{ fontWeight: 600 }}>06:00 PM</span>
+              <span style={{ fontWeight: 600 }}>{todaySchedule.endTime}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Break Time</span>
-              <span style={{ fontWeight: 600 }}>60 minutes</span>
+              <span style={{ fontWeight: 600 }}>{todaySchedule.breakTime}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--odoo-text-muted)" }}>Expected Hours</span>
-              <span style={{ fontWeight: 600 }}>8.00</span>
+              <span style={{ fontWeight: 600 }}>{todaySchedule.expectedHours}</span>
             </div>
           </div>
         </div>
@@ -189,6 +229,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
               onChange={(e) => setSelectedMonth(e.target.value)}
             >
               <option value="Aug 2025">Aug 2025</option>
+              <option value="Sep 2026">Sep 2026</option>
               <option value="Jul 2025">Jul 2025</option>
             </select>
 
@@ -217,7 +258,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.map((r) => (
+              {records.map((r) => (
                 <tr key={r.id}>
                   <td>{r.date}</td>
                   <td>{r.checkIn}</td>

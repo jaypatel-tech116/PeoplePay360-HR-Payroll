@@ -28,7 +28,9 @@ const RoleRoute = ({ allowedRoles = [], children }) => {
       EMPLOYEE: "/employee",
       HR_MANAGER: "/hr-manager",
       PAYROLL_MANAGER: "/payroll-manager",
+      HR_PAYROLL_MANAGER: "/payroll-manager",
       PAYROLL_USER: "/payroll-user",
+      HR_PAYROLL_USER: "/payroll-user",
     };
     const defaultDestination = roleRoutes[user.role] || "/login";
     return <Navigate to={defaultDestination} replace />;

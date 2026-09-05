@@ -4,9 +4,23 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const dotenv = require("dotenv");
 
+// Route imports
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
+const employeeRoutes = require("./routes/employee.routes");
+const departmentRoutes = require("./routes/department.routes");
+const contractRoutes = require("./routes/contract.routes");
+const scheduleRoutes = require("./routes/schedule.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
+const leaveRoutes = require("./routes/leave.routes");
+const payrollRoutes = require("./routes/payroll.routes");
+const salaryRuleRoutes = require("./routes/salary-rule.routes");
+const analyticsRoutes = require("./routes/analytics.routes");
+const auditRoutes = require("./routes/audit.routes");
 const dbRoutes = require("./routes/db.routes");
+const hrRoutes = require("./routes/hr.routes");
+const employeePortalRoutes = require("./routes/employeePortal.routes");
+
 const { errorHandler } = require("./middleware/errorHandler.middleware");
 const { errorResponse, successResponse } = require("./utils/apiResponse");
 
@@ -38,7 +52,7 @@ app.use(
       return callback(null, true);
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -52,18 +66,32 @@ app.use(cookieParser());
 app.get("/api/health", (req, res) => {
   return successResponse(res, {
     statusCode: 200,
-    message: "Server is healthy and running",
+    message: "PeoplePay360 MySQL Server is healthy and running",
     data: {
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
+      database: "MySQL 8.0 (Local)",
     },
   });
 });
 
 // 5. Mount API feature routes
 app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/user", userRoutes); // backwards compatibility
+app.use("/api/employees", employeeRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/contracts", contractRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/leaves", leaveRoutes);
+app.use("/api/payroll", payrollRoutes);
+app.use("/api/salary-rules", salaryRuleRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/audit-logs", auditRoutes);
 app.use("/api/db", dbRoutes);
+app.use("/api/hr", hrRoutes);
+app.use("/api/employee/me", employeePortalRoutes);
 
 // 6. Handle unmatched routes (404)
 app.use((req, res) => {

@@ -87,8 +87,8 @@
 .odoo-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 0;
+  padding: 10px 16px;
   border-radius: 6px;
   color: var(--odoo-plum-muted-text);
   font-size: 0.875rem;
@@ -114,12 +114,7 @@
 }
 
 .odoo-nav-icon {
-  font-size: 1.05rem;
-  width: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  display: none !important;
 }
 
 /* Main Canvas Area */
@@ -473,41 +468,31 @@
   color: var(--odoo-text-muted);
 }
 
-/* Badges */
+/* Badges - Charcoal text with border box only */
 .odoo-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.725rem;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #334155 !important;
+  border: 1px solid #64748b !important;
 }
 
-.odoo-badge-green {
-  background-color: var(--odoo-badge-green-bg);
-  color: var(--odoo-badge-green-text);
-}
-
-.odoo-badge-orange {
-  background-color: var(--odoo-badge-orange-bg);
-  color: var(--odoo-badge-orange-text);
-}
-
-.odoo-badge-red {
-  background-color: var(--odoo-badge-red-bg);
-  color: var(--odoo-badge-red-text);
-}
-
-.odoo-badge-blue {
-  background-color: var(--odoo-badge-blue-bg);
-  color: var(--odoo-badge-blue-text);
-}
-
+.odoo-badge-green,
+.odoo-badge-orange,
+.odoo-badge-red,
+.odoo-badge-blue,
 .odoo-badge-purple {
-  background-color: var(--odoo-plum-light);
-  color: var(--odoo-plum-primary);
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #334155 !important;
+  border: 1px solid #64748b !important;
 }
 
 /* Tables */
@@ -1082,9 +1067,11 @@
 }
 
 .attendance-working-badge {
-  background-color: #e6f7ef;
-  color: #059669;
-  padding: 4px 10px;
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #334155 !important;
+  border: 1px solid #64748b !important;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.725rem;
   font-weight: 600;

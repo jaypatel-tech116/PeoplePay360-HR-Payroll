@@ -37,7 +37,9 @@ const HomeRedirect = () => {
     EMPLOYEE: "/employee",
     HR_MANAGER: "/hr-manager",
     PAYROLL_MANAGER: "/payroll-manager",
+    HR_PAYROLL_MANAGER: "/payroll-manager",
     PAYROLL_USER: "/payroll-user",
+    HR_PAYROLL_USER: "/payroll-user",
   };
 
   const target = roleDestinations[user.role] || "/employee";
@@ -55,6 +57,8 @@ const NavigationWrapper = () => {
     "/hr-manager",
     "/payroll-manager",
     "/payroll-user",
+    "/login",
+    "/register",
   ].some((path) => location.pathname.startsWith(path));
 
   if (isPortal) return null;
@@ -115,7 +119,7 @@ function App() {
               <Route
                 path="/payroll-manager"
                 element={
-                  <RoleRoute allowedRoles={["PAYROLL_MANAGER", "ADMIN"]}>
+                  <RoleRoute allowedRoles={["PAYROLL_MANAGER", "HR_PAYROLL_MANAGER", "ADMIN"]}>
                     <PayrollManagerDashboard />
                   </RoleRoute>
                 }
@@ -125,7 +129,7 @@ function App() {
               <Route
                 path="/payroll-user"
                 element={
-                  <RoleRoute allowedRoles={["PAYROLL_USER", "ADMIN"]}>
+                  <RoleRoute allowedRoles={["PAYROLL_USER", "HR_PAYROLL_USER", "ADMIN"]}>
                     <PayrollUserDashboard />
                   </RoleRoute>
                 }

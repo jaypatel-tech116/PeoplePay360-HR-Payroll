@@ -1,20 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getEmployeeLeaves } from "../../../api/employee.api";
 
-const INITIAL_REQUESTS = [
-  { id: 1, from: "15 Sep 2025", to: "16 Sep 2025", type: "Annual Leave", days: 2, reason: "Family function", status: "Pending", appliedOn: "10 Sep 2025" },
-  { id: 2, from: "10 Jul 2025", to: "10 Jul 2025", type: "Sick Leave", days: 1, reason: "Not feeling well", status: "Approved", appliedOn: "08 Jul 2025" },
-  { id: 3, from: "12 Jun 2025", to: "13 Jun 2025", type: "Annual Leave", days: 2, reason: "Personal work", status: "Approved", appliedOn: "05 Jun 2025" },
-  { id: 4, from: "05 Mar 2025", to: "05 Mar 2025", type: "Sick Leave", days: 1, reason: "Fever", status: "Rejected", appliedOn: "03 Mar 2025" },
-];
-
-const LeavesView = ({ onOpenLeaveModal }) => {
+const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [data, setData] = useState(null);
 
-  const filteredRequests = requests.filter((r) => {
-    if (statusFilter === "All Status") return true;
-    return r.status === statusFilter;
-  });
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLeaves = async () => {
+      try {
+        const res = await getEmployeeLeaves({ status: statusFilter });
+        if (isMounted && res?.data) {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.warn("Could not load employee leaves:", err);
+      }
+    };
+    fetchLeaves();
+    return () => {
+      isMounted = false;
+    };
+  }, [statusFilter, refreshKey]);
+
+  const balance = data?.balance || {
+    totalAllocated: 12,
+    used: 3,
+    remaining: 9,
+  };
+
+  const types = data?.types || {
+    "Annual Leave": "12 Days",
+    "Sick Leave": "10 Days",
+    "Casual Leave": "6 Days",
+    "Unpaid Leave": "-",
+  };
+
+  const requests = data?.requests || [
+    { id: 1, from: "15 Sep 2025", to: "16 Sep 2025", type: "Annual Leave", days: 2, reason: "Family function", status: "Pending", appliedOn: "10 Sep 2025" },
+    { id: 2, from: "10 Jul 2025", to: "10 Jul 2025", type: "Sick Leave", days: 1, reason: "Not feeling well", status: "Approved", appliedOn: "08 Jul 2025" },
+    { id: 3, from: "12 Jun 2025", to: "13 Jun 2025", type: "Annual Leave", days: 2, reason: "Personal work", status: "Approved", appliedOn: "05 Jun 2025" },
+    { id: 4, from: "05 Mar 2025", to: "05 Mar 2025", type: "Sick Leave", days: 1, reason: "Fever", status: "Rejected", appliedOn: "03 Mar 2025" },
+  ];
+
+  const ratio = balance.totalAllocated > 0 ? balance.remaining / balance.totalAllocated : 0.75;
+  const strokeDashoffset = Math.round(238.76 * (1 - Math.min(1, Math.max(0, ratio))));
 
   return (
     <div className="employee-leaves-view">
@@ -58,11 +88,11 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 r="38"
                 className="donut-circle-val"
                 strokeDasharray="238.76"
-                strokeDashoffset="60"
+                strokeDashoffset={strokeDashoffset}
               />
             </svg>
             <div className="donut-center-text">
-              <span className="donut-big-num">9</span>
+              <span className="donut-big-num">{balance.remaining}</span>
               <span className="donut-sub-text">Days Remaining</span>
             </div>
           </div>
@@ -73,21 +103,21 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 <span className="donut-dot allocated" />
                 <span>Total Allocated</span>
               </div>
-              <strong>12</strong>
+              <strong>{balance.totalAllocated}</strong>
             </div>
             <div className="donut-legend-item">
               <div className="donut-legend-left">
                 <span className="donut-dot used" />
                 <span>Used</span>
               </div>
-              <strong>3</strong>
+              <strong>{balance.used}</strong>
             </div>
             <div className="donut-legend-item">
               <div className="donut-legend-left">
                 <span className="donut-dot remaining" />
                 <span>Remaining</span>
               </div>
-              <strong>9</strong>
+              <strong>{balance.remaining}</strong>
             </div>
           </div>
         </div>
@@ -104,7 +134,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 <span style={{ backgroundColor: "#f3ebf1", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
                 <span>Annual Leave</span>
               </div>
-              <strong>12 Days</strong>
+              <strong>{types["Annual Leave"] || "12 Days"}</strong>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -112,7 +142,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 <span style={{ backgroundColor: "#e6f7ef", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
                 <span>Sick Leave</span>
               </div>
-              <strong>10 Days</strong>
+              <strong>{types["Sick Leave"] || "10 Days"}</strong>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -120,7 +150,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 <span style={{ backgroundColor: "#fef3c7", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
                 <span>Casual Leave</span>
               </div>
-              <strong>6 Days</strong>
+              <strong>{types["Casual Leave"] || "6 Days"}</strong>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -128,7 +158,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 <span style={{ backgroundColor: "#fee2e2", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
                 <span>Unpaid Leave</span>
               </div>
-              <strong>-</strong>
+              <strong>{types["Unpaid Leave"] || "-"}</strong>
             </div>
           </div>
         </div>
@@ -176,7 +206,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 cursor: "pointer",
                 transition: "all 0.15s ease",
               }}
-              onClick={() => alert("Displaying your complete historical leave record...")}
+              onClick={() => alert(`You have ${requests.length} leave requests on record.`)}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>⏱</span>
@@ -200,7 +230,7 @@ const LeavesView = ({ onOpenLeaveModal }) => {
                 cursor: "pointer",
                 transition: "all 0.15s ease",
               }}
-              onClick={() => alert("Company Leave Policy: 12 days annual, 10 days sick leave with medical certificate, 6 days casual leave.")}
+              onClick={() => alert("Company Leave Policy: 12 days annual leave, 10 days sick leave, 6 days casual leave.")}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>📑</span>
@@ -250,8 +280,8 @@ const LeavesView = ({ onOpenLeaveModal }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredRequests.map((r, index) => (
-                <tr key={r.id}>
+              {requests.map((r, index) => (
+                <tr key={r.id || index}>
                   <td>{index + 1}</td>
                   <td>{r.from}</td>
                   <td>{r.to}</td>

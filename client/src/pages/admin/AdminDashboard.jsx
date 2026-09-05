@@ -1,255 +1,391 @@
 import React, { useState } from "react";
-import PortalLayout from "../../components/layout/PortalLayout";
-import StatCard from "../../components/ui/StatCard";
-import DataTable from "../../components/ui/DataTable";
-import Badge from "../../components/ui/Badge";
-import "./AdminDashboard.css";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import "./AdminPortal.css";
 
-const MOCK_USERS = [
-  { id: 1, name: "Alexander Wright", email: "admin@peoplepay360.com", role: "ADMIN", department: "IT & Admin", status: "Active" },
-  { id: 2, name: "Sophia Martinez", email: "sophia.hr@peoplepay360.com", role: "HR_MANAGER", department: "Human Resources", status: "Active" },
-  { id: 3, name: "Liam Patel", email: "liam.payroll@peoplepay360.com", role: "PAYROLL_MANAGER", department: "Finance", status: "Active" },
-  { id: 4, name: "Emma Davis", email: "emma.ops@peoplepay360.com", role: "PAYROLL_USER", department: "Finance & Payroll", status: "Active" },
-  { id: 5, name: "James Wilson", email: "james.w@peoplepay360.com", role: "EMPLOYEE", department: "Engineering", status: "Active" },
-  { id: 6, name: "Olivia Taylor", email: "olivia.t@peoplepay360.com", role: "EMPLOYEE", department: "Product & Design", status: "Active" },
-  { id: 7, name: "Ethan Brown", email: "ethan.b@peoplepay360.com", role: "EMPLOYEE", department: "Marketing", status: "Inactive" },
-];
-
-const MOCK_AUDITS = [
-  { id: 101, timestamp: "Today, 10:42 AM", user: "Alexander Wright", action: "User Role Modified", detail: "Assigned PAYROLL_MANAGER to liam.payroll@peoplepay360.com", status: "Success" },
-  { id: 102, timestamp: "Today, 09:15 AM", user: "Liam Patel", action: "Payroll Run Approved", detail: "February 2026 Batch Approved ($142,500 total payout)", status: "Success" },
-  { id: 103, timestamp: "Yesterday, 04:30 PM", user: "Sophia Martinez", action: "Employee Onboarded", detail: "Added Olivia Taylor to Product & Design", status: "Success" },
-  { id: 104, timestamp: "Yesterday, 01:10 PM", user: "Security Watchdog", action: "Automated Backup", detail: "PostgreSQL Database snapshot created successfully", status: "Success" },
-];
+// 16 Views matching all screens from reference images
+import AdminOverviewView from "./views/AdminOverviewView";
+import EmployeesListView from "./views/EmployeesListView";
+import EmployeeDetailsView from "./views/EmployeeDetailsView";
+import DepartmentsView from "./views/DepartmentsView";
+import ContractsView from "./views/ContractsView";
+import WorkingSchedulesView from "./views/WorkingSchedulesView";
+import AttendanceView from "./views/AttendanceView";
+import TimeOffRequestsView from "./views/TimeOffRequestsView";
+import PayCyclesView from "./views/PayCyclesView";
+import CreatePayCycleWizard from "./views/CreatePayCycleWizard";
+import PaySlipsView from "./views/PaySlipsView";
+import PayrollReportsView from "./views/PayrollReportsView";
+import SalaryStructuresView from "./views/SalaryStructuresView";
+import SalaryRulesView from "./views/SalaryRulesView";
+import UsersAndRolesView from "./views/UsersAndRolesView";
+import SettingsView from "./views/SettingsView";
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("users");
-  const [users, setUsers] = useState(MOCK_USERS);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Navigation state
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-  const roleBadgeVariant = (role) => {
-    switch (role) {
-      case "ADMIN": return "danger";
-      case "HR_MANAGER": return "success";
-      case "PAYROLL_MANAGER": return "warning";
-      case "PAYROLL_USER": return "primary";
-      default: return "neutral";
-    }
+  const handleLogout = () => {
+    if (logout) logout();
+    navigate("/login");
   };
 
-  const userColumns = [
-    {
-      key: "name",
-      header: "User / Name",
-      render: (row) => (
-        <div className="user-cell">
-          <div className="user-cell-avatar">{row.name.charAt(0)}</div>
-          <div>
-            <div className="user-cell-name">{row.name}</div>
-            <div className="user-cell-email">{row.email}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "role",
-      header: "System Role",
-      render: (row) => (
-        <Badge variant={roleBadgeVariant(row.role)}>
-          {row.role.replace("_", " ")}
-        </Badge>
-      ),
-    },
-    { key: "department", header: "Department" },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => (
-        <Badge variant={row.status === "Active" ? "success" : "neutral"} size="sm">
-          {row.status}
-        </Badge>
-      ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      render: (row) => (
-        <div className="table-action-btns">
-          <button
-            type="button"
-            className="action-btn-secondary"
-            onClick={() => alert(`Edit role modal for ${row.name}`)}
-          >
-            Edit Role
-          </button>
-        </div>
-      ),
-    },
+  // Sidebar primary navigation menu
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: "🏠" },
+    { id: "employees", label: "Employees", icon: "👥" },
+    { id: "departments", label: "Departments", icon: "🏢" },
+    { id: "contracts", label: "Contracts", icon: "📄" },
+    { id: "working-schedules", label: "Working Schedules", icon: "⏰" },
+    { id: "attendance", label: "Attendance", icon: "📅" },
+    { id: "time-off", label: "Time Off", icon: "🏖️" },
+    { id: "pay-cycles", label: "Payroll", icon: "💵" },
+    { id: "reports", label: "Reports", icon: "📈" },
+    { id: "settings", label: "Settings", icon: "⚙️" },
   ];
 
-  const auditColumns = [
-    { key: "timestamp", header: "Timestamp", width: "160px" },
-    { key: "user", header: "Actor", width: "180px" },
-    { key: "action", header: "Action Event", width: "200px" },
-    { key: "detail", header: "Description / Payload" },
-    {
-      key: "status",
-      header: "Result",
-      width: "100px",
-      render: (row) => <Badge variant="success" size="sm">{row.status}</Badge>,
-    },
+  // Direct 16-Screen Quick Jumper
+  const screenShortcuts = [
+    { id: "dashboard", label: "1. Dashboard (Overview)" },
+    { id: "employees", label: "2. Employees (List)" },
+    { id: "employee-detail", label: "3. Employee Details" },
+    { id: "departments", label: "4. Departments" },
+    { id: "contracts", label: "5. Contracts" },
+    { id: "working-schedules", label: "6. Working Schedules" },
+    { id: "attendance", label: "7. Attendance" },
+    { id: "time-off", label: "8. Time Off Requests" },
+    { id: "pay-cycles", label: "9. Pay Cycles" },
+    { id: "create-cycle", label: "10. Create Pay Cycle" },
+    { id: "pay-slips", label: "11. Pay Slips" },
+    { id: "reports", label: "12. Payroll Reports" },
+    { id: "salary-structures", label: "13. Salary Structures" },
+    { id: "salary-rules", label: "14. Salary Rules" },
+    { id: "users-roles", label: "15. Users & Roles" },
+    { id: "settings", label: "16. Settings" },
   ];
+
+  const handleSelectEmployee = (emp) => {
+    setSelectedEmployee(emp);
+    setActiveTab("employee-detail");
+  };
 
   return (
-    <PortalLayout title="Admin Control Center">
-      {/* Metric Cards Row */}
-      <div className="stats-grid">
-        <StatCard
-          title="Total Users"
-          value={users.length}
-          subtitle="Across 5 system roles"
-          icon="👥"
-          variant="primary"
-          trend="+3 this week"
-        />
-        <StatCard
-          title="Active System Roles"
-          value="5 Roles"
-          subtitle="Admin, HR, Payroll, Employee"
-          icon="🛡️"
-          variant="info"
-        />
-        <StatCard
-          title="System Health"
-          value="99.99%"
-          subtitle="All microservices operational"
-          icon="⚡"
-          variant="success"
-          trend="Operational"
-        />
-        <StatCard
-          title="Security Alerts"
-          value="0 Issues"
-          subtitle="Audit trail active"
-          icon="🔒"
-          variant="success"
-        />
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="admin-tabs-bar">
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "users" ? "active" : ""}`}
-          onClick={() => setActiveTab("users")}
-        >
-          👥 User & Role Management
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "settings" ? "active" : ""}`}
-          onClick={() => setActiveTab("settings")}
-        >
-          ⚙️ Company & Department Settings
-        </button>
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "audits" ? "active" : ""}`}
-          onClick={() => setActiveTab("audits")}
-        >
-          📜 System Audit Logs
-        </button>
-      </div>
-
-      {/* Tab 1: User Management */}
-      {activeTab === "users" && (
-        <div className="tab-content">
-          <DataTable
-            title="System Accounts & RBAC Assignment"
-            subtitle="Manage roles, permissions, and active statuses across your organization."
-            columns={userColumns}
-            data={filteredUsers}
-            actions={
-              <div className="admin-search-wrapper">
-                <input
-                  type="text"
-                  className="admin-search-input"
-                  placeholder="Search user, email, or role..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn-create-user"
-                  onClick={() => alert("Open New User Modal")}
-                >
-                  + Add New User
-                </button>
-              </div>
-            }
-          />
-        </div>
-      )}
-
-      {/* Tab 2: Company Settings */}
-      {activeTab === "settings" && (
-        <div className="tab-content">
-          <div className="settings-grid">
-            <div className="settings-card">
-              <h3 className="settings-card-title">🏢 Organization Details</h3>
-              <p className="settings-card-desc">Configure company metadata for official tax and payslip headers.</p>
-              <div className="settings-form-row">
-                <label className="settings-label">Company Legal Name</label>
-                <input type="text" className="settings-input" defaultValue="PeoplePay360 Global Pvt. Ltd." />
-              </div>
-              <div className="settings-form-row">
-                <label className="settings-label">Default Currency</label>
-                <input type="text" className="settings-input" defaultValue="USD ($)" />
-              </div>
-              <div className="settings-form-row">
-                <label className="settings-label">Standard Work Week</label>
-                <input type="text" className="settings-input" defaultValue="Monday to Friday (40 Hours)" />
-              </div>
-              <button type="button" className="btn-save-settings">Save Organization Info</button>
-            </div>
-
-            <div className="settings-card">
-              <h3 className="settings-card-title">🗂️ Active Departments</h3>
-              <p className="settings-card-desc">Organizational units for payroll grouping and leave approvals.</p>
-              <ul className="department-list">
-                <li><span>Human Resources</span> <Badge variant="neutral" size="sm">4 Staff</Badge></li>
-                <li><span>Engineering & IT</span> <Badge variant="neutral" size="sm">42 Staff</Badge></li>
-                <li><span>Finance & Payroll</span> <Badge variant="neutral" size="sm">8 Staff</Badge></li>
-                <li><span>Product & Design</span> <Badge variant="neutral" size="sm">16 Staff</Badge></li>
-                <li><span>Sales & Marketing</span> <Badge variant="neutral" size="sm">24 Staff</Badge></li>
-              </ul>
-              <button type="button" className="action-btn-secondary" style={{ marginTop: "16px", width: "100%" }}>
-                + Add Department
-              </button>
-            </div>
+    <div className="adm-shell">
+      {/* 1. Sidebar */}
+      <aside className={`adm-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="adm-sidebar-brand">
+          <div className="adm-logo-text">
+            {isSidebarCollapsed ? "P" : "PeoplePay360"}
           </div>
         </div>
-      )}
 
-      {/* Tab 3: Audit Logs */}
-      {activeTab === "audits" && (
-        <div className="tab-content">
-          <DataTable
-            title="System Security & Action Logs"
-            subtitle="Immutable chronological trail of role updates, payroll approvals, and logins."
-            columns={auditColumns}
-            data={MOCK_AUDITS}
-          />
+        <ul className="adm-sidebar-menu">
+          {menuItems.map((item) => {
+            const isActive =
+              activeTab === item.id ||
+              (item.id === "employees" && activeTab === "employee-detail") ||
+              (item.id === "pay-cycles" &&
+                ["pay-cycles", "create-cycle", "pay-slips", "salary-structures", "salary-rules"].includes(activeTab)) ||
+              (item.id === "settings" && ["settings", "users-roles"].includes(activeTab));
+
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={`adm-nav-item ${isActive ? "active" : ""}`}
+                  onClick={() => setActiveTab(item.id)}
+                  title={item.label}
+                >
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="adm-sidebar-footer">
+          <button
+            type="button"
+            className="adm-collapse-btn"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? "→" : "←"}
+          </button>
         </div>
-      )}
-    </PortalLayout>
+      </aside>
+
+      {/* 2. Main Area */}
+      <div className="adm-main">
+        {/* Topbar */}
+        <header className="adm-topbar">
+          <div className="adm-topbar-left">
+            <span className="adm-topbar-appname">PeoplePay360</span>
+            <div className="adm-topbar-search-box">
+              <span style={{ color: "rgba(255,255,255,0.7)" }}>🔍</span>
+              <input
+                type="text"
+                className="adm-topbar-search-input"
+                placeholder="Search employees, payroll, leaves..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="adm-topbar-right">
+            {/* Quick Screen Jumper */}
+            <div style={{ display: "flex", alignItems: "center", marginRight: "4px" }}>
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "5px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  backgroundColor: "rgba(0,0,0,0.22)",
+                  color: "#ffffff",
+                  fontSize: "0.76rem",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                title="Jump directly to any of the 16 Admin screens"
+              >
+                {screenShortcuts.map((s) => (
+                  <option key={s.id} value={s.id} style={{ background: "#58374f", color: "#fff" }}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notification Bell */}
+            <button type="button" className="adm-icon-badge-btn" title="Notifications">
+              <span>🔔</span>
+              <span className="adm-badge-count">12</span>
+            </button>
+
+            {/* Quick Messages */}
+            <button type="button" className="adm-icon-badge-btn" title="Messages">
+              <span>✉️</span>
+            </button>
+
+            {/* Admin User Profile Pill */}
+            <div style={{ position: "relative" }}>
+              <div
+                className="adm-user-pill"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              >
+                <div className="adm-user-avatar">A</div>
+                <span className="adm-user-name">Admin</span>
+                <span className="adm-user-caret">⌵</span>
+              </div>
+
+              {isProfileMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "40px",
+                    width: "200px",
+                    backgroundColor: "#ffffff",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                    border: "1px solid #e5e7eb",
+                    zIndex: 100,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
+                      {user?.name || "System Administrator"}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      {user?.email || "admin@company.com"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      textAlign: "left",
+                      background: "none",
+                      border: "none",
+                      color: "#dc2626",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span>🚪</span> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* 3. Sub-Module Secondary Bar for Payroll & Settings */}
+        {["pay-cycles", "create-cycle", "pay-slips", "salary-structures", "salary-rules"].includes(activeTab) && (
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderBottom: "1px solid var(--adm-border)",
+              padding: "0 28px",
+              display: "flex",
+              gap: "16px",
+            }}
+          >
+            {[
+              { id: "pay-cycles", label: "Pay Cycles" },
+              { id: "pay-slips", label: "Pay Slips" },
+              { id: "salary-structures", label: "Salary Structures" },
+              { id: "salary-rules", label: "Salary Rules" },
+            ].map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => setActiveTab(sub.id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "12px 4px",
+                  fontSize: "0.84rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  color: activeTab === sub.id ? "var(--adm-plum-primary)" : "var(--adm-text-muted)",
+                  borderBottom: activeTab === sub.id ? "2.5px solid var(--adm-plum-primary)" : "2.5px solid transparent",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {["settings", "users-roles"].includes(activeTab) && (
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderBottom: "1px solid var(--adm-border)",
+              padding: "0 28px",
+              display: "flex",
+              gap: "16px",
+            }}
+          >
+            {[
+              { id: "settings", label: "System Configuration" },
+              { id: "users-roles", label: "Users & Roles" },
+            ].map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => setActiveTab(sub.id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "12px 4px",
+                  fontSize: "0.84rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  color: activeTab === sub.id ? "var(--adm-plum-primary)" : "var(--adm-text-muted)",
+                  borderBottom: activeTab === sub.id ? "2.5px solid var(--adm-plum-primary)" : "2.5px solid transparent",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 4. Active View Rendering */}
+        <main>
+          {activeTab === "dashboard" && (
+            <AdminOverviewView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
+
+          {activeTab === "employees" && (
+            <EmployeesListView onSelectEmployee={handleSelectEmployee} />
+          )}
+
+          {activeTab === "employee-detail" && (
+            <EmployeeDetailsView
+              employee={selectedEmployee}
+              onBack={() => setActiveTab("employees")}
+            />
+          )}
+
+          {activeTab === "departments" && (
+            <DepartmentsView />
+          )}
+
+          {activeTab === "contracts" && (
+            <ContractsView />
+          )}
+
+          {activeTab === "working-schedules" && (
+            <WorkingSchedulesView />
+          )}
+
+          {activeTab === "attendance" && (
+            <AttendanceView />
+          )}
+
+          {activeTab === "time-off" && (
+            <TimeOffRequestsView />
+          )}
+
+          {activeTab === "pay-cycles" && (
+            <PayCyclesView onCreateNewCycle={() => setActiveTab("create-cycle")} />
+          )}
+
+          {activeTab === "create-cycle" && (
+            <CreatePayCycleWizard
+              onBack={() => setActiveTab("pay-cycles")}
+              onComplete={() => setActiveTab("pay-cycles")}
+            />
+          )}
+
+          {activeTab === "pay-slips" && (
+            <PaySlipsView />
+          )}
+
+          {activeTab === "reports" && (
+            <PayrollReportsView />
+          )}
+
+          {activeTab === "salary-structures" && (
+            <SalaryStructuresView />
+          )}
+
+          {activeTab === "salary-rules" && (
+            <SalaryRulesView />
+          )}
+
+          {activeTab === "users-roles" && (
+            <UsersAndRolesView />
+          )}
+
+          {activeTab === "settings" && (
+            <SettingsView />
+          )}
+        </main>
+      </div>
+    </div>
   );
 };
 

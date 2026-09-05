@@ -22,7 +22,7 @@ const register = async (req, res, next) => {
     return successResponse(res, {
       statusCode: 201,
       message: "Registration successful. You are now logged in.",
-      data: { user },
+      data: { user, token },
     });
   } catch (error) {
     next(error);
@@ -48,7 +48,7 @@ const login = async (req, res, next) => {
     return successResponse(res, {
       statusCode: 200,
       message: "Login successful.",
-      data: { user },
+      data: { user, token },
     });
   } catch (error) {
     next(error);
