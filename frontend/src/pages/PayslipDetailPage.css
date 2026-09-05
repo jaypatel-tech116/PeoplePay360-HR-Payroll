@@ -1,0 +1,182 @@
+.payslip-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.payslip-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.payslip-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 32px;
+}
+
+.payslip-paper-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--color-primary-soft);
+}
+
+.company-logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.company-logo-text span {
+  color: var(--color-primary);
+}
+
+.company-sub-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.paper-status-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.paper-status-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+}
+
+.paper-batch-tag {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.payslip-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  background: var(--bg-surface-alt);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-field-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+}
+
+.meta-field-label:first-child {
+  margin-top: 0;
+}
+
+.meta-field-val {
+  font-size: 0.875rem;
+  color: var(--text-main);
+}
+
+.breakdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breakdown-section-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.breakdown-table th {
+  padding: 10px 16px;
+  background: var(--bg-surface-alt);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.breakdown-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.875rem;
+}
+
+.special-rule-row {
+  background: var(--color-primary-soft);
+  font-weight: 700;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.payslip-totals-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.confidential-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  max-width: 320px;
+}
+
+.summary-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+}
+
+.summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9375rem;
+}
+
+.summary-line.highlight-net {
+  padding-top: 10px;
+  border-top: 2px dashed var(--border-subtle);
+  margin-top: 4px;
+}
+
+.net-val {
+  font-size: 1.375rem;
+  color: var(--color-primary);
+  font-weight: 800;
+}

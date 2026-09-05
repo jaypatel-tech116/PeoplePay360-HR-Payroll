@@ -1,0 +1,17 @@
+.attendance-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.attendance-punch-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.correction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

@@ -1,0 +1,31 @@
+.user-management-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.user-role-select {
+  padding: 4px 10px;
+  font-size: 0.8125rem;
+  max-width: 200px;
+}
+
+.btn-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.btn-status-toggle.active {
+  color: var(--color-success);
+}
+
+.btn-status-toggle.inactive {
+  color: var(--text-muted);
+}

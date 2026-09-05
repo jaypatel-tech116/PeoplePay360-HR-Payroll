@@ -1,0 +1,116 @@
+.payrun-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.batch-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge-lg {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+}
+
+.payrun-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.locked-badge-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.payrun-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.metric-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.metric-val-text {
+  font-size: 0.9375rem;
+  color: var(--text-main);
+}
+
+.metric-val-mono {
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+}
+
+.warnings-panel-card {
+  border-left: 4px solid var(--color-warning);
+}
+
+.warnings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.warnings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.warning-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-warning-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.warning-type-chip {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--color-warning-text);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.warning-emp-tag {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.warning-message-text {
+  color: var(--color-warning-text);
+}

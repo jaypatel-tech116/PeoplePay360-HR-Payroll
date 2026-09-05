@@ -1,0 +1,33 @@
+.timeoff-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.action-button-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.timeoff-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.time-off-subview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

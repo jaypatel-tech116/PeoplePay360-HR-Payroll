@@ -1,0 +1,132 @@
+.salary-structures-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.structure-layout-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .structure-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.structure-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.structure-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.structure-selector-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.structure-selector-card:hover {
+  border-color: var(--border-focus);
+}
+
+.structure-selector-card.active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.struct-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.struct-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.struct-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.struct-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.rule-sequencer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sequencer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sequencer-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.seq-chip {
+  background: var(--bg-surface-alt);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--color-primary);
+}
+
+.formula-preview {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #0f172a;
+}
+
+.rule-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.structure-modal-form, .rule-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "peoplepay360-backend",
+  "version": "1.0.0",
+  "description": "PeoplePay360 HR & Payroll Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/db/migrate.js",
+    "seed": "node src/db/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "expr-eval": "^2.0.2",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.16.0",
+    "pg": "^8.13.1"
+  }
+}
