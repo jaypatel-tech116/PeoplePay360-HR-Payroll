@@ -10,6 +10,7 @@ import RequestLeaveModal from "./modals/RequestLeaveModal";
 import NewEmployeeModal from "./modals/NewEmployeeModal";
 import ViewEmployeeModal from "./modals/ViewEmployeeModal";
 import ViewLeaveModal from "./modals/ViewLeaveModal";
+import TimeOffTypeModal from "./modals/TimeOffTypeModal";
 import "./HrPortal.css";
 
 const HrManagerDashboard = () => {
@@ -51,6 +52,7 @@ const HrManagerDashboard = () => {
     pending: 0,
     rejected: 0,
   });
+  const [leaveTypes, setLeaveTypes] = useState([]);
 
   // Modal states
   const [isRequestLeaveOpen, setIsRequestLeaveOpen] = useState(false);
@@ -58,6 +60,8 @@ const HrManagerDashboard = () => {
   const [targetColumn, setTargetColumn] = useState("New Joiners");
   const [selectedEmployeeView, setSelectedEmployeeView] = useState(null);
   const [selectedLeaveView, setSelectedLeaveView] = useState(null);
+  const [isTimeOffTypeOpen, setIsTimeOffTypeOpen] = useState(false);
+  const [selectedTimeOffType, setSelectedTimeOffType] = useState(null);
 
   // Sync tab with URL parameter
   useEffect(() => {
@@ -88,13 +92,15 @@ const HrManagerDashboard = () => {
   const fetchAllData = async () => {
     try {
       setIsLoading(true);
-      const [statsRes, pipelineRes, empRes, leaveSumRes, leaveReqRes] = await Promise.allSettled([
-        hrApi.getDashboardStats(),
-        hrApi.getEmployeePipeline(),
-        hrApi.getEmployees({ limit: 100 }),
-        hrApi.getLeaveSummary(),
-        hrApi.getLeaveRequests(),
-      ]);
+      const [statsRes, pipelineRes, empRes, leaveSumRes, leaveReqRes, leaveTypesRes] =
+        await Promise.allSettled([
+          hrApi.getDashboardStats(),
+          hrApi.getEmployeePipeline(),
+          hrApi.getEmployees({ limit: 100 }),
+          hrApi.getLeaveSummary(),
+          hrApi.getLeaveRequests(),
+          hrApi.getLeaveTypes(),
+        ]);
 
       if (statsRes.status === "fulfilled" && statsRes.value) {
         setDashboardStats(statsRes.value);
@@ -116,6 +122,12 @@ const HrManagerDashboard = () => {
         if (val?.kanban) {
           setLeavePipeline(val.kanban);
         }
+      }
+      if (leaveTypesRes.status === "fulfilled" && leaveTypesRes.value) {
+        const types = Array.isArray(leaveTypesRes.value)
+          ? leaveTypesRes.value
+          : leaveTypesRes.value?.leave_types || [];
+        setLeaveTypes(types);
       }
     } catch (err) {
       console.error("Failed to load HR manager data:", err);
@@ -141,7 +153,7 @@ const HrManagerDashboard = () => {
       await hrApi.updateEmployeePipelineStage(empId, newStage);
       await fetchAllData();
     } catch (err) {
-      alert("Failed to move employee stage: " + (err.response?.data?.message || err.message));
+      alert("Failed to update employee stage: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -155,15 +167,10 @@ const HrManagerDashboard = () => {
   const handleCreateLeaveRequest = async (newLeave) => {
     try {
       const empId = user?.employee_id || (employees[0]?.id || 1);
-      const leaveTypeMap = {
-        "Annual Leave": 1,
-        "Paid Time Off": 1,
-        "Sick Leave": 2,
-        "Casual Leave": 3,
-        "Personal Leave": 1,
-        "Maternity Leave": 4,
-      };
-      const leave_type_id = leaveTypeMap[newLeave.leaveType] || 1;
+      const matched = (leaveTypes || []).find(
+        (lt) => lt.name?.toLowerCase() === newLeave.leaveType?.toLowerCase()
+      );
+      const leave_type_id = newLeave.leave_type_id || matched?.id || 1;
 
       await hrApi.createLeaveRequest({
         employee_id: empId,
@@ -195,7 +202,10 @@ const HrManagerDashboard = () => {
   // Reject leave
   const handleRejectLeave = async (leave) => {
     try {
-      const reason = prompt("Enter reason for rejection:", "Operational requirement");
+      const reason =
+        leave?.rejectionReason !== undefined
+          ? leave.rejectionReason
+          : prompt("Enter reason for rejection:", "Operational requirement");
       if (!reason) return;
       await hrApi.rejectLeaveRequest(leave.id, reason);
       alert(`Leave request #${leave.id} Rejected.`);
@@ -381,8 +391,13 @@ const HrManagerDashboard = () => {
             leaveRequests={leaveRequests}
             leavePipeline={leavePipeline}
             leaveSummary={leaveSummary}
+            leaveTypes={leaveTypes}
             isLoading={isLoading}
             onOpenRequestModal={() => setIsRequestLeaveOpen(true)}
+            onOpenTimeOffType={(type) => {
+              setSelectedTimeOffType(type);
+              setIsTimeOffTypeOpen(true);
+            }}
             onViewLeave={(leave) => setSelectedLeaveView(leave)}
             onApprove={handleApproveLeave}
             onReject={handleRejectLeave}
@@ -400,6 +415,17 @@ const HrManagerDashboard = () => {
         isOpen={isRequestLeaveOpen}
         onClose={() => setIsRequestLeaveOpen(false)}
         onSubmit={handleCreateLeaveRequest}
+        leaveTypes={leaveTypes}
+      />
+
+      <TimeOffTypeModal
+        isOpen={isTimeOffTypeOpen}
+        onClose={() => {
+          setIsTimeOffTypeOpen(false);
+          setSelectedTimeOffType(null);
+        }}
+        leaveType={selectedTimeOffType}
+        onSaved={fetchAllData}
       />
 
       <NewEmployeeModal

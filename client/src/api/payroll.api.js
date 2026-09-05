@@ -49,6 +49,10 @@ export const payrollApi = {
   // 5. Configuration (Salary Structures & Rules)
   getSalaryStructures: () =>
     api.get("/salary-rules/structures").then((res) => res.data.data?.structures || (Array.isArray(res.data.data) ? res.data.data : [])),
+  createSalaryStructure: (data) => api.post("/salary-rules/structures", data).then((res) => res.data.data),
+  updateSalaryStructure: (id, data) => api.put(`/salary-rules/structures/${id}`, data).then((res) => res.data.data),
+  deleteSalaryStructure: (id) => api.delete(`/salary-rules/structures/${id}`).then((res) => res.data.data),
+
   getSalaryRules: (structureId = null) =>
     api
       .get("/salary-rules/rules", { params: structureId ? { salary_structure_id: structureId } : {} })
@@ -56,6 +60,8 @@ export const payrollApi = {
   createSalaryRule: (data) => api.post("/salary-rules/rules", data).then((res) => res.data.data),
   updateSalaryRule: (id, data) => api.put(`/salary-rules/rules/${id}`, data).then((res) => res.data.data),
   deleteSalaryRule: (id) => api.delete(`/salary-rules/rules/${id}`).then((res) => res.data.data),
+  validateFormula: (formula, sampleWage = 50000) =>
+    api.post("/salary-rules/rules/validate-formula", { formula, sampleWage }).then((res) => res.data),
 };
 
 export default payrollApi;

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import payrollApi from "../../../api/payroll.api";
+import AddEditSalaryStructureModal from "../modals/AddEditSalaryStructureModal";
 
-export default function SalaryStructuresView() {
+export default function SalaryStructuresView({ readOnly = false }) {
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStructure, setSelectedStructure] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [structureToEdit, setStructureToEdit] = useState(null);
 
   const fetchStructures = async () => {
     try {
@@ -26,39 +29,52 @@ export default function SalaryStructuresView() {
 
   const formattedStructures = structures.map((st) => ({
     id: st.id,
-    name: st.name || "Structure",
-    code: st.code || `SS00${st.id}`,
-    description: st.description || "Salary structure configuration",
-    componentsCount: parseInt(st.rule_count || st.rules?.length || 0, 10),
-    employeesCount: parseInt(st.assigned_employees || st.employee_count || 0, 10),
-    type: st.type || "FT",
-    status: st.is_active ? "Active" : "Inactive",
-    rules: (st.rules || []).map((r) => {
-      const rawType = (r.calculation_type || r.computation_type || "").toUpperCase();
-      let calcStr = "Fixed";
-      if (rawType === "PERCENTAGE") calcStr = `Percentage (${parseFloat(r.percentage)}%)`;
-      else if (rawType === "FORMULA") calcStr = `Formula: ${r.formula}`;
+      name: st.name || "Structure",
+      code: st.code || `SS00${st.id}`,
+      description: st.description || "Salary structure configuration",
+      componentsCount: parseInt(st.rule_count || st.rules?.length || 0, 10),
+      employeesCount: parseInt(st.assigned_employees || st.employee_count || 0, 10),
+      type: st.type || "FT",
+      status: st.is_active ? "Active" : "Inactive",
+      rawStructure: st,
+      rules: (st.rules || []).map((r) => {
+        const rawType = (r.calculation_type || r.computation_type || "").toUpperCase();
+        let calcStr = "Fixed";
+        if (rawType === "PERCENTAGE") calcStr = `Percentage (${parseFloat(r.percentage)}%)`;
+        else if (rawType === "FORMULA") calcStr = `Formula: ${r.formula}`;
 
-      let valStr = "-";
-      if (rawType === "FIXED") {
-        valStr = "₹ " + parseFloat(r.fixed_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
-      } else if (rawType === "PERCENTAGE") {
-        valStr = `${parseFloat(r.percentage)}% of ${r.base_rule_code || "BASIC"}`;
-      } else if (rawType === "FORMULA") {
-        valStr = r.formula;
-      }
+        let valStr = "-";
+        if (rawType === "FIXED") {
+          valStr = "₹ " + parseFloat(r.fixed_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+        } else if (rawType === "PERCENTAGE") {
+          valStr = `${parseFloat(r.percentage)}% of ${r.base_rule_code || "BASIC"}`;
+        } else if (rawType === "FORMULA") {
+          valStr = r.formula;
+        }
 
-      return {
-        seq: r.sequence,
-        rule: r.name,
-        code: r.code,
-        category: r.category,
-        calculation: calcStr,
-        value: valStr,
-        status: r.is_active ? "Active" : "Inactive",
-      };
-    }),
-  }));
+        return {
+          seq: r.sequence,
+          rule: r.name,
+          code: r.code,
+          category: r.category,
+          calculation: calcStr,
+          value: valStr,
+          status: r.is_active ? "Active" : "Inactive",
+        };
+      }),
+    }));
+
+  const handleDeleteStructure = async (s) => {
+    if (!window.confirm(`Are you sure you want to delete salary structure "${s.name}" (${s.code})?`)) {
+      return;
+    }
+    try {
+      await payrollApi.deleteSalaryStructure(s.id);
+      fetchStructures();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || "Failed to delete salary structure.");
+    }
+  };
 
   const handleOpenRules = async (s) => {
     try {
@@ -121,6 +137,18 @@ export default function SalaryStructuresView() {
           >
             🔄 Refresh
           </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="mgr-btn-primary"
+              onClick={() => {
+                setStructureToEdit(null);
+                setIsModalOpen(true);
+              }}
+            >
+              <span>+</span> Add Structure
+            </button>
+          )}
         </div>
       </div>
 
@@ -201,13 +229,70 @@ export default function SalaryStructuresView() {
                       <span className="mgr-badge mgr-badge-green">{s.status}</span>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        className="hr-btn-view"
-                        onClick={() => handleOpenRules(s)}
-                      >
-                        <span>⚖️</span> Rules ({s.componentsCount})
-                      </button>
+                      {readOnly ? (
+                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                          <button
+                            type="button"
+                            className="hr-btn-view"
+                            style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+                            onClick={() => handleOpenRules(s)}
+                          >
+                            <span>⚖️</span> Rules ({s.componentsCount})
+                          </button>
+                          <button
+                            type="button"
+                            className="hr-btn-view"
+                            style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+                            onClick={() => {
+                              setStructureToEdit(s.rawStructure || s);
+                              setIsModalOpen(true);
+                            }}
+                            title="View structure details"
+                          >
+                            <span>👁️</span> View
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                          <button
+                            type="button"
+                            className="hr-btn-view"
+                            style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+                            onClick={() => handleOpenRules(s)}
+                          >
+                            <span>⚖️</span> Rules ({s.componentsCount})
+                          </button>
+                          <button
+                            type="button"
+                            className="hr-btn-view"
+                            style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+                            onClick={() => {
+                              setStructureToEdit(s.rawStructure || s);
+                              setIsModalOpen(true);
+                            }}
+                            title="Edit structure"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: "0.78rem",
+                              border: "1px solid #fecaca",
+                              background: "#fef2f2",
+                              color: "#dc2626",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                            }}
+                            onClick={() => handleDeleteStructure(s)}
+                            title="Delete structure"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -343,6 +428,15 @@ export default function SalaryStructuresView() {
           </div>
         </div>
       )}
+
+      {/* Dynamic Add / Edit Salary Structure Modal */}
+      <AddEditSalaryStructureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        structure={structureToEdit}
+        onSaved={fetchStructures}
+        readOnly={readOnly}
+      />
     </div>
   );
 }

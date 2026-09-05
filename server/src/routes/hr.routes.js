@@ -23,6 +23,7 @@ router.patch("/employees/:id/status", hrController.updateEmployeeStatus);
 router.patch("/employees/:id/pipeline-stage", hrController.updateEmployeePipelineStage);
 router.get("/employees/:id/contracts", hrController.getEmployeeContracts);
 router.get("/employees/:id/leave-balance", hrController.getEmployeeLeaveBalance);
+router.get("/employees/:id/attendance-report", hrController.getEmployeeAttendanceReport);
 
 // ----------------------------------------------------------------------------
 // 3. Departments Module

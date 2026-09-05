@@ -186,13 +186,17 @@ async function runRoleSyncVerification() {
 
     // Create a new Payrun batch for testing
     console.log("\n📌 STEP 5: HR Payroll Manager Creates & Computes Payrun Batch");
+    const testMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const randMonthIdx = Math.floor(Math.random() * 12);
+    const randYear = 2030 + Math.floor(Math.random() * 5);
+    const mStr = String(randMonthIdx + 1).padStart(2, "0");
     const payrunPayload = {
-      period_start: "2026-11-01",
-      period_end: "2026-11-30",
-      pay_date: "2026-11-30",
+      period_start: `${randYear}-${mStr}-01`,
+      period_end: `${randYear}-${mStr}-28`,
+      pay_date: `${randYear}-${mStr}-28`,
       salary_structure_id: 1,
-      month: "November",
-      year: "2026",
+      month: testMonths[randMonthIdx],
+      year: String(randYear),
       employee_ids: [createdEmployeeId],
     };
 

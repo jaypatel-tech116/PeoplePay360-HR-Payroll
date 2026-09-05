@@ -56,7 +56,14 @@ const loginUser = async ({ email, password }) => {
     throw error;
   }
 
-  // 2. Verify bcrypt password
+  // 2. Check if account is active (soft delete enforcement)
+  if (!user.is_active) {
+    const error = new Error("This account has been deactivated by the Administrator. Please contact HR.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 3. Verify bcrypt password
   let isMatch = false;
   try {
     isMatch = await bcrypt.compare(password, user.password_hash);

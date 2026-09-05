@@ -40,6 +40,7 @@ const AdminDashboard = () => {
   // Sidebar primary navigation menu
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: "🏠" },
+    { id: "users-roles", label: "Stakeholders & Users", icon: "👥" },
     { id: "employees", label: "Employees", icon: "👥" },
     { id: "departments", label: "Departments", icon: "🏢" },
     { id: "contracts", label: "Contracts", icon: "📄" },

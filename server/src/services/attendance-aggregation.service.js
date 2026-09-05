@@ -169,15 +169,20 @@ async function getEmployeeAttendanceSummary(employeeId, periodStart, periodEnd, 
     }
   }
 
-  // If no detailed daily logs exist yet, assume full attendance minus unexcused/unpaid leaves
-  let effectiveWorkedDays = presentDays;
-  if (attRows.length === 0) {
-    // Default standard presence when manual daily check-in is not logged
-    effectiveWorkedDays = scheduledDays - unpaidLeaveDays;
+  // Determine effective worked days & LOP:
+  // If complete daily attendance logs exist for all scheduled days, use logged presence.
+  // Otherwise, default standard contracted working schedule minus unexcused absences, half-days, and unpaid leaves.
+  const lopDays = parseFloat((unpaidLeaveDays + loggedAbsentDays + (halfDays * 0.5)).toFixed(2));
+
+  let effectiveWorkedDays = 0;
+  if (attRows.length >= scheduledDays && presentDays > 0) {
+    effectiveWorkedDays = presentDays;
+  } else {
+    // Standard contract full schedule presence minus LOP and paid leaves
+    effectiveWorkedDays = Math.max(0, parseFloat((scheduledDays - lopDays - paidLeaveDays).toFixed(2)));
   }
 
   const payableDays = Math.max(0, parseFloat((effectiveWorkedDays + paidLeaveDays).toFixed(2)));
-  const lopDays = parseFloat((unpaidLeaveDays + loggedAbsentDays).toFixed(2));
 
   return {
     scheduled_days: scheduledDays,

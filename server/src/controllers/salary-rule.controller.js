@@ -1,6 +1,7 @@
 const { pool } = require("../config/mysqlDb");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 const { logAudit } = require("../utils/auditLogger");
+const { validateFormulaExpression, normalizeFormula } = require("../services/formula-parser.service");
 
 /**
  * Get salary structures with assigned employee counts
@@ -213,6 +214,40 @@ const getSalaryRules = async (req, res, next) => {
   }
 };
 
+
+
+/**
+ * Validate formula expression on-the-fly (dry run)
+ */
+const validateFormula = async (req, res, next) => {
+  try {
+    const { formula, sampleWage } = req.body;
+    if (!formula || !formula.trim()) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: "Formula expression is required.",
+      });
+    }
+
+    const validation = validateFormulaExpression(formula, sampleWage || 50000);
+    if (!validation.isValid) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: `Formula Error: ${validation.error}`,
+        data: validation,
+      });
+    }
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Formula expression is valid.",
+      data: validation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Create salary rule (Manager / Admin only)
  */
@@ -228,6 +263,7 @@ const createSalaryRule = async (req, res, next) => {
       fixed_amount,
       formula,
       sequence,
+      quantity,
     } = req.body;
 
     if (!name || !code || !category || !salary_structure_id) {
@@ -237,22 +273,61 @@ const createSalaryRule = async (req, res, next) => {
       });
     }
 
-    const [result] = await pool.query(`
+    const cleanCode = code.trim().toUpperCase();
+    const cleanName = name.trim();
+    const calcType = calculation_type || "FIXED";
+
+    // 1. Check duplicate code inside the structure
+    const [existing] = await pool.query(
+      `SELECT id FROM salary_rules WHERE salary_structure_id = ? AND code = ?;`,
+      [salary_structure_id, cleanCode]
+    );
+    if (existing.length > 0) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: `Salary rule with code '${cleanCode}' already exists in this structure.`,
+      });
+    }
+
+    // 2. Validate formula if calculation type is FORMULA
+    let finalFormula = formula ? formula.trim() : null;
+    if (calcType === "FORMULA") {
+      if (!finalFormula) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: "Formula expression is required when calculation type is FORMULA.",
+        });
+      }
+      const validation = validateFormulaExpression(finalFormula);
+      if (!validation.isValid) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: `Invalid formula: ${validation.error}`,
+        });
+      }
+      finalFormula = validation.normalizedFormula || finalFormula;
+    }
+
+    const [result] = await pool.query(
+      `
       INSERT INTO salary_rules (
         salary_structure_id, name, code, category, calculation_type,
-        percentage, fixed_amount, formula, sequence
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `, [
-      salary_structure_id,
-      name.trim(),
-      code.trim().toUpperCase(),
-      category,
-      calculation_type || 'FIXED',
-      percentage || null,
-      fixed_amount || null,
-      formula || null,
-      sequence || 10,
-    ]);
+        percentage, fixed_amount, formula, sequence, quantity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `,
+      [
+        salary_structure_id,
+        cleanName,
+        cleanCode,
+        category,
+        calcType,
+        calcType === "PERCENTAGE" ? (percentage || 0) : null,
+        calcType === "FIXED" ? (fixed_amount || 0) : null,
+        finalFormula,
+        sequence !== undefined && sequence !== null ? sequence : 10,
+        quantity !== undefined && quantity !== null ? parseFloat(quantity) : 1.0,
+      ]
+    );
 
     const [created] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [result.insertId]);
 
@@ -288,6 +363,7 @@ const updateSalaryRule = async (req, res, next) => {
       fixed_amount,
       formula,
       sequence,
+      quantity,
       is_active,
     } = req.body;
 
@@ -295,21 +371,58 @@ const updateSalaryRule = async (req, res, next) => {
     if (oldRows.length === 0) {
       return errorResponse(res, { statusCode: 404, message: "Salary rule not found." });
     }
+    const currentRule = oldRows[0];
 
-    await pool.query(`
+    const calcType = calculation_type !== undefined ? calculation_type : currentRule.calculation_type;
+    let finalFormula = formula !== undefined ? (formula ? formula.trim() : null) : currentRule.formula;
+
+    // Validate formula if updated or set to FORMULA
+    if (calcType === "FORMULA") {
+      if (!finalFormula) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: "Formula expression is required when calculation type is FORMULA.",
+        });
+      }
+      const validation = validateFormulaExpression(finalFormula);
+      if (!validation.isValid) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: `Invalid formula: ${validation.error}`,
+        });
+      }
+      finalFormula = validation.normalizedFormula || finalFormula;
+    }
+
+    await pool.query(
+      `
       UPDATE salary_rules
       SET
         name = COALESCE(?, name),
         category = COALESCE(?, category),
         calculation_type = COALESCE(?, calculation_type),
-        percentage = COALESCE(?, percentage),
-        fixed_amount = COALESCE(?, fixed_amount),
-        formula = COALESCE(?, formula),
+        percentage = ?,
+        fixed_amount = ?,
+        formula = ?,
         sequence = COALESCE(?, sequence),
+        quantity = COALESCE(?, quantity),
         is_active = COALESCE(?, is_active),
         updated_at = NOW()
       WHERE id = ?;
-    `, [name, category, calculation_type, percentage, fixed_amount, formula, sequence, is_active, id]);
+    `,
+      [
+        name,
+        category,
+        calcType,
+        calcType === "PERCENTAGE" ? (percentage !== undefined ? percentage : currentRule.percentage) : null,
+        calcType === "FIXED" ? (fixed_amount !== undefined ? fixed_amount : currentRule.fixed_amount) : null,
+        finalFormula,
+        sequence,
+        quantity,
+        is_active,
+        id,
+      ]
+    );
 
     const [updated] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [id]);
 
@@ -318,7 +431,7 @@ const updateSalaryRule = async (req, res, next) => {
       action: "SALARY_RULE_UPDATED",
       entityType: "SALARY_RULE",
       entityId: id,
-      oldData: oldRows[0],
+      oldData: currentRule,
       newData: updated[0],
     });
 
@@ -371,4 +484,5 @@ module.exports = {
   createSalaryRule,
   updateSalaryRule,
   deleteSalaryRule,
+  validateFormula,
 };

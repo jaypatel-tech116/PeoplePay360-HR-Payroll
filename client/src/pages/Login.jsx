@@ -330,6 +330,26 @@ const Login = () => {
 
                 <button
                   type="button"
+                  onClick={() => setFormData({ email: "payuser@gmail.com", password: "payuser" })}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: formData.email === "payuser@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
+                    background: formData.email === "payuser@gmail.com" ? "#fbf5fa" : "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>📋 Payroll User</span>
+                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>payuser@gmail.com</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setFormData({ email: "hr@gmail.com", password: "hrhr" })}
                   style={{
                     padding: "8px 10px",
@@ -372,15 +392,18 @@ const Login = () => {
                   type="button"
                   onClick={() => setFormData({ email: "admin@gmail.com", password: "admin" })}
                   style={{
+                    gridColumn: "span 2",
                     padding: "8px 10px",
                     borderRadius: "8px",
                     border: formData.email === "admin@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
                     background: formData.email === "admin@gmail.com" ? "#fbf5fa" : "#ffffff",
                     cursor: "pointer",
-                    textAlign: "left",
+                    textAlign: "center",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "8px",
                     transition: "all 0.15s ease",
                   }}
                 >

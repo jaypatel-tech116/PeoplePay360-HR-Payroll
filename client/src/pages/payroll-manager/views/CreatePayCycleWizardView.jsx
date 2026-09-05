@@ -45,12 +45,43 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
     fetchData();
   }, []);
 
-  const monthOptions = [
-    { label: "August 2026", month: "August", year: "2026", start: "2026-08-01", end: "2026-08-31" },
-    { label: "September 2026", month: "September", year: "2026", start: "2026-09-01", end: "2026-09-30" },
-    { label: "October 2026", month: "October", year: "2026", start: "2026-10-01", end: "2026-10-31" },
-    { label: "July 2026", month: "July", year: "2026", start: "2026-07-01", end: "2026-07-31" },
-  ];
+  const [yearFilter, setYearFilter] = useState("All");
+
+  const monthOptions = React.useMemo(() => {
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    // 36 continuous months across 2026, 2025, and 2027
+    const years = [2026, 2025, 2027];
+    const options = [];
+
+    for (const yr of years) {
+      for (let m = 0; m < 12; m++) {
+        const monthName = monthNames[m];
+        const monthNum = String(m + 1).padStart(2, "0");
+        const lastDay = new Date(yr, m + 1, 0).getDate();
+        const start = `${yr}-${monthNum}-01`;
+        const end = `${yr}-${monthNum}-${String(lastDay).padStart(2, "0")}`;
+        options.push({
+          label: `${monthName} ${yr}`,
+          month: monthName,
+          year: String(yr),
+          start,
+          end,
+          daysInMonth: lastDay,
+        });
+      }
+    }
+    return options;
+  }, []);
+
+  const visibleMonthOptions = React.useMemo(() => {
+    if (yearFilter === "All") return monthOptions;
+    return monthOptions.filter((m) => m.year === yearFilter);
+  }, [monthOptions, yearFilter]);
+
+  const activePeriodOpt = monthOptions.find((m) => m.label === selectedPeriod) || monthOptions[0];
 
   const toggleSelectEmp = (code) => {
     setSelectedEmployees((prev) =>
@@ -91,29 +122,36 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
       setSubmitting(true);
       const chosenPeriod = monthOptions.find((m) => m.label === selectedPeriod) || monthOptions[0];
 
-      // 1. Create Payrun
-      const newPayrun = await payrollApi.createPayrun({
-        salary_structure_id: selectedStructureId,
-        period_start: chosenPeriod.start,
-        period_end: chosenPeriod.end,
-        month: chosenPeriod.month,
-        year: chosenPeriod.year,
-      });
-
-      // 2. Compute payrun for selected employees
+      // Selected employee DB IDs
       const selectedDbIds = formattedEmployeesList
         .filter((e) => selectedEmployees.includes(e.code))
         .map((e) => e.dbId);
 
-      if (selectedDbIds.length > 0) {
-        await payrollApi.computePayrun(newPayrun.id, selectedDbIds);
+      if (selectedDbIds.length === 0) {
+        alert("Please select at least one employee for this payrun.");
+        setSubmitting(false);
+        return;
       }
 
-      // Fetch fresh payrun with computed payslips
-      const detailedRun = await payrollApi.getPayrunById(newPayrun.id);
+      // 1. Create Payrun
+      const structId = parseInt(selectedStructureId, 10) || 1;
+      const newPayrun = await payrollApi.createPayrun({
+        salary_structure_id: structId,
+        period_start: chosenPeriod.start,
+        period_end: chosenPeriod.end,
+        month: chosenPeriod.month,
+        year: chosenPeriod.year,
+        employee_ids: selectedDbIds,
+      });
+
+      // 2. Compute payrun immediately so employee payslips and totals populate (never show ₹0.00)
+      await payrollApi.computePayrun(newPayrun.id, selectedDbIds);
+
+      // Fetch fresh payrun record in Computed status
+      const computedRun = await payrollApi.getPayrunById(newPayrun.id);
 
       if (onComplete) {
-        onComplete(detailedRun || newPayrun);
+        onComplete(computedRun || newPayrun);
       }
     } catch (err) {
       alert("Failed to create payrun: " + (err.response?.data?.message || err.message));
@@ -155,20 +193,22 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
 
       {/* STEP 1: Payroll Setup Form */}
       {!loading && currentStep === 1 && (
-        <div className="mgr-section-card" style={{ maxWidth: "680px", margin: "0 auto" }}>
+        <div className="mgr-section-card" style={{ maxWidth: "720px", margin: "0 auto" }}>
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--mgr-border)" }}>
-            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, fontSize: "1.08rem", fontWeight: 700, color: "var(--mgr-text-dark)" }}>
               Step 1: Batch Configuration
             </h3>
-            <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-              Define salary structure and pay period
+            <span style={{ fontSize: "0.82rem", color: "#64748b" }}>
+              Define salary structure and pay period across 36 available calendar months
             </span>
           </div>
 
-          <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "22px" }}>
             {/* Salary Structure Selector */}
             <div className="mgr-form-group">
-              <label className="mgr-label">Salary Structure *</label>
+              <label className="mgr-label">
+                Salary Structure <span className="req">*</span>
+              </label>
               <select
                 className="mgr-select"
                 value={selectedStructureId}
@@ -176,26 +216,95 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
               >
                 {structures.map((st) => (
                   <option key={st.id} value={st.id}>
-                    {st.name} ({st.type})
+                    {st.name} ({st.type}) — {st.code || `SS00${st.id}`}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Pay Period Selector */}
+            {/* Pay Period Selector with 36 Months */}
             <div className="mgr-form-group">
-              <label className="mgr-label">Pay Period *</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <label className="mgr-label" style={{ margin: 0 }}>
+                  Pay Period ({monthOptions.length} Months Available) <span className="req">*</span>
+                </label>
+
+                {/* Quick Year Filter Pills */}
+                <div className="mgr-period-pills">
+                  {["All", "2026", "2025", "2027"].map((yr) => (
+                    <button
+                      key={yr}
+                      type="button"
+                      className={`mgr-period-pill ${yearFilter === yr ? "active" : ""}`}
+                      onClick={() => setYearFilter(yr)}
+                    >
+                      {yr === "All" ? `All (${monthOptions.length})` : yr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <select
                 className="mgr-select"
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
               >
-                {monthOptions.map((opt) => (
-                  <option key={opt.label} value={opt.label}>
-                    {opt.label} ({opt.start} – {opt.end})
-                  </option>
-                ))}
+                {yearFilter === "All" ? (
+                  <>
+                    <optgroup label="📅 2026 (Active Operational Year)">
+                      {monthOptions
+                        .filter((m) => m.year === "2026")
+                        .map((opt) => (
+                          <option key={opt.label} value={opt.label}>
+                            {opt.label} ({opt.start} – {opt.end})
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="📅 2025 (Historical Records)">
+                      {monthOptions
+                        .filter((m) => m.year === "2025")
+                        .map((opt) => (
+                          <option key={opt.label} value={opt.label}>
+                            {opt.label} ({opt.start} – {opt.end})
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="📅 2027 (Future Projections)">
+                      {monthOptions
+                        .filter((m) => m.year === "2027")
+                        .map((opt) => (
+                          <option key={opt.label} value={opt.label}>
+                            {opt.label} ({opt.start} – {opt.end})
+                          </option>
+                        ))}
+                    </optgroup>
+                  </>
+                ) : (
+                  visibleMonthOptions.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label} ({opt.start} – {opt.end})
+                    </option>
+                  ))
+                )}
               </select>
+
+              {/* Period Metadata Preview Card */}
+              {activePeriodOpt && (
+                <div className="mgr-period-preview-card">
+                  <div className="mgr-preview-item">
+                    <span className="mgr-preview-label">Selected Period</span>
+                    <span className="mgr-preview-val">{activePeriodOpt.label}</span>
+                  </div>
+                  <div className="mgr-preview-item">
+                    <span className="mgr-preview-label">Date Window</span>
+                    <span className="mgr-preview-val">{activePeriodOpt.start} → {activePeriodOpt.end}</span>
+                  </div>
+                  <div className="mgr-preview-item">
+                    <span className="mgr-preview-label">Duration</span>
+                    <span className="mgr-preview-val">{activePeriodOpt.daysInMonth} Calendar Days</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Department Filter */}
@@ -219,26 +328,33 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
               style={{
                 backgroundColor: "#f8fafc",
                 border: "1px solid #e2e8f0",
-                borderRadius: "6px",
-                padding: "14px",
-                fontSize: "0.82rem",
+                borderRadius: "8px",
+                padding: "14px 18px",
+                fontSize: "0.83rem",
                 color: "#475569",
+                lineHeight: 1.45,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "10px",
               }}
             >
-              ℹ️ <strong>Synchronized Database Calculation:</strong> Selected employees with active contracts will have salary rules evaluated in ascending sequence order.
+              <span style={{ fontSize: "1.1rem" }}>ℹ️</span>
+              <div>
+                <strong style={{ color: "#1e293b" }}>Synchronized Database Calculation:</strong> Selected employees with active contracts will have salary rules evaluated dynamically against their base contract wage in sequence order.
+              </div>
             </div>
           </div>
 
           {/* Bottom Action Footer */}
           <div
             style={{
-              padding: "16px 24px",
+              padding: "18px 24px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               borderTop: "1px solid var(--mgr-border)",
               backgroundColor: "#fafafa",
-              borderRadius: "0 0 8px 8px",
+              borderRadius: "0 0 10px 10px",
             }}
           >
             <button
@@ -284,7 +400,30 @@ const CreatePayCycleWizardView = ({ onBack, onComplete }) => {
             </div>
 
             <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-              <div className="mgr-input-search-wrapper" style={{ width: "220px" }}>
+              <button
+                type="button"
+                className="mgr-btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "0.8rem", fontWeight: 600 }}
+                onClick={() => setSelectedEmployees([])}
+                title="Deselect all employees"
+              >
+                Clear / Deselect All
+              </button>
+
+              <button
+                type="button"
+                className="mgr-btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "0.8rem", fontWeight: 600, borderColor: "var(--mgr-plum-primary)", color: "var(--mgr-plum-primary)" }}
+                onClick={() => {
+                  const first5 = filteredEmployees.slice(0, 5).map((e) => e.code);
+                  setSelectedEmployees(first5);
+                }}
+                title="Select exactly the first 5 employees"
+              >
+                ⚡ Select First 5
+              </button>
+
+              <div className="mgr-input-search-wrapper" style={{ width: "200px" }}>
                 <span>🔍</span>
                 <input
                   type="text"

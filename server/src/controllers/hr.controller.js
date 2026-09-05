@@ -485,16 +485,17 @@ const createEmployee = async (req, res, next) => {
       [newEmployeeId, contractNum, baseWage, joining_date]
     );
 
-    // 12. Automatically allocate standard leave balances for current calendar year
+    // 12. Automatically allocate standard leave balances for current calendar year (25 Days Total)
     const currentYear = new Date(joining_date || Date.now()).getFullYear();
     const yearStart = `${currentYear}-01-01`;
     const yearEnd = `${currentYear}-12-31`;
     await connection.query(
       `INSERT INTO leave_allocations (employee_id, leave_type_id, start_date, end_date, total_days, used_days, status, created_at, updated_at)
        VALUES 
-       (?, 1, ?, ?, 15.00, 0.00, 'APPROVED', NOW(), NOW()),
-       (?, 2, ?, ?, 12.00, 0.00, 'APPROVED', NOW(), NOW()),
-       (?, 3, ?, ?, 12.00, 0.00, 'APPROVED', NOW(), NOW())`,
+       (?, 1, ?, ?, 12.00, 0.00, 'APPROVED', NOW(), NOW()),
+       (?, 2, ?, ?, 10.00, 0.00, 'APPROVED', NOW(), NOW()),
+       (?, 3, ?, ?, 3.00, 0.00, 'APPROVED', NOW(), NOW())
+       ON DUPLICATE KEY UPDATE total_days = VALUES(total_days)`,
       [newEmployeeId, yearStart, yearEnd, newEmployeeId, yearStart, yearEnd, newEmployeeId, yearStart, yearEnd]
     );
 
@@ -1621,24 +1622,119 @@ const getLeaveTypes = async (req, res, next) => {
  */
 const createLeaveType = async (req, res, next) => {
   try {
-    const { name, code, is_paid = true, requires_approval = true } = req.body;
-    if (!name?.trim() || !code?.trim()) {
+    const {
+      name,
+      code,
+      unit = "Days",
+      requires_allocation = true,
+      requires_approval = true,
+      approval_type = "Manager",
+      payroll_work_entry = "Leave Work Entry",
+      work_entry_type = "Leave Work Entry",
+      is_paid = true,
+      affects_payroll = false,
+      is_active = true,
+      notes = "",
+    } = req.body;
+
+    if (!name?.trim()) {
       return errorResponse(res, {
         statusCode: 400,
-        message: "Leave type name and code are required.",
+        message: "Leave type name is required.",
       });
     }
 
-    const [result] = await pool.query(
-      `INSERT INTO leave_types (name, code, is_paid, requires_approval, is_active)
-       VALUES (?, ?, ?, ?, true)`,
-      [name.trim(), code.trim().toUpperCase(), is_paid, requires_approval]
+    const trimmedName = name.trim();
+
+    // Check if name already exists
+    const [existing] = await pool.query(
+      "SELECT id FROM leave_types WHERE name = ? LIMIT 1",
+      [trimmedName]
     );
+    if (existing.length > 0) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: `A leave type with the name "${trimmedName}" already exists.`,
+      });
+    }
+
+    // Auto-generate unique code
+    let genCode = code?.trim()
+      ? code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_")
+      : trimmedName.toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 20);
+
+    const [codeMatch] = await pool.query(
+      "SELECT id FROM leave_types WHERE code = ? LIMIT 1",
+      [genCode]
+    );
+    if (codeMatch.length > 0) {
+      genCode = `${genCode}_${Date.now().toString().slice(-4)}`;
+    }
+
+    const unitVal = (unit || "").toLowerCase() === "hours" ? "HOURS" : "DAYS";
+    const reqAlloc = requires_allocation === true || requires_allocation === "Yes" || requires_allocation === 1 ? 1 : 0;
+    const reqAppr = requires_approval === true || requires_approval === "Yes" || requires_approval === 1 ? 1 : 0;
+    const actVal = is_active === true || is_active === "True" || is_active === 1 ? 1 : 0;
+    const workEntry = work_entry_type || payroll_work_entry || "Leave Work Entry";
+
+    const [result] = await pool.query(
+      `INSERT INTO leave_types (
+        name, code, unit, requires_allocation, requires_approval,
+        approval_type, work_entry_type, is_paid, affects_payroll, is_active, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        trimmedName,
+        genCode,
+        unitVal,
+        reqAlloc,
+        reqAppr,
+        approval_type || "Manager",
+        workEntry,
+        is_paid ? 1 : 0,
+        affects_payroll ? 1 : 0,
+        actVal,
+        notes || "",
+      ]
+    );
+
+    // Auto-allocate 15 days to active employees if requires_allocation is enabled
+    if (reqAlloc) {
+      const [activeEmps] = await pool.query(
+        "SELECT id FROM employees WHERE status != 'TERMINATED'"
+      );
+      if (activeEmps.length > 0) {
+        const year = new Date().getFullYear();
+        const allocValues = activeEmps.map((emp) => [
+          emp.id,
+          result.insertId,
+          `${year}-01-01`,
+          `${year}-12-31`,
+          15.00,
+          0.00,
+          "APPROVED",
+        ]);
+        await pool.query(
+          `INSERT INTO leave_allocations (employee_id, leave_type_id, start_date, end_date, total_days, used_days, status)
+           VALUES ?`,
+          [allocValues]
+        );
+      }
+    }
 
     return successResponse(res, {
       statusCode: 201,
-      message: "Leave type created successfully.",
-      data: { id: result.insertId, name, code },
+      message: "Leave type created successfully and allocated to employees.",
+      data: {
+        id: result.insertId,
+        name: trimmedName,
+        code: genCode,
+        unit: unitVal,
+        requires_allocation: reqAlloc,
+        approval_type: approval_type || "Manager",
+        work_entry_type: workEntry,
+        is_active: actVal,
+        notes: notes || "",
+      },
     });
   } catch (error) {
     next(error);
@@ -1651,17 +1747,53 @@ const createLeaveType = async (req, res, next) => {
 const updateLeaveType = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, is_paid, requires_approval, is_active } = req.body;
+    const {
+      name,
+      unit,
+      requires_allocation,
+      requires_approval,
+      approval_type,
+      work_entry_type,
+      payroll_work_entry,
+      is_paid,
+      affects_payroll,
+      is_active,
+      notes,
+    } = req.body;
+
+    const unitVal = unit !== undefined ? (unit.toLowerCase() === "hours" ? "HOURS" : "DAYS") : null;
+    const reqAlloc = requires_allocation !== undefined ? (requires_allocation === true || requires_allocation === "Yes" || requires_allocation === 1 ? 1 : 0) : null;
+    const reqAppr = requires_approval !== undefined ? (requires_approval === true || requires_approval === "Yes" || requires_approval === 1 ? 1 : 0) : null;
+    const actVal = is_active !== undefined ? (is_active === true || is_active === "True" || is_active === 1 ? 1 : 0) : null;
+    const workEntry = work_entry_type || payroll_work_entry || null;
 
     await pool.query(
       `UPDATE leave_types SET
         name = COALESCE(?, name),
-        is_paid = COALESCE(?, is_paid),
+        unit = COALESCE(?, unit),
+        requires_allocation = COALESCE(?, requires_allocation),
         requires_approval = COALESCE(?, requires_approval),
+        approval_type = COALESCE(?, approval_type),
+        work_entry_type = COALESCE(?, work_entry_type),
+        is_paid = COALESCE(?, is_paid),
+        affects_payroll = COALESCE(?, affects_payroll),
         is_active = COALESCE(?, is_active),
+        notes = COALESCE(?, notes),
         updated_at = NOW()
        WHERE id = ?`,
-      [name, is_paid, requires_approval, is_active, id]
+      [
+        name ? name.trim() : null,
+        unitVal,
+        reqAlloc,
+        reqAppr,
+        approval_type || null,
+        workEntry,
+        is_paid !== undefined ? (is_paid ? 1 : 0) : null,
+        affects_payroll !== undefined ? (affects_payroll ? 1 : 0) : null,
+        actVal,
+        notes !== undefined ? notes : null,
+        id,
+      ]
     );
 
     return successResponse(res, {
@@ -1748,19 +1880,41 @@ const getEmployeeLeaveBalance = async (req, res, next) => {
       `SELECT 
         lt.id AS leave_type_id,
         lt.name AS leave_type_name,
-        COALESCE(la.total_days, 15.00) AS total_days,
-        COALESCE(la.used_days, 0.00) AS used_days,
-        (COALESCE(la.total_days, 15.00) - COALESCE(la.used_days, 0.00)) AS remaining_days
-       FROM leave_types lt
-       LEFT JOIN leave_allocations la ON la.leave_type_id = lt.id AND la.employee_id = ?
-       WHERE lt.is_active = true`,
+        la.total_days,
+        COALESCE((
+          SELECT SUM(lr.days) 
+          FROM leave_requests lr 
+          WHERE lr.employee_id = la.employee_id 
+            AND lr.leave_type_id = lt.id 
+            AND lr.status IN ('Approved', 'APPROVED')
+        ), la.used_days, 0) AS used_days,
+        GREATEST(0, la.total_days - COALESCE((
+          SELECT SUM(lr.days) 
+          FROM leave_requests lr 
+          WHERE lr.employee_id = la.employee_id 
+            AND lr.leave_type_id = lt.id 
+            AND lr.status IN ('Approved', 'APPROVED')
+        ), la.used_days, 0)) AS remaining_days
+       FROM leave_allocations la
+       JOIN leave_types lt ON la.leave_type_id = lt.id
+       WHERE la.employee_id = ?
+       ORDER BY lt.id ASC`,
       [id]
     );
+
+    let effectiveRows = rows;
+    if (effectiveRows.length === 0) {
+      effectiveRows = [
+        { leave_type_id: 1, leave_type_name: "Annual Leave", total_days: 12.00, used_days: 0.00, remaining_days: 12.00 },
+        { leave_type_id: 2, leave_type_name: "Sick Leave", total_days: 10.00, used_days: 0.00, remaining_days: 10.00 },
+        { leave_type_id: 3, leave_type_name: "Casual Leave", total_days: 3.00, used_days: 0.00, remaining_days: 3.00 },
+      ];
+    }
 
     return successResponse(res, {
       statusCode: 200,
       message: "Employee leave balance retrieved.",
-      data: rows,
+      data: effectiveRows,
     });
   } catch (error) {
     next(error);
@@ -2086,18 +2240,21 @@ const approveLeaveRequest = async (req, res, next) => {
 
     if (allocRows.length) {
       const alloc = allocRows[0];
-      const remaining = parseFloat(alloc.total_days) - parseFloat(alloc.used_days);
-      if (remaining < parseFloat(leaveReq.days)) {
-        // Still allow with alert or proceed as approved
-        console.warn(`Leave balance tight for employee ${leaveReq.employee_id}`);
-      }
-
       // Update used days
       await connection.query(
         `UPDATE leave_allocations 
          SET used_days = used_days + ?, updated_at = NOW() 
          WHERE id = ?`,
         [leaveReq.days, alloc.id]
+      );
+    } else {
+      const defaultTotal = leaveReq.leave_type_id === 1 ? 12 : leaveReq.leave_type_id === 2 ? 10 : leaveReq.leave_type_id === 3 ? 3 : 15;
+      const year = new Date().getFullYear();
+      await connection.query(
+        `INSERT INTO leave_allocations (employee_id, leave_type_id, start_date, end_date, total_days, used_days, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'APPROVED')
+         ON DUPLICATE KEY UPDATE used_days = used_days + VALUES(used_days)`,
+        [leaveReq.employee_id, leaveReq.leave_type_id, `${year}-01-01`, `${year}-12-31`, defaultTotal, leaveReq.days]
       );
     }
 
@@ -2155,6 +2312,16 @@ const rejectLeaveRequest = async (req, res, next) => {
         statusCode: 404,
         message: "Leave request not found.",
       });
+    }
+
+    const leaveReq = reqRows[0];
+    if (leaveReq.status === "Approved") {
+      await pool.query(
+        `UPDATE leave_allocations 
+         SET used_days = GREATEST(0, used_days - ?), updated_at = NOW() 
+         WHERE employee_id = ? AND leave_type_id = ?`,
+        [leaveReq.days, leaveReq.employee_id, leaveReq.leave_type_id]
+      );
     }
 
     await pool.query(
@@ -2277,38 +2444,64 @@ const getAttendanceReport = async (req, res, next) => {
     });
 
     // 3. Detailed employee attendance rows
+    // 3. Detailed employee attendance rows with dynamic leave allocations
     const [detailedRows] = await pool.query(`
       SELECT 
+        e.id AS employee_id,
         e.employee_code AS code,
         CONCAT(e.first_name, ' ', e.last_name) AS name,
         d.name AS department,
         26 AS totalWorkingDays,
-        SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS presentDays,
-        SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) AS absentDays,
-        SUM(CASE WHEN a.status = 'On Leave' THEN 1 ELSE 0 END) AS onLeaveDays,
-        SUM(CASE WHEN a.status = 'Half Day' THEN 1 ELSE 0 END) AS halfDays
+        COALESCE(SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END), 0) AS presentDays,
+        COALESCE(SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END), 0) AS absentDays,
+        COALESCE(SUM(CASE WHEN a.status = 'On Leave' THEN 1 ELSE 0 END), 0) AS onLeaveDays,
+        COALESCE(SUM(CASE WHEN a.status = 'Half Day' THEN 1 ELSE 0 END), 0) AS halfDays,
+        COALESCE(la_agg.total_allocated, 25.00) AS totalAllocatedLeaves,
+        COALESCE(la_agg.total_used, 0.00) AS totalUsedLeaves,
+        (COALESCE(la_agg.total_allocated, 25.00) - COALESCE(la_agg.total_used, 0.00)) AS remainingLeaves
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN attendance a ON a.employee_id = e.id
+      LEFT JOIN (
+        SELECT 
+          employee_id, 
+          SUM(total_days) AS total_allocated, 
+          SUM(used_days) AS total_used 
+        FROM leave_allocations 
+        GROUP BY employee_id
+      ) la_agg ON la_agg.employee_id = e.id
       WHERE e.status != 'TERMINATED'
-      GROUP BY e.id
-      LIMIT 20
+      GROUP BY e.id, la_agg.total_allocated, la_agg.total_used
+      ORDER BY e.employee_code ASC
+      LIMIT 100
     `);
 
     const detailed = detailedRows.map((r, idx) => {
-      const p = Number(r.presentDays) || 22;
-      const pct = Math.round((p / 26) * 100);
+      const p = Number(r.presentDays);
+      const ab = Number(r.absentDays);
+      const ol = Number(r.onLeaveDays);
+      const hd = Number(r.halfDays);
+      const tw = Number(r.totalWorkingDays) || 26;
+      const pct = Math.round(((p + hd * 0.5) / tw) * 100);
+      const rem = Math.max(0, parseFloat(r.remainingLeaves) || 0);
+      const alloc = parseFloat(r.totalAllocatedLeaves) || 25;
+      const used = parseFloat(r.totalUsedLeaves) || 0;
+
       return {
-        id: idx + 1,
+        id: r.employee_id || idx + 1,
+        employee_id: r.employee_id,
         code: r.code,
         name: r.name,
         department: r.department || "General",
         presentDays: p,
-        absentDays: Number(r.absentDays) || 2,
-        onLeave: Number(r.onLeaveDays) || 1,
-        halfDay: Number(r.halfDays) || 1,
-        totalWorkingDays: 26,
+        absentDays: ab,
+        onLeave: ol,
+        halfDay: hd,
+        totalWorkingDays: tw,
         attendancePct: `${pct}%`,
+        remainingLeaves: rem,
+        totalAllocatedLeaves: alloc,
+        totalUsedLeaves: used,
       };
     });
 
@@ -2323,6 +2516,162 @@ const getAttendanceReport = async (req, res, next) => {
         halfDay: halfDay || 2,
         departmentWise,
         detailed,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/hr/employees/:id/attendance-report
+ * Returns dynamic attendance, leave consumption, remaining balances, and recent records
+ */
+const getEmployeeAttendanceReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Employee Info
+    const [empRows] = await pool.query(
+      `SELECT e.id, e.employee_code, CONCAT(e.first_name, ' ', e.last_name) AS name, d.name AS department, e.designation, e.email
+       FROM employees e
+       LEFT JOIN departments d ON e.department_id = d.id
+       WHERE e.id = ? OR e.employee_code = ?
+       LIMIT 1`,
+      [id, id]
+    );
+
+    if (!empRows.length) {
+      return errorResponse(res, { statusCode: 404, message: "Employee not found." });
+    }
+
+    const emp = empRows[0];
+    const targetEmpId = emp.id;
+
+    // 2. Attendance Summary
+    const [attRows] = await pool.query(
+      `SELECT 
+        COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) AS presentDays,
+        COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) AS absentDays,
+        COALESCE(SUM(CASE WHEN status = 'On Leave' THEN 1 ELSE 0 END), 0) AS onLeaveDays,
+        COALESCE(SUM(CASE WHEN status = 'Half Day' THEN 1 ELSE 0 END), 0) AS halfDays
+       FROM attendance
+       WHERE employee_id = ?`,
+      [targetEmpId]
+    );
+
+    const att = attRows[0] || {};
+    const presentDays = Number(att.presentDays) || 0;
+    const absentDays = Number(att.absentDays) || 0;
+    const onLeaveDays = Number(att.onLeaveDays) || 0;
+    const halfDays = Number(att.halfDays) || 0;
+    const totalWorkingDays = 26;
+    const attendancePct = Math.round(((presentDays + halfDays * 0.5) / totalWorkingDays) * 100);
+
+    // 3. Leave Allocations Breakdown & Remaining Leaves (Default standard: 25 Days total)
+    const [allocRows] = await pool.query(
+      `SELECT 
+        lt.id AS leave_type_id,
+        lt.name AS leave_type_name,
+        la.total_days,
+        la.used_days,
+        (la.total_days - la.used_days) AS remaining_days
+       FROM leave_allocations la
+       JOIN leave_types lt ON la.leave_type_id = lt.id
+       WHERE la.employee_id = ?
+       ORDER BY lt.id ASC`,
+      [targetEmpId]
+    );
+
+    // Dynamic real-time calculation of approved leave requests
+    const [approvedUsageRows] = await pool.query(
+      `SELECT leave_type_id, COALESCE(SUM(days), 0) AS approved_days
+       FROM leave_requests
+       WHERE employee_id = ? AND status IN ('Approved', 'APPROVED')
+       GROUP BY leave_type_id`,
+      [targetEmpId]
+    );
+    const approvedUsageMap = {};
+    approvedUsageRows.forEach((u) => {
+      approvedUsageMap[u.leave_type_id] = parseFloat(u.approved_days) || 0;
+    });
+
+    let effectiveAllocRows = allocRows;
+    if (effectiveAllocRows.length === 0) {
+      // Standard default company leave policy: 25 days (12 Annual + 10 Sick + 3 Casual)
+      effectiveAllocRows = [
+        { leave_type_id: 1, leave_type_name: "Annual Leave", total_days: 12.00, used_days: 0.00 },
+        { leave_type_id: 2, leave_type_name: "Sick Leave", total_days: 10.00, used_days: 0.00 },
+        { leave_type_id: 3, leave_type_name: "Casual Leave", total_days: 3.00, used_days: 0.00 },
+      ];
+    }
+
+    let totalAllocated = 0;
+    let totalUsed = 0;
+    const leaveBreakdown = effectiveAllocRows.map((r) => {
+      const tot = parseFloat(r.total_days) || 0;
+      const usdReq = approvedUsageMap[r.leave_type_id];
+      const usd = usdReq !== undefined ? usdReq : (parseFloat(r.used_days) || 0);
+      const rem = Math.max(0, tot - usd);
+      totalAllocated += tot;
+      totalUsed += usd;
+      return {
+        leaveTypeId: r.leave_type_id,
+        leaveTypeName: r.leave_type_name,
+        totalDays: tot,
+        usedDays: usd,
+        remainingDays: rem,
+      };
+    });
+
+    const totalRemaining = Math.max(0, totalAllocated - totalUsed);
+
+    // 4. Recent Leave Requests
+    const [recentLeaves] = await pool.query(
+      `SELECT 
+        lr.id,
+        lt.name AS leave_type,
+        DATE_FORMAT(lr.start_date, '%d %b %Y') AS from_date,
+        DATE_FORMAT(lr.end_date, '%d %b %Y') AS to_date,
+        lr.days,
+        lr.reason,
+        lr.status,
+        DATE_FORMAT(lr.created_at, '%d %b %Y') AS applied_on
+       FROM leave_requests lr
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
+       WHERE lr.employee_id = ?
+       ORDER BY lr.id DESC
+       LIMIT 5`,
+      [targetEmpId]
+    );
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Employee attendance and leave report retrieved.",
+      data: {
+        employee: {
+          id: emp.id,
+          code: emp.employee_code,
+          name: emp.name,
+          department: emp.department || "General",
+          designation: emp.designation || "-",
+          email: emp.email,
+        },
+        attendance: {
+          presentDays,
+          absentDays,
+          onLeaveDays,
+          halfDays,
+          totalWorkingDays,
+          attendancePct: `${attendancePct}%`,
+        },
+        leaves: {
+          totalAllocated,
+          totalUsed,
+          totalRemaining,
+          breakdown: leaveBreakdown,
+        },
+        recentLeaves,
       },
     });
   } catch (error) {
@@ -2601,6 +2950,7 @@ module.exports = {
 
   // Reports
   getAttendanceReport,
+  getEmployeeAttendanceReport,
   getLeaveReport,
   getEmployeeReport,
   getDepartmentReport,

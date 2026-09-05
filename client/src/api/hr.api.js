@@ -34,6 +34,8 @@ export const hrApi = {
 
   // Leave Module
   getLeaveTypes: () => api.get("/hr/leave-types").then((res) => res.data.data),
+  createLeaveType: (data) => api.post("/hr/leave-types", data).then((res) => res.data.data),
+  updateLeaveType: (id, data) => api.patch(`/hr/leave-types/${id}`, data).then((res) => res.data.data),
   getLeaveAllocations: (params) => api.get("/hr/leave-allocations", { params }).then((res) => res.data.data),
   getLeaveRequests: (params) => api.get("/hr/leave-requests", { params }).then((res) => res.data.data),
   createLeaveRequest: (data) => api.post("/hr/leave-requests", data).then((res) => res.data.data),
@@ -44,6 +46,8 @@ export const hrApi = {
 
   // Reports
   getAttendanceReport: () => api.get("/hr/reports/attendance").then((res) => res.data.data),
+  getEmployeeAttendanceReport: (id) =>
+    api.get(`/hr/employees/${id}/attendance-report`).then((res) => res.data.data),
   getLeaveReport: () => api.get("/hr/reports/leaves").then((res) => res.data.data),
   getEmployeeReport: () => api.get("/hr/reports/employees").then((res) => res.data.data),
   getDepartmentReport: () => api.get("/hr/reports/departments").then((res) => res.data.data),

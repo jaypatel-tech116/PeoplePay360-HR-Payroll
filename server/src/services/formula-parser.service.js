@@ -8,11 +8,17 @@
 
 // Supported binary operators with precedence and associativity
 const OPERATORS = {
-  "+": { prec: 1, assoc: "L", fn: (a, b) => a + b },
-  "-": { prec: 1, assoc: "L", fn: (a, b) => a - b },
-  "*": { prec: 2, assoc: "L", fn: (a, b) => a * b },
-  "/": { prec: 2, assoc: "L", fn: (a, b) => (b === 0 ? 0 : a / b) },
-  "%": { prec: 2, assoc: "L", fn: (a, b) => (b === 0 ? 0 : a % b) },
+  "+": { prec: 2, assoc: "L", fn: (a, b) => a + b },
+  "-": { prec: 2, assoc: "L", fn: (a, b) => a - b },
+  "*": { prec: 3, assoc: "L", fn: (a, b) => a * b },
+  "/": { prec: 3, assoc: "L", fn: (a, b) => (b === 0 ? 0 : a / b) },
+  "%": { prec: 3, assoc: "L", fn: (a, b) => (b === 0 ? 0 : a % b) },
+  ">=": { prec: 1, assoc: "L", fn: (a, b) => (a >= b ? 1 : 0) },
+  "<=": { prec: 1, assoc: "L", fn: (a, b) => (a <= b ? 1 : 0) },
+  "==": { prec: 1, assoc: "L", fn: (a, b) => (a === b ? 1 : 0) },
+  "!=": { prec: 1, assoc: "L", fn: (a, b) => (a !== b ? 1 : 0) },
+  ">": { prec: 1, assoc: "L", fn: (a, b) => (a > b ? 1 : 0) },
+  "<": { prec: 1, assoc: "L", fn: (a, b) => (a < b ? 1 : 0) },
 };
 
 // Supported mathematical functions
@@ -26,6 +32,7 @@ const FUNCTIONS = {
   floor: (val) => Math.floor(val),
   ceil: (val) => Math.ceil(val),
   abs: (val) => Math.abs(val),
+  if: (cond, thenVal, elseVal = 0) => (cond ? thenVal : elseVal),
 };
 
 /**
@@ -76,7 +83,15 @@ function tokenize(expr) {
       continue;
     }
 
-    // Operators
+    // Two-character operators (>=, <=, ==, !=)
+    const twoChar = str.slice(i, i + 2);
+    if (OPERATORS[twoChar]) {
+      tokens.push({ type: "OPERATOR", value: twoChar });
+      i += 2;
+      continue;
+    }
+
+    // Single-character operators (+, -, *, /, %, >, <)
     if (OPERATORS[ch]) {
       // Check for unary minus: preceded by another operator, open paren, or at start
       const prev = tokens[tokens.length - 1];
@@ -215,8 +230,13 @@ function evaluateTokens(tokens, context = {}) {
     } else if (item.type === "FUNCTION") {
       const fn = FUNCTIONS[item.value];
       if (!fn) throw new Error(`Unknown function: ${item.value}`);
-      // Unary/binary function handling
-      if (item.value === "round" || item.value === "min" || item.value === "max") {
+      // Function handling (unary, binary, or ternary if)
+      if (item.value === "if") {
+        const c = evaluationStack.pop(); // elseVal
+        const b = evaluationStack.pop(); // thenVal
+        const a = evaluationStack.pop(); // cond
+        evaluationStack.push(fn(a !== undefined ? a : 0, b !== undefined ? b : 0, c !== undefined ? c : 0));
+      } else if (item.value === "round" || item.value === "min" || item.value === "max") {
         const b = evaluationStack.pop();
         const a = evaluationStack.pop();
         if (a !== undefined && b !== undefined) {
@@ -246,6 +266,43 @@ function evaluateTokens(tokens, context = {}) {
 }
 
 /**
+ * Normalizes Odoo Python-style formulas to clean mathematical expressions
+ * Supports:
+ * - result = ...
+ * - categories['BASIC'] / categories["BASIC"] / categories.BASIC -> BASIC
+ * - rules['BASIC'] / rules["BASIC"] / rules.BASIC -> BASIC
+ * - contract.wage / contract['wage'] -> WAGE
+ * - payslip.paid_days -> PAID_DAYS
+ */
+function normalizeFormula(expr) {
+  if (!expr || typeof expr !== "string") return "";
+  let s = expr.trim();
+
+  // Strip leading 'result =' or 'result='
+  s = s.replace(/^result\s*=\s*/i, "");
+
+  // Replace categories['CODE'] or categories["CODE"] with CODE
+  s = s.replace(/categories\s*\[\s*['"]([a-zA-Z0-9_]+)['"]\s*\]/gi, "$1");
+  s = s.replace(/categories\.([a-zA-Z0-9_]+)/gi, "$1");
+
+  // Replace rules['CODE'] or rules["CODE"] with CODE
+  s = s.replace(/rules\s*\[\s*['"]([a-zA-Z0-9_]+)['"]\s*\]/gi, "$1");
+  s = s.replace(/rules\.([a-zA-Z0-9_]+)/gi, "$1");
+
+  // Replace contract.wage or contract['wage'] with WAGE
+  s = s.replace(/contract\s*\[\s*['"]wage['"]\s*\]/gi, "WAGE");
+  s = s.replace(/contract\.wage/gi, "WAGE");
+
+  // Replace payslip metrics with uppercase equivalents
+  s = s.replace(/payslip\.paid_days/gi, "PAID_DAYS");
+  s = s.replace(/payslip\.worked_days/gi, "WORKED_DAYS");
+  s = s.replace(/payslip\.scheduled_days/gi, "SCHEDULED_DAYS");
+  s = s.replace(/payslip\.total_days/gi, "TOTAL_DAYS");
+
+  return s.trim();
+}
+
+/**
  * Safely parse and calculate a formula rule against context
  * @param {string} formula
  * @param {Object} context
@@ -256,8 +313,11 @@ const evaluateFormula = (formula, context = {}) => {
     return 0;
   }
 
+  const normalized = normalizeFormula(formula);
+  if (!normalized) return 0;
+
   try {
-    const tokens = tokenize(formula);
+    const tokens = tokenize(normalized);
     return evaluateTokens(tokens, context);
   } catch (err) {
     console.error(`❌ Formula Evaluation Error [${formula}]:`, err.message);
@@ -265,7 +325,92 @@ const evaluateFormula = (formula, context = {}) => {
   }
 };
 
+/**
+ * Dry-run validates a formula against a standard sample context without modifying database
+ * @param {string} formula
+ * @param {number|Object} sampleWageOrContext
+ * @returns {{ isValid: boolean, normalizedFormula?: string, sampleResult?: number, variablesUsed?: string[], error?: string }}
+ */
+const validateFormulaExpression = (formula, sampleWageOrContext = 50000) => {
+  if (!formula || typeof formula !== "string" || !formula.trim()) {
+    return { isValid: false, error: "Formula cannot be empty." };
+  }
+
+  const normalized = normalizeFormula(formula);
+  if (!normalized) {
+    return { isValid: false, error: "Formula expression is empty after normalization." };
+  }
+
+  const sampleWage = typeof sampleWageOrContext === "number" 
+    ? sampleWageOrContext 
+    : (parseFloat(sampleWageOrContext?.WAGE) || 50000);
+
+  const sampleContext = typeof sampleWageOrContext === "object" && sampleWageOrContext !== null && !Array.isArray(sampleWageOrContext)
+    ? {
+        WAGE: sampleWage,
+        CONTRACT_WAGE: sampleWage,
+        BASIC: sampleWage * 0.5,
+        HRA: sampleWage * 0.2,
+        GROSS: sampleWage,
+        DEDUCTIONS: sampleWage * 0.12,
+        NET: sampleWage * 0.88,
+        SCHEDULED_DAYS: 30,
+        WORKED_DAYS: 28,
+        PRESENT_DAYS: 28,
+        PAID_DAYS: 30,
+        LOP_DAYS: 0,
+        UNPAID_DAYS: 0,
+        OVERTIME_HOURS: 0,
+        TOTAL_DAYS: 30,
+        PF: sampleWage * 0.5 * 0.12,
+        PT: 200,
+        TDS: 1500,
+        ...sampleWageOrContext,
+      }
+    : {
+        WAGE: sampleWage,
+        CONTRACT_WAGE: sampleWage,
+        BASIC: sampleWage * 0.5,
+        HRA: sampleWage * 0.2,
+        GROSS: sampleWage,
+        DEDUCTIONS: sampleWage * 0.12,
+        NET: sampleWage * 0.88,
+        SCHEDULED_DAYS: 30,
+        WORKED_DAYS: 28,
+        PRESENT_DAYS: 28,
+        PAID_DAYS: 30,
+        LOP_DAYS: 0,
+        UNPAID_DAYS: 0,
+        OVERTIME_HOURS: 0,
+        TOTAL_DAYS: 30,
+        PF: sampleWage * 0.5 * 0.12,
+        PT: 200,
+        TDS: 1500,
+      };
+
+  try {
+    const tokens = tokenize(normalized);
+    const variablesUsed = [...new Set(tokens.filter((t) => t.type === "VARIABLE").map((t) => t.value))];
+    const sampleResult = evaluateTokens(tokens, sampleContext);
+
+    return {
+      isValid: true,
+      normalizedFormula: normalized,
+      sampleResult,
+      variablesUsed,
+    };
+  } catch (err) {
+    return {
+      isValid: false,
+      error: err.message,
+    };
+  }
+};
+
 module.exports = {
   evaluateFormula,
+  normalizeFormula,
+  validateFormulaExpression,
   tokenize,
 };
+

@@ -84,7 +84,7 @@ const createPayrun = async (req, res, next) => {
     } = req.body;
 
     const created = await payrollEngine.createPayrun({
-      salary_structure_id: salary_structure_id || 1,
+      salary_structure_id: parseInt(salary_structure_id, 10) || 1,
       period_start,
       period_end,
       pay_date,
@@ -116,7 +116,8 @@ const createPayrun = async (req, res, next) => {
 const computePayrun = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const computed = await payrollEngine.computePayrun(id, req.user?.id);
+    const { employee_ids } = req.body || {};
+    const computed = await payrollEngine.computePayrun(id, req.user?.id, employee_ids);
 
     return successResponse(res, {
       statusCode: 200,
@@ -369,8 +370,14 @@ const getPayslipById = async (req, res, next) => {
       ORDER BY sequence ASC, id ASC;
     `, [payslip.id]);
 
-    const earnings = lines.filter((l) => l.category === "BASIC" || l.category === "ALLOWANCE");
-    const deductions = lines.filter((l) => l.category === "DEDUCTION");
+    const formattedLines = lines.map((l) => ({
+      ...l,
+      name: l.rule_name || l.name,
+      code: l.rule_code || l.code,
+    }));
+
+    const earnings = formattedLines.filter((l) => l.category === "BASIC" || l.category === "ALLOWANCE");
+    const deductions = formattedLines.filter((l) => l.category === "DEDUCTION");
 
     return successResponse(res, {
       statusCode: 200,
@@ -380,7 +387,7 @@ const getPayslipById = async (req, res, next) => {
           ...payslip,
           earnings,
           deductions,
-          lines,
+          lines: formattedLines,
         },
       },
     });

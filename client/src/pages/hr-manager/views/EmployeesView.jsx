@@ -25,9 +25,7 @@ const EmployeesView = ({
   onRefresh,
 }) => {
   const [pipelineSearch, setPipelineSearch] = useState("");
-  const [tableSearch, setTableSearch] = useState("");
   const [viewMode, setViewMode] = useState("kanban");
-  const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [activeMenuId, setActiveMenuId] = useState(null);
 
   // Normalize pipeline lists
@@ -35,40 +33,6 @@ const EmployeesView = ({
   const activeList = pipelineData.active || [];
   const onLeaveList = pipelineData.on_leave || pipelineData.onLeave || [];
   const exitingList = pipelineData.exiting || [];
-
-  // Select all checkboxes toggle
-  const toggleSelectAll = () => {
-    if (selectedRowIds.length === employees.length) {
-      setSelectedRowIds([]);
-    } else {
-      setSelectedRowIds(employees.map((e) => e.code || e.id));
-    }
-  };
-
-  const toggleSelectRow = (code) => {
-    setSelectedRowIds((prev) =>
-      prev.includes(code) ? prev.filter((id) => id !== code) : [...prev, code]
-    );
-  };
-
-  // Filtered employees table
-  const filteredEmployees = employees.filter((emp) => {
-    const q = tableSearch.toLowerCase();
-    const name = emp.name || `${emp.first_name || ""} ${emp.last_name || ""}`;
-    const code = emp.code || emp.employee_code || "";
-    const dept = emp.department || "";
-    const role = emp.jobPosition || emp.designation || "";
-    return (
-      name.toLowerCase().includes(q) ||
-      code.toLowerCase().includes(q) ||
-      dept.toLowerCase().includes(q) ||
-      role.toLowerCase().includes(q)
-    );
-  });
-
-  const handleExportCsv = () => {
-    window.open(hrApi.getExportUrl("employees"), "_blank");
-  };
 
   const handleStageMove = async (empId, newStage) => {
     try {
@@ -335,13 +299,6 @@ const EmployeesView = ({
                   </div>
                 ))}
             </div>
-            <button
-              type="button"
-              className="hr-kanban-add-btn"
-              onClick={() => onAddEmployeeToColumn("New Joiners")}
-            >
-              + Add Employee
-            </button>
           </div>
 
           {/* Column 2: Active */}
@@ -438,13 +395,6 @@ const EmployeesView = ({
                   </div>
                 ))}
             </div>
-            <button
-              type="button"
-              className="hr-kanban-add-btn"
-              onClick={() => onAddEmployeeToColumn("Active")}
-            >
-              + Add Employee
-            </button>
           </div>
 
           {/* Column 3: On Leave */}
@@ -539,13 +489,6 @@ const EmployeesView = ({
                   </div>
                 ))}
             </div>
-            <button
-              type="button"
-              className="hr-kanban-add-btn"
-              onClick={() => onAddEmployeeToColumn("On Leave")}
-            >
-              + Add Employee
-            </button>
           </div>
 
           {/* Column 4: Exiting */}
@@ -598,124 +541,7 @@ const EmployeesView = ({
                   </div>
                 ))}
             </div>
-            <button
-              type="button"
-              className="hr-kanban-add-btn"
-              onClick={() => onAddEmployeeToColumn("Exiting")}
-            >
-              + Add Employee
-            </button>
           </div>
-        </div>
-      </div>
-
-      {/* 4. Bottom Section: All Employees */}
-      <div className="hr-section-card">
-        <div className="hr-section-header">
-          <div className="hr-section-title-group">
-            <div className="hr-section-icon">👥</div>
-            <div>
-              <h2 className="hr-section-heading">All Employees</h2>
-              <p className="hr-section-subheading">
-                Complete list of your employees
-              </p>
-            </div>
-          </div>
-
-          <div className="hr-section-controls">
-            <div className="hr-input-search-wrapper">
-              <span style={{ color: "#9ca3af", fontSize: "0.85rem" }}>🔍</span>
-              <input
-                type="text"
-                placeholder="Search employees..."
-                value={tableSearch}
-                onChange={(e) => setTableSearch(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="button"
-              className="hr-btn-secondary"
-              onClick={handleExportCsv}
-            >
-              <span>📥</span> Export CSV
-            </button>
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="hr-table-responsive">
-          <table className="hr-data-table">
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedRowIds.length === filteredEmployees.length &&
-                      filteredEmployees.length > 0
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-                <th>Employee Code</th>
-                <th>Name</th>
-                <th>Department</th>
-                <th>Job Position</th>
-                <th>Employee Type</th>
-                <th>Joining Date</th>
-                <th>Status</th>
-                <th style={{ textAlign: "right" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEmployees.length === 0 ? (
-                <tr>
-                  <td colSpan="9" style={{ textAlign: "center", padding: "32px", color: "#6b7280" }}>
-                    No employees found. Click "+ New Employee" to onboard your first employee.
-                  </td>
-                </tr>
-              ) : (
-                filteredEmployees.map((emp) => (
-                  <tr key={emp.code || emp.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedRowIds.includes(emp.code || emp.id)}
-                        onChange={() => toggleSelectRow(emp.code || emp.id)}
-                      />
-                    </td>
-                    <td>{emp.code || emp.employee_code}</td>
-                    <td className="hr-emp-name-cell">{cleanName(emp.name || `${emp.first_name || ""} ${emp.last_name || ""}`)}</td>
-                    <td>{emp.department || emp.department_name || "-"}</td>
-                    <td>{emp.jobPosition || emp.designation || "-"}</td>
-                    <td>{emp.employeeType || emp.employee_type || "Full Time"}</td>
-                    <td>{emp.formattedJoiningDate || emp.joiningDate || "-"}</td>
-                    <td>
-                      <span
-                        className={`hr-badge ${
-                          emp.status === "ACTIVE" || emp.status === "Active"
-                            ? "hr-badge-green"
-                            : "hr-badge-amber"
-                        }`}
-                      >
-                        {emp.status}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        className="hr-btn-view"
-                        onClick={() => onViewEmployee(emp)}
-                      >
-                        <span>👁</span> View
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

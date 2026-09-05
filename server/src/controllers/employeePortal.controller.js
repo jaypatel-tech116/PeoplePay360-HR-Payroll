@@ -163,6 +163,12 @@ const getDashboard = async (req, res, next) => {
       [employeeId]
     );
 
+    const [approvedUsage] = await pool.query(
+      `SELECT COALESCE(SUM(days), 0) AS used FROM leave_requests WHERE employee_id = ? AND status IN ('Approved', 'APPROVED')`,
+      [employeeId]
+    );
+    const approvedUsed = parseFloat(approvedUsage[0]?.used) || 0;
+
     let totalAllocated = 0;
     let totalUsed = 0;
 
@@ -171,10 +177,14 @@ const getDashboard = async (req, res, next) => {
       totalUsed += parseFloat(a.used_days) || 0;
     });
 
-    // If no allocations found, default to standard policy
+    // If no allocations found, default to 25 days standard policy (12 + 10 + 3)
     if (leaveAllocRows.length === 0) {
-      totalAllocated = 12;
-      totalUsed = 3;
+      totalAllocated = 25;
+      totalUsed = 0;
+    }
+
+    if (approvedUsed > 0 || totalUsed === 0) {
+      totalUsed = approvedUsed;
     }
 
     const remainingDays = Math.max(0, totalAllocated - totalUsed);
@@ -742,35 +752,64 @@ const getLeaves = async (req, res, next) => {
     const employeeId = req.employeeId;
     const { status } = req.query;
 
-    // Leave Allocations
+    // 1. Fetch all active leave types from DB dynamically
+    const [activeTypes] = await pool.query(
+      `SELECT id, name, code, requires_allocation FROM leave_types WHERE is_active = TRUE ORDER BY id ASC`
+    );
+
+    // 2. Leave Allocations for this employee
     const [allocations] = await pool.query(
       `SELECT la.*, lt.name AS leave_type_name, lt.code AS leave_type_code
        FROM leave_allocations la
        JOIN leave_types lt ON la.leave_type_id = lt.id
-       WHERE la.employee_id = ?`,
+       WHERE la.employee_id = ?
+       ORDER BY lt.id ASC`,
       [employeeId]
     );
+
+    // 3. Dynamic approved usage from leave requests
+    const [approvedUsageRows] = await pool.query(
+      `SELECT leave_type_id, COALESCE(SUM(days), 0) AS approved_days
+       FROM leave_requests
+       WHERE employee_id = ? AND status IN ('Approved', 'APPROVED')
+       GROUP BY leave_type_id`,
+      [employeeId]
+    );
+    const approvedUsageMap = {};
+    approvedUsageRows.forEach((u) => {
+      approvedUsageMap[u.leave_type_id] = parseFloat(u.approved_days) || 0;
+    });
+
+    let effectiveAllocations = allocations;
+    if (effectiveAllocations.length === 0) {
+      // Default standard company policy: 25 days (Annual 12 + Sick 10 + Casual 3)
+      effectiveAllocations = [
+        { leave_type_id: 1, leave_type_name: "Annual Leave", total_days: 12.00, used_days: 0.00 },
+        { leave_type_id: 2, leave_type_name: "Sick Leave", total_days: 10.00, used_days: 0.00 },
+        { leave_type_id: 3, leave_type_name: "Casual Leave", total_days: 3.00, used_days: 0.00 },
+      ];
+    }
 
     let totalAllocated = 0;
     let totalUsed = 0;
 
     const typesMap = {};
-    allocations.forEach((a) => {
+    effectiveAllocations.forEach((a) => {
       const tot = parseFloat(a.total_days) || 0;
-      const usd = parseFloat(a.used_days) || 0;
+      const usdReq = approvedUsageMap[a.leave_type_id];
+      const usd = usdReq !== undefined ? usdReq : (parseFloat(a.used_days) || 0);
+      const rem = Math.max(0, tot - usd);
       totalAllocated += tot;
       totalUsed += usd;
-      typesMap[a.leave_type_name] = `${tot} Days`;
+      typesMap[a.leave_type_name] = `${rem} Days (of ${tot})`;
     });
 
-    if (allocations.length === 0) {
-      totalAllocated = 12;
-      totalUsed = 3;
-      typesMap["Annual Leave"] = "12 Days";
-      typesMap["Sick Leave"] = "10 Days";
-      typesMap["Casual Leave"] = "6 Days";
-      typesMap["Unpaid Leave"] = "-";
-    }
+    // Populate remaining active types as unallocated / policy based without inflating the 25-day quota
+    activeTypes.forEach((t) => {
+      if (!typesMap[t.name]) {
+        typesMap[t.name] = "-";
+      }
+    });
 
     const remaining = Math.max(0, totalAllocated - totalUsed);
 
@@ -813,6 +852,12 @@ const getLeaves = async (req, res, next) => {
           remaining,
         },
         types: typesMap,
+        leaveTypes: activeTypes.map((t) => ({
+          id: t.id,
+          name: t.name,
+          code: t.code,
+          requires_allocation: t.requires_allocation,
+        })),
         requests,
       },
     });

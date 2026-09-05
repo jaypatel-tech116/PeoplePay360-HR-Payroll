@@ -135,38 +135,44 @@ const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
             <span>🗂️</span> Leave Types
           </h3>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "0.825rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#f3ebf1", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Annual Leave</span>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              fontSize: "0.825rem",
+              maxHeight: "220px",
+              overflowY: "auto",
+              paddingRight: "4px",
+            }}
+          >
+            {Object.entries(types).map(([typeName, daysVal]) => (
+              <div
+                key={typeName}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingBottom: "4px",
+                  borderBottom: "1px solid #f8fafc",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span
+                    style={{
+                      backgroundColor: "#f1f5f9",
+                      padding: "5px 7px",
+                      borderRadius: "6px",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    📅
+                  </span>
+                  <span style={{ fontWeight: 500, color: "#1e293b" }}>{typeName}</span>
+                </div>
+                <strong style={{ color: "#334155" }}>{daysVal}</strong>
               </div>
-              <strong>{types["Annual Leave"] || "12 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#e6f7ef", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Sick Leave</span>
-              </div>
-              <strong>{types["Sick Leave"] || "10 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#fef3c7", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Casual Leave</span>
-              </div>
-              <strong>{types["Casual Leave"] || "6 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#fee2e2", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Unpaid Leave</span>
-              </div>
-              <strong>{types["Unpaid Leave"] || "-"}</strong>
-            </div>
+            ))}
           </div>
         </div>
 

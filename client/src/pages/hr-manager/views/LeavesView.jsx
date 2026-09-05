@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-const cleanName = (n) => { if (!n) return ''; const p = n.trim().split(/\s+/); return p.length === 2 && p[0].toLowerCase() === p[1].toLowerCase() ? p[0] : n.trim(); };
+import React, { useState } from "react";
+const cleanName = (n) => {
+  if (!n) return "";
+  const p = n.trim().split(/\s+/);
+  return p.length === 2 && p[0].toLowerCase() === p[1].toLowerCase() ? p[0] : n.trim();
+};
 import hrApi from "../../../api/hr.api";
 import { SkeletonKanban, SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
@@ -7,73 +11,99 @@ const LeavesView = ({
   leaveRequests = [],
   leavePipeline = { draft: [], toApprove: [], approved: [], rejected: [] },
   leaveSummary = {},
+  leaveTypes = [],
   isLoading = false,
   onOpenRequestModal,
+  onOpenTimeOffType,
   onViewLeave,
   onApprove,
   onReject,
   onRefresh,
 }) => {
   const [requestSearch, setRequestSearch] = useState("");
-  const [viewMode, setViewMode] = useState("kanban");
-  const [selectedLeaveIds, setSelectedLeaveIds] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  // Default to list / table type view as requested by user
+  const [viewMode, setViewMode] = useState("list");
+  const [activeTab, setActiveTab] = useState("All");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("All Leave Types");
+  const [isProcessingId, setIsProcessingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  // Normalize pipeline
+  // Pipeline lists
   const draftList = leavePipeline.draft || [];
   const toApproveList = leavePipeline.toApprove || [];
   const approvedList = leavePipeline.approved || [];
   const rejectedList = leavePipeline.rejected || [];
 
-  // Toggle select all
-  const toggleSelectAll = () => {
-    if (selectedLeaveIds.length === leaveRequests.length) {
-      setSelectedLeaveIds([]);
-    } else {
-      setSelectedLeaveIds(leaveRequests.map((r) => r.id));
-    }
-  };
+  // Summary counts
+  const totalCount = leaveRequests.length;
+  const toApproveCount = leaveRequests.filter(
+    (r) => (r.status || "").toLowerCase() === "pending" || (r.status || "").toLowerCase() === "to approve"
+  ).length;
+  const approvedCount = leaveRequests.filter(
+    (r) => (r.status || "").toLowerCase() === "approved"
+  ).length;
+  const rejectedCount = leaveRequests.filter(
+    (r) => (r.status || "").toLowerCase() === "rejected"
+  ).length;
 
-  const toggleSelectRow = (id) => {
-    setSelectedLeaveIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
+  const filterTabs = [
+    { id: "All", label: `All (${totalCount})` },
+    { id: "To Approve", label: `To Approve (${toApproveCount})` },
+    { id: "Approved", label: `Approved (${approvedCount})` },
+    { id: "Rejected", label: `Rejected (${rejectedCount})` },
+  ];
 
+  // Dynamic unique leave types for dropdown
+  const uniqueLeaveTypes = [
+    "All Leave Types",
+    ...Array.from(
+      new Set([
+        ...leaveRequests.map((r) => r.leaveType).filter(Boolean),
+        ...(leaveTypes || []).map((lt) => lt.name).filter(Boolean),
+      ])
+    ),
+  ];
+
+
+  // Immediate Approve
   const handleApprove = async (id, e) => {
     if (e) e.stopPropagation();
     try {
-      setIsProcessing(true);
+      setIsProcessingId(id);
       if (onApprove) {
         await onApprove({ id });
       } else {
         await hrApi.approveLeaveRequest(id);
+        alert(`Leave request #${id} Approved successfully!`);
+        if (onRefresh) onRefresh();
       }
-      if (onRefresh) onRefresh();
     } catch (err) {
       alert("Failed to approve leave: " + (err.response?.data?.message || err.message));
     } finally {
-      setIsProcessing(false);
+      setIsProcessingId(null);
     }
   };
 
+  // Immediate Reject with reason prompt
   const handleReject = async (id, e) => {
     if (e) e.stopPropagation();
-    const reason = prompt("Enter reason for leave rejection:", "Operational workload");
+    const reason = prompt("Enter reason for leave rejection:", "Operational workload requirement");
     if (!reason) return;
 
     try {
-      setIsProcessing(true);
+      setIsProcessingId(id);
       if (onReject) {
         await onReject({ id, reason });
       } else {
         await hrApi.rejectLeaveRequest(id, reason);
+        alert(`Leave request #${id} Rejected.`);
+        if (onRefresh) onRefresh();
       }
-      if (onRefresh) onRefresh();
     } catch (err) {
       alert("Failed to reject leave: " + (err.response?.data?.message || err.message));
     } finally {
-      setIsProcessing(false);
+      setIsProcessingId(null);
     }
   };
 
@@ -83,14 +113,50 @@ const LeavesView = ({
 
   // Filtered list
   const filteredRequests = leaveRequests.filter((r) => {
-    const q = requestSearch.toLowerCase();
-    const emp = (r.employee || "").toLowerCase();
-    const type = (r.leaveType || "").toLowerCase();
-    const status = (r.status || "").toLowerCase();
-    return emp.includes(q) || type.includes(q) || status.includes(q);
+    // 1. Tab filter
+    const s = (r.status || "").toLowerCase();
+    if (activeTab === "To Approve" && s !== "pending" && s !== "to approve") return false;
+    if (activeTab === "Approved" && s !== "approved") return false;
+    if (activeTab === "Rejected" && s !== "rejected") return false;
+
+    // 2. Leave type dropdown
+    if (leaveTypeFilter !== "All Leave Types" && r.leaveType !== leaveTypeFilter) return false;
+
+    // 3. Search query
+    if (requestSearch) {
+      const q = requestSearch.toLowerCase();
+      const emp = (r.employee || "").toLowerCase();
+      const code = (r.employee_code || "").toLowerCase();
+      const dept = (r.department || "").toLowerCase();
+      const type = (r.leaveType || "").toLowerCase();
+      const reason = (r.reason || "").toLowerCase();
+      const status = (r.status || "").toLowerCase();
+      const matches =
+        emp.includes(q) ||
+        code.includes(q) ||
+        dept.includes(q) ||
+        type.includes(q) ||
+        reason.includes(q) ||
+        status.includes(q);
+      if (!matches) return false;
+    }
+
+    return true;
   });
 
-  if (isLoading) return viewMode === "kanban" ? <SkeletonKanban cols={4} cardsPerCol={3} /> : <SkeletonListPage rows={7} cols={6} />;
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
+  const pageIndex = Math.min(currentPage, totalPages);
+  const startIndex = (pageIndex - 1) * pageSize;
+  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + pageSize);
+
+  if (isLoading) {
+    return viewMode === "kanban" ? (
+      <SkeletonKanban cols={4} cardsPerCol={3} />
+    ) : (
+      <SkeletonListPage rows={7} cols={6} />
+    );
+  }
 
   return (
     <div className="hr-content-body">
@@ -102,14 +168,89 @@ const LeavesView = ({
             Manage leave requests and track employee leave balance
           </p>
         </div>
-        <button
-          type="button"
-          className="hr-btn-primary"
-          onClick={onOpenRequestModal}
-        >
-          <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>+</span>
-          <span>Request Leave</span>
-        </button>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {/* View Mode Switcher (List View / Kanban) */}
+          <div
+            style={{
+              display: "inline-flex",
+              background: "#f3f4f6",
+              borderRadius: "6px",
+              padding: "2px",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              title="Table / List View"
+              style={{
+                background: viewMode === "list" ? "#ffffff" : "transparent",
+                color: viewMode === "list" ? "var(--hr-plum-primary)" : "#6b7280",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: "4px",
+                fontWeight: 600,
+                fontSize: "0.8rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                boxShadow: viewMode === "list" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+              }}
+            >
+              <span>☰</span> List View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("kanban")}
+              title="Kanban View"
+              style={{
+                background: viewMode === "kanban" ? "#ffffff" : "transparent",
+                color: viewMode === "kanban" ? "var(--hr-plum-primary)" : "#6b7280",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: "4px",
+                fontWeight: 600,
+                fontSize: "0.8rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                boxShadow: viewMode === "kanban" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+              }}
+            >
+              <span>☷</span> Kanban
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="hr-btn-secondary"
+            onClick={() => onOpenTimeOffType && onOpenTimeOffType(null)}
+            title="Configure or add new Time Off Type"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+              fontSize: "0.82rem",
+              padding: "8px 14px",
+              borderRadius: "6px",
+            }}
+          >
+            <span>⚙️</span> Time Off Types
+          </button>
+
+          <button
+            type="button"
+            className="hr-btn-primary"
+            onClick={onOpenRequestModal}
+          >
+            <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>+</span>
+            <span>Request Leave</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Metrics Row from Real Database */}
@@ -136,7 +277,7 @@ const LeavesView = ({
             <span className="hr-stat-label">Approved</span>
             <div className="hr-stat-row">
               <span className="hr-stat-value">
-                {leaveSummary?.approved ?? approvedList.length}
+                {leaveSummary?.approved ?? approvedCount}
               </span>
             </div>
             <span className="hr-stat-subtext">Approved</span>
@@ -150,7 +291,7 @@ const LeavesView = ({
             <span className="hr-stat-label">Pending</span>
             <div className="hr-stat-row">
               <span className="hr-stat-value">
-                {leaveSummary?.pending ?? toApproveList.length}
+                {leaveSummary?.pending ?? toApproveCount}
               </span>
             </div>
             <span className="hr-stat-subtext">Awaiting Review</span>
@@ -164,7 +305,7 @@ const LeavesView = ({
             <span className="hr-stat-label">Rejected</span>
             <div className="hr-stat-row">
               <span className="hr-stat-value">
-                {leaveSummary?.rejected ?? rejectedList.length}
+                {leaveSummary?.rejected ?? rejectedCount}
               </span>
             </div>
             <span className="hr-stat-subtext">Declined</span>
@@ -172,353 +313,437 @@ const LeavesView = ({
         </div>
       </div>
 
-      {/* 3. Leaves KanBan Board */}
-      <div className="hr-section-card">
-        <div className="hr-kanban-board">
-          {/* Column 1: Draft */}
-          <div className="hr-kanban-col">
-            <div className="hr-kanban-col-header hr-col-header-gray">
-              <span>Draft</span>
-              <span className="hr-kanban-count-badge">
-                {draftList.length}
-              </span>
+      {/* 3. PRIMARY VIEW: Table / List View */}
+      {viewMode === "list" && (
+        <div className="hr-section-card">
+          {/* Sub-Filter Tabs */}
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              padding: "16px 20px 12px 20px",
+              borderBottom: "1px solid var(--hr-border, #e5e7eb)",
+              flexWrap: "wrap",
+            }}
+          >
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: activeTab === tab.id ? "none" : "1px solid #e5e7eb",
+                  backgroundColor:
+                    activeTab === tab.id ? "var(--hr-plum-primary, #714b67)" : "#ffffff",
+                  color: activeTab === tab.id ? "#ffffff" : "#4b5563",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Section Controls Bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "14px 20px",
+              borderBottom: "1px solid var(--hr-border, #e5e7eb)",
+              flexWrap: "wrap",
+              gap: "12px",
+            }}
+          >
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+              <div className="hr-input-search-wrapper" style={{ width: "260px" }}>
+                <span style={{ color: "#9ca3af", fontSize: "0.85rem" }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search by employee, reason..."
+                  value={requestSearch}
+                  onChange={(e) => {
+                    setRequestSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              <select
+                className="hr-btn-secondary"
+                value={leaveTypeFilter}
+                onChange={(e) => {
+                  setLeaveTypeFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={{ padding: "6px 12px" }}
+              >
+                {uniqueLeaveTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="hr-kanban-cards">
-              {draftList.map((card) => (
-                <div
-                  key={card.id}
-                  className="hr-pipeline-card"
-                  onClick={() => onViewLeave(card)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="hr-card-top-row">
-                    <div className="hr-card-avatar">{card.initials || "LV"}</div>
-                    <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
-                      <p className="hr-card-role">{card.leaveType}</p>
-                    </div>
-                  </div>
-                  <div className="hr-card-bottom-row">
-                    <span className="hr-card-date">
-                      <span>📅</span> {card.dates}
-                    </span>
-                    <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
-                  </div>
-                </div>
-              ))}
+
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                type="button"
+                className="hr-btn-secondary"
+                onClick={handleExportCsv}
+              >
+                <span>📥</span> Export CSV
+              </button>
+
+              <button
+                type="button"
+                className="hr-btn-secondary"
+                onClick={() => {
+                  if (onRefresh) onRefresh();
+                }}
+                title="Refresh requests"
+              >
+                <span>🔄</span> Refresh
+              </button>
             </div>
           </div>
 
-          {/* Column 2: To Approve */}
-          <div className="hr-kanban-col">
-            <div className="hr-kanban-col-header hr-col-header-amber">
-              <span>To Approve</span>
-              <span className="hr-kanban-count-badge">
-                {toApproveList.length}
-              </span>
-            </div>
-            <div className="hr-kanban-cards">
-              {toApproveList.map((card) => (
-                <div
-                  key={card.id}
-                  className="hr-pipeline-card"
-                  onClick={() => onViewLeave(card)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="hr-card-top-row">
-                    <div className="hr-card-avatar">{card.initials || "LV"}</div>
-                    <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
-                      <p className="hr-card-role">{card.leaveType}</p>
-                    </div>
-                  </div>
-                  <div className="hr-card-bottom-row">
-                    <span className="hr-card-date">
-                      <span>📅</span> {card.dates}
-                    </span>
-                    <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
-                  </div>
-                  {/* Quick Action Buttons */}
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "6px",
-                      marginTop: "10px",
-                      paddingTop: "8px",
-                      borderTop: "1px solid #f1f5f9",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      disabled={isProcessing}
-                      onClick={(e) => handleApprove(card.id, e)}
-                      style={{
-                        flex: 1,
-                        background: "#10b981",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "6px",
-                        padding: "5px 8px",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isProcessing}
-                      onClick={(e) => handleReject(card.id, e)}
-                      style={{
-                        flex: 1,
-                        background: "#fef2f2",
-                        color: "#ef4444",
-                        border: "1px solid #fecaca",
-                        borderRadius: "6px",
-                        padding: "5px 8px",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      ✕ Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Column 3: Approved */}
-          <div className="hr-kanban-col">
-            <div className="hr-kanban-col-header hr-col-header-green">
-              <span>Approved</span>
-              <span className="hr-kanban-count-badge">
-                {approvedList.length}
-              </span>
-            </div>
-            <div className="hr-kanban-cards">
-              {approvedList.map((card) => (
-                <div
-                  key={card.id}
-                  className="hr-pipeline-card"
-                  onClick={() => onViewLeave(card)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="hr-card-top-row">
-                    <div className="hr-card-avatar">{card.initials || "LV"}</div>
-                    <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
-                      <p className="hr-card-role">{card.leaveType}</p>
-                    </div>
-                  </div>
-                  <div className="hr-card-bottom-row">
-                    <span className="hr-card-date">
-                      <span>📅</span> {card.dates}
-                    </span>
-                    <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Column 4: Rejected */}
-          <div className="hr-kanban-col">
-            <div className="hr-kanban-col-header hr-col-header-red">
-              <span>Rejected</span>
-              <span className="hr-kanban-count-badge">
-                {rejectedList.length}
-              </span>
-            </div>
-            <div className="hr-kanban-cards">
-              {rejectedList.map((card) => (
-                <div
-                  key={card.id}
-                  className="hr-pipeline-card"
-                  onClick={() => onViewLeave(card)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="hr-card-top-row">
-                    <div className="hr-card-avatar">{card.initials || "LV"}</div>
-                    <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
-                      <p className="hr-card-role">{card.leaveType}</p>
-                    </div>
-                  </div>
-                  <div className="hr-card-bottom-row">
-                    <span className="hr-card-date">
-                      <span>📅</span> {card.dates}
-                    </span>
-                    <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Bottom Section: All Leave Requests */}
-      <div className="hr-section-card">
-        <div className="hr-section-header">
-          <div className="hr-section-title-group">
-            <div className="hr-section-icon">📋</div>
-            <div>
-              <h2 className="hr-section-heading">All Leave Requests</h2>
-            </div>
-          </div>
-
-          <div className="hr-section-controls">
-            <div className="hr-input-search-wrapper">
-              <span style={{ color: "#9ca3af", fontSize: "0.85rem" }}>🔍</span>
-              <input
-                type="text"
-                placeholder="Search requests..."
-                value={requestSearch}
-                onChange={(e) => setRequestSearch(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="button"
-              className="hr-btn-secondary"
-              onClick={handleExportCsv}
-            >
-              <span>📥</span> Export CSV
-            </button>
-
-            <button
-              type="button"
-              className="hr-btn-secondary"
-              onClick={() => {
-                if (onRefresh) onRefresh();
-              }}
-              title="Refresh"
-            >
-              <span>🔄</span> Refresh
-            </button>
-          </div>
-        </div>
-
-        {/* Requests Table */}
-        <div className="hr-table-responsive">
-          <table className="hr-data-table">
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedLeaveIds.length === filteredRequests.length &&
-                      filteredRequests.length > 0
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-                <th>Employee</th>
-                <th>Leave Type</th>
-                <th>From Date</th>
-                <th>To Date</th>
-                <th>Duration</th>
-                <th>Status</th>
-                <th>Applied On</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRequests.length === 0 ? (
+          {/* Requests Table */}
+          <div className="hr-table-responsive">
+            <table className="hr-data-table">
+              <thead>
                 <tr>
-                  <td colSpan="9" style={{ textAlign: "center", padding: "32px", color: "#6b7280" }}>
-                    No leave requests found. Click "+ Request Leave" to submit a leave.
-                  </td>
+                  <th>Employee</th>
+                  <th>From Date</th>
+                  <th>To Date</th>
+                  <th>Applied Date</th>
+                  <th>Status</th>
                 </tr>
-              ) : (
-                filteredRequests.map((req) => (
-                  <tr key={req.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedLeaveIds.includes(req.id)}
-                        onChange={() => toggleSelectRow(req.id)}
-                      />
-                    </td>
-                    <td className="hr-emp-name-cell">{cleanName(req.employee)}</td>
-                    <td>{req.leaveType}</td>
-                    <td>{req.formattedFromDate || req.fromDate}</td>
-                    <td>{req.formattedToDate || req.toDate}</td>
-                    <td>{req.duration}</td>
-                    <td>
-                      <span
-                        className={`hr-badge ${
-                          req.status === "Approved"
-                            ? "hr-badge-green"
-                            : req.status === "Rejected"
-                            ? "hr-badge-red"
-                            : "hr-badge-amber"
-                        }`}
-                      >
-                        {req.status}
-                      </span>
-                    </td>
-                    <td>{req.appliedOn || "-"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                        {(req.status === "Pending" || req.status === "To Approve") && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={isProcessing}
-                              onClick={(e) => handleApprove(req.id, e)}
-                              style={{
-                                background: "#10b981",
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: "4px",
-                                padding: "4px 8px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isProcessing}
-                              onClick={(e) => handleReject(req.id, e)}
-                              style={{
-                                background: "#fef2f2",
-                                color: "#ef4444",
-                                border: "1px solid #fecaca",
-                                borderRadius: "4px",
-                                padding: "4px 8px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              ✕ Reject
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          className="hr-btn-view"
-                          onClick={() => onViewLeave(req)}
-                        >
-                          <span>👁</span> View
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {paginatedRequests.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
+                    >
+                      No leave requests found matching filter criteria.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  paginatedRequests.map((req) => {
+                    const statusStr = (req.status || "").toLowerCase();
+                    const isApproved = statusStr === "approved";
+                    const isRejected = statusStr === "rejected";
+
+                    return (
+                      <tr
+                        key={req.id}
+                        className="hr-table-row-clickable"
+                        onClick={() => onViewLeave && onViewLeave(req)}
+                        title="Click to view details"
+                      >
+                        <td className="hr-emp-name-cell">
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div
+                              style={{
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "50%",
+                                backgroundColor: "var(--hr-plum-primary, #714b67)",
+                                color: "#ffffff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "0.8rem",
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {req.initials || "LV"}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem" }}>
+                                {cleanName(req.employee)}
+                              </div>
+                              {req.employee_code && (
+                                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                                  {req.employee_code}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontSize: "0.85rem", color: "#374151" }}>
+                          {req.formattedFromDate || req.fromDate}
+                        </td>
+                        <td style={{ fontSize: "0.85rem", color: "#374151" }}>
+                          {req.formattedToDate || req.toDate}
+                        </td>
+                        <td style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                          {req.appliedOn || "-"}
+                        </td>
+                        <td>
+                          <span
+                            className={`hr-badge ${
+                              isApproved
+                                ? "hr-badge-green"
+                                : isRejected
+                                ? "hr-badge-red"
+                                : "hr-badge-amber"
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          {filteredRequests.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "14px 20px",
+                borderTop: "1px solid var(--hr-border, #e5e7eb)",
+                fontSize: "0.85rem",
+                color: "#6b7280",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <span>
+                Showing {startIndex + 1} to{" "}
+                {Math.min(startIndex + pageSize, filteredRequests.length)} of{" "}
+                {filteredRequests.length} leave requests
+              </span>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="hr-btn-secondary"
+                  disabled={pageIndex <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  style={{ padding: "4px 10px", minWidth: "32px" }}
+                >
+                  ‹
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setCurrentPage(p)}
+                    style={{
+                      padding: "4px 10px",
+                      minWidth: "32px",
+                      borderRadius: "4px",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: p === pageIndex ? "none" : "1px solid #e5e7eb",
+                      backgroundColor:
+                        p === pageIndex ? "var(--hr-plum-primary, #714b67)" : "#ffffff",
+                      color: p === pageIndex ? "#ffffff" : "#4b5563",
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  className="hr-btn-secondary"
+                  disabled={pageIndex >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  style={{ padding: "4px 10px", minWidth: "32px" }}
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* 4. OPTIONAL: Kanban View (If toggled by user) */}
+      {viewMode === "kanban" && (
+        <div className="hr-section-card">
+          <div className="hr-kanban-board">
+            {/* Column 1: Draft */}
+            <div className="hr-kanban-col">
+              <div className="hr-kanban-col-header hr-col-header-gray">
+                <span>Draft</span>
+                <span className="hr-kanban-count-badge">{draftList.length}</span>
+              </div>
+              <div className="hr-kanban-cards">
+                {draftList.map((card) => (
+                  <div
+                    key={card.id}
+                    className="hr-pipeline-card"
+                    onClick={() => onViewLeave(card)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="hr-card-top-row">
+                      <div className="hr-card-avatar">{card.initials || "LV"}</div>
+                      <div className="hr-card-emp-info">
+                        <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
+                        <p className="hr-card-role">{card.leaveType}</p>
+                      </div>
+                    </div>
+                    <div className="hr-card-bottom-row">
+                      <span className="hr-card-date">
+                        <span>📅</span> {card.dates}
+                      </span>
+                      <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Column 2: To Approve */}
+            <div className="hr-kanban-col">
+              <div className="hr-kanban-col-header hr-col-header-amber">
+                <span>To Approve</span>
+                <span className="hr-kanban-count-badge">{toApproveList.length}</span>
+              </div>
+              <div className="hr-kanban-cards">
+                {toApproveList.map((card) => (
+                  <div
+                    key={card.id}
+                    className="hr-pipeline-card"
+                    onClick={() => onViewLeave(card)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="hr-card-top-row">
+                      <div className="hr-card-avatar">{card.initials || "LV"}</div>
+                      <div className="hr-card-emp-info">
+                        <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
+                        <p className="hr-card-role">{card.leaveType}</p>
+                      </div>
+                    </div>
+                    <div className="hr-card-bottom-row">
+                      <span className="hr-card-date">
+                        <span>📅</span> {card.dates}
+                      </span>
+                      <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "6px",
+                        marginTop: "10px",
+                        paddingTop: "8px",
+                        borderTop: "1px solid #f1f5f9",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="hr-btn-approve"
+                        style={{ flex: 1, justifyContent: "center" }}
+                        disabled={isProcessingId === card.id}
+                        onClick={(e) => handleApprove(card.id, e)}
+                      >
+                        ✓ Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="hr-btn-reject"
+                        style={{ flex: 1, justifyContent: "center" }}
+                        disabled={isProcessingId === card.id}
+                        onClick={(e) => handleReject(card.id, e)}
+                      >
+                        ✕ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Column 3: Approved */}
+            <div className="hr-kanban-col">
+              <div className="hr-kanban-col-header hr-col-header-green">
+                <span>Approved</span>
+                <span className="hr-kanban-count-badge">{approvedList.length}</span>
+              </div>
+              <div className="hr-kanban-cards">
+                {approvedList.map((card) => (
+                  <div
+                    key={card.id}
+                    className="hr-pipeline-card"
+                    onClick={() => onViewLeave(card)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="hr-card-top-row">
+                      <div className="hr-card-avatar">{card.initials || "LV"}</div>
+                      <div className="hr-card-emp-info">
+                        <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
+                        <p className="hr-card-role">{card.leaveType}</p>
+                      </div>
+                    </div>
+                    <div className="hr-card-bottom-row">
+                      <span className="hr-card-date">
+                        <span>📅</span> {card.dates}
+                      </span>
+                      <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Column 4: Rejected */}
+            <div className="hr-kanban-col">
+              <div className="hr-kanban-col-header hr-col-header-red">
+                <span>Rejected</span>
+                <span className="hr-kanban-count-badge">{rejectedList.length}</span>
+              </div>
+              <div className="hr-kanban-cards">
+                {rejectedList.map((card) => (
+                  <div
+                    key={card.id}
+                    className="hr-pipeline-card"
+                    onClick={() => onViewLeave(card)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="hr-card-top-row">
+                      <div className="hr-card-avatar">{card.initials || "LV"}</div>
+                      <div className="hr-card-emp-info">
+                        <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
+                        <p className="hr-card-role">{card.leaveType}</p>
+                      </div>
+                    </div>
+                    <div className="hr-card-bottom-row">
+                      <span className="hr-card-date">
+                        <span>📅</span> {card.dates}
+                      </span>
+                      <span style={{ color: "#6b7280" }}>⏱ {card.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

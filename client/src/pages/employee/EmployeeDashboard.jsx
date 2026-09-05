@@ -5,6 +5,7 @@ import {
   getEmployeeDashboard,
   getEmployeeAttendance,
   punchAttendance,
+  getEmployeeLeaves,
   submitLeaveRequest,
   updateEmployeeProfile,
   getPayslipDetails,
@@ -44,8 +45,9 @@ const EmployeeDashboard = () => {
 
   // Tab State
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Interactive Live State
   const [checkedIn, setCheckedIn] = useState(false);
@@ -55,6 +57,7 @@ const EmployeeDashboard = () => {
   const [payslipModalContent, setPayslipModalContent] = useState(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [employeeInfo, setEmployeeInfo] = useState(null);
+  const [availableLeaveTypes, setAvailableLeaveTypes] = useState([]);
   const [leaveBalance, setLeaveBalance] = useState({
     totalAllocated: 12,
     used: 3,
@@ -115,6 +118,18 @@ const EmployeeDashboard = () => {
       }
       if (dashData?.data?.leaveBalance) {
         setLeaveBalance(dashData.data.leaveBalance);
+      }
+
+      try {
+        const leavesData = await getEmployeeLeaves();
+        if (leavesData?.data?.leaveTypes && leavesData.data.leaveTypes.length > 0) {
+          setAvailableLeaveTypes(leavesData.data.leaveTypes);
+        }
+        if (leavesData?.data?.balance) {
+          setLeaveBalance(leavesData.data.balance);
+        }
+      } catch (leaveErr) {
+        console.warn("Could not load employee dynamic leave types:", leaveErr);
       }
     } catch (err) {
       console.warn("Could not load employee status:", err);
@@ -488,10 +503,21 @@ const EmployeeDashboard = () => {
                     onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })}
                     required
                   >
-                    <option value="Annual Leave">📅 Annual Leave</option>
-                    <option value="Sick Leave">📅 Sick Leave</option>
-                    <option value="Casual Leave">📅 Casual Leave</option>
-                    <option value="Unpaid Leave">📅 Unpaid Leave</option>
+                    {availableLeaveTypes && availableLeaveTypes.length > 0 ? (
+                      availableLeaveTypes.map((t) => (
+                        <option key={t.id} value={t.name}>
+                          📅 {t.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Annual Leave">📅 Annual Leave</option>
+                        <option value="Sick Leave">📅 Sick Leave</option>
+                        <option value="Casual Leave">📅 Casual Leave</option>
+                        <option value="Paid Time Off">📅 Paid Time Off</option>
+                        <option value="Unpaid Leave">📅 Unpaid Leave</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

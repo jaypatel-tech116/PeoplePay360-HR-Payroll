@@ -1,312 +1,309 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import PayrollDashboardView from "./views/PayrollDashboardView";
-import EmployeesPayrollView from "./views/EmployeesPayrollView";
-import EmployeeDetailsView from "./views/EmployeeDetailsView";
-import PayCyclesView from "./views/PayCyclesView";
-import ProcessPayrollView from "./views/ProcessPayrollView";
-import PaySlipsListView from "./views/PaySlipsListView";
-import PaySlipDocumentView from "./views/PaySlipDocumentView";
-import PayrollReportsView from "./views/PayrollReportsView";
-import PayrollSettingsView from "./views/PayrollSettingsView";
-import AddEmployeePayrollModal from "./modals/AddEmployeePayrollModal";
-import CreatePayCycleModal from "./modals/CreatePayCycleModal";
-import AddComponentModal from "./modals/AddComponentModal";
-import "./PayrollPortal.css";
+import "../payroll-manager/PayrollManagerPortal.css";
 
-const INITIAL_EMPLOYEES_PAYROLL = [
-  { code: "EMP001", name: "Rahul Sharma", department: "Engineering", jobTitle: "Software Developer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "01 Sep 2023" },
-  { code: "EMP002", name: "Priya Mehta", department: "HR", jobTitle: "HR Manager", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "15 Jun 2022" },
-  { code: "EMP003", name: "Vikram Rao", department: "Sales", jobTitle: "Sales Executive", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "10 Jan 2023" },
-  { code: "EMP004", name: "Sneha Iyer", department: "Product", jobTitle: "UI/UX Designer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "01 Mar 2024" },
-  { code: "EMP005", name: "Aditya Gupta", department: "Engineering", jobTitle: "DevOps Engineer", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "20 Feb 2024" },
-  { code: "EMP006", name: "Neha Patel", department: "HR", jobTitle: "HR Executive", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "15 Sep 2025" },
-  { code: "EMP007", name: "Rohan Desai", department: "Marketing", jobTitle: "Marketing Specialist", employeeType: "Full Time", payrollStatus: "Inactive", joinedDate: "01 Oct 2024" },
-  { code: "EMP008", name: "Meera Nair", department: "Finance", jobTitle: "Accountant", employeeType: "Full Time", payrollStatus: "Active", joinedDate: "08 Sep 2024" },
-];
+// View components matching the unified PeoplePay360 payroll interface
+import ManagerDashboardView from "../payroll-manager/views/ManagerDashboardView";
+import PayCyclesListView from "../payroll-manager/views/PayCyclesListView";
+import CreatePayCycleWizardView from "../payroll-manager/views/CreatePayCycleWizardView";
+import ProcessPayrollListView from "../payroll-manager/views/ProcessPayrollListView";
+import VerifyPayrollView from "../payroll-manager/views/VerifyPayrollView";
+import PayrollProcessingView from "../payroll-manager/views/PayrollProcessingView";
+import ProcessCompletedView from "../payroll-manager/views/ProcessCompletedView";
+import ManagerPaySlipsView from "../payroll-manager/views/ManagerPaySlipsView";
+import ManagerPaySlipDetailView from "../payroll-manager/views/ManagerPaySlipDetailView";
+import ManagerReportsView from "../payroll-manager/views/ManagerReportsView";
+import SalaryStructuresView from "../payroll-manager/views/SalaryStructuresView";
+import SalaryRulesView from "../payroll-manager/views/SalaryRulesView";
+import EmployeesKanbanView from "../payroll-manager/views/EmployeesKanbanView";
+import AttendancePayrollView from "../payroll-manager/views/AttendancePayrollView";
+import ContractsPayrollView from "../payroll-manager/views/ContractsPayrollView";
+import TimeOffPayrollView from "../payroll-manager/views/TimeOffPayrollView";
 
 const PayrollUserDashboard = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Active view tab state
+  // Active navigation / sub-view state
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
-  // Data states
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES_PAYROLL);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [globalSearch, setGlobalSearch] = useState("");
   const [selectedPaySlip, setSelectedPaySlip] = useState(null);
+  const [selectedCycle, setSelectedCycle] = useState(null);
 
-  // Modals state
-  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
-  const [isCreateCycleOpen, setIsCreateCycleOpen] = useState(false);
-  const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
-
-  // Read tab from query parameters
+  // Read URL query parameter for tab
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get("tab");
-    if (
-      tabParam &&
-      [
-        "dashboard",
-        "employees",
-        "employee-details",
-        "pay-cycles",
-        "process-payroll",
-        "payslips",
-        "payslip-detail",
-        "reports",
-        "settings",
-      ].includes(tabParam)
-    ) {
+    if (tabParam) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    navigate(`/payroll-user?tab=${tab}`, { replace: true });
-  };
-
-  const handleSelectEmployee = (emp) => {
-    setSelectedEmployee(emp);
-    handleTabChange("employee-details");
-  };
-
-  const handleSelectPaySlip = (slip) => {
-    setSelectedPaySlip(slip);
-    handleTabChange("payslip-detail");
-  };
-
-  const handleAddEmployee = (newEmp) => {
-    setEmployees((prev) => [newEmp, ...prev]);
-    alert(`Employee ${newEmp.name} (${newEmp.code}) added to payroll system!`);
-  };
-
+  // Handle logout
   const handleLogout = async () => {
-    await logout();
+    if (logout) await logout();
     navigate("/login");
   };
 
+  // Structured Menu with Group Headers (MAIN, PAYROLL, CONFIGURATION, HR DATA)
+  const menuSections = [
+    {
+      title: "MAIN",
+      items: [
+        { id: "dashboard", label: "Dashboard", icon: "📊" },
+      ],
+    },
+    {
+      title: "PAYROLL",
+      items: [
+        { id: "pay-cycles", label: "Payruns", icon: "🔄" },
+        { id: "pay-slips", label: "Payslips", icon: "📄" },
+        { id: "reports", label: "Reports", icon: "📈" },
+      ],
+    },
+    {
+      title: "CONFIGURATION",
+      items: [
+        { id: "salary-structures", label: "Salary Structures", icon: "📐" },
+        { id: "salary-rules", label: "Salary Rules", icon: "⚖️" },
+      ],
+    },
+    {
+      title: "HR DATA",
+      items: [
+        { id: "employees", label: "Employees", icon: "👥" },
+        { id: "contracts", label: "Contracts", icon: "💼" },
+        { id: "attendance", label: "Attendance", icon: "📅" },
+        { id: "time-off", label: "Time Off", icon: "🌴" },
+      ],
+    },
+  ];
+
+  // Screen shortcuts for directly previewing all screens
+  const screenShortcuts = [
+    { id: "dashboard", label: "1. Dashboard" },
+    { id: "pay-cycles", label: "2. Payruns" },
+    { id: "create-cycle", label: "3. Create Payrun" },
+    { id: "process-payroll", label: "4. Process Payrun" },
+    { id: "verify-payroll", label: "5. Verify Payrun" },
+    { id: "processing", label: "6. Processing" },
+    { id: "completed", label: "7. Completed" },
+    { id: "pay-slips", label: "8. Payslips" },
+    { id: "payslip-detail", label: "9. Payslip Detail" },
+    { id: "salary-structures", label: "10. Structures (Read-Only)" },
+    { id: "salary-rules", label: "11. Rules (Read-Only)" },
+    { id: "employees", label: "12. Employees" },
+    { id: "contracts", label: "13. Contracts" },
+    { id: "attendance", label: "14. Attendance" },
+    { id: "time-off", label: "15. Time Off" },
+    { id: "reports", label: "16. Reports" },
+  ];
+
+  // Helper to select a payslip and navigate to detail view
+  const handleSelectPaySlip = (slip) => {
+    setSelectedPaySlip(slip);
+    setActiveTab("payslip-detail");
+  };
+
+  const displayName = user?.full_name || user?.name || "HR Payroll User";
+  const displayRole = user?.role_name || "HR Payroll User";
+  const displayEmail = user?.email || "payuser@peoplepay360.com";
+  const userInitials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "HU";
+
   return (
-    <div className="pay-shell">
-      {/* 1. Left Sidebar */}
-      <aside className={`pay-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        <div className="pay-sidebar-brand">
-          <span className="pay-logo-text">odoo</span>
+    <div className="mgr-shell">
+      {/* Sidebar matching Odoo Plum #714B67 design */}
+      <aside className={`mgr-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="mgr-sidebar-brand">
+          <div className="mgr-logo-text">
+            {isSidebarCollapsed ? "P" : "PeoplePay360"}
+          </div>
         </div>
 
-        <ul className="pay-sidebar-menu">
-          <li>
-            <button
-              type="button"
-              className={`pay-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-              onClick={() => handleTabChange("dashboard")}
-              title="Dashboard"
-            >
-              <span className="pay-nav-icon">📊</span>
-              <span className="pay-nav-text">Dashboard</span>
-            </button>
-          </li>
+        <div className="mgr-sidebar-menu-wrapper">
+          {menuSections.map((section, sIdx) => (
+            <div key={sIdx} className="mgr-sidebar-section">
+              {!isSidebarCollapsed && (
+                <div className="mgr-sidebar-section-title">{section.title}</div>
+              )}
+              <ul className="mgr-sidebar-menu">
+                {section.items.map((item) => {
+                  const isActive =
+                    activeTab === item.id ||
+                    (item.id === "pay-cycles" &&
+                      ["pay-cycles", "create-cycle", "process-payroll", "verify-payroll", "processing", "completed"].includes(activeTab)) ||
+                    (item.id === "pay-slips" && ["pay-slips", "payslip-detail"].includes(activeTab));
 
-          <li>
-            <button
-              type="button"
-              className={`pay-nav-item ${
-                activeTab === "employees" || activeTab === "employee-details"
-                  ? "active"
-                  : ""
-              }`}
-              onClick={() => handleTabChange("employees")}
-              title="Employees"
-            >
-              <span className="pay-nav-icon">👥</span>
-              <span className="pay-nav-text">Employees</span>
-            </button>
-          </li>
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className={`mgr-nav-item ${isActive ? "active" : ""}`}
+                        onClick={() => setActiveTab(item.id)}
+                        title={item.label}
+                      >
+                        <span className="mgr-nav-icon-glyph">{item.icon}</span>
+                        <span className="mgr-nav-text">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
 
-          <li>
-            <button
-              type="button"
-              className="pay-nav-item"
-              onClick={() => navigate("/hr-manager?tab=leaves")}
-              title="Leaves"
-            >
-              <span className="pay-nav-icon">🌴</span>
-              <span className="pay-nav-text">Leaves</span>
-            </button>
-          </li>
-
-          <li>
-            <button
-              type="button"
-              className="pay-nav-item"
-              onClick={() => navigate("/hr-manager?tab=attendance")}
-              title="Attendance"
-            >
-              <span className="pay-nav-icon">⏱️</span>
-              <span className="pay-nav-text">Attendance</span>
-            </button>
-          </li>
-
-          <li>
-            <button
-              type="button"
-              className={`pay-nav-item ${
-                [
-                  "dashboard",
-                  "pay-cycles",
-                  "process-payroll",
-                  "payslips",
-                  "payslip-detail",
-                  "settings",
-                ].includes(activeTab)
-                  ? "active"
-                  : ""
-              }`}
-              onClick={() => handleTabChange("dashboard")}
-              title="Payroll"
-            >
-              <span className="pay-nav-icon">💰</span>
-              <span className="pay-nav-text">Payroll</span>
-            </button>
-          </li>
-
-          <li>
-            <button
-              type="button"
-              className={`pay-nav-item ${activeTab === "reports" ? "active" : ""}`}
-              onClick={() => handleTabChange("reports")}
-              title="Reports"
-            >
-              <span className="pay-nav-icon">📈</span>
-              <span className="pay-nav-text">Reports</span>
-            </button>
-          </li>
-        </ul>
-
-        <div className="pay-sidebar-footer">
+        <div className="mgr-sidebar-footer">
           <button
             type="button"
-            className="pay-collapse-btn"
+            className="mgr-collapse-btn"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isSidebarCollapsed ? "›" : "‹"}
+            {isSidebarCollapsed ? "→" : "←"}
           </button>
         </div>
       </aside>
 
-      {/* 2. Main Content */}
-      <div className="pay-main">
-        {/* Topbar */}
-        <header className="pay-topbar">
-          <div className="pay-topbar-left">
-            <span className="pay-topbar-appname">PeoplePay360</span>
-
-            {/* Sub-nav quick switcher for the 9 screens */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "14px" }}>
-              <button
-                type="button"
-                className={`pay-subtab-btn ${activeTab === "dashboard" ? "active" : ""}`}
-                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
-                onClick={() => handleTabChange("dashboard")}
-              >
-                Overview
-              </button>
-              <button
-                type="button"
-                className={`pay-subtab-btn ${activeTab === "pay-cycles" ? "active" : ""}`}
-                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
-                onClick={() => handleTabChange("pay-cycles")}
-              >
-                Pay Cycles
-              </button>
-              <button
-                type="button"
-                className={`pay-subtab-btn ${activeTab === "process-payroll" ? "active" : ""}`}
-                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
-                onClick={() => handleTabChange("process-payroll")}
-              >
-                Process Wizard
-              </button>
-              <button
-                type="button"
-                className={`pay-subtab-btn ${
-                  activeTab === "payslips" || activeTab === "payslip-detail"
-                    ? "active"
-                    : ""
-                }`}
-                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
-                onClick={() => handleTabChange("payslips")}
-              >
-                Pay Slips
-              </button>
-              <button
-                type="button"
-                className={`pay-subtab-btn ${activeTab === "settings" ? "active" : ""}`}
-                style={{ padding: "4px 10px", fontSize: "0.74rem" }}
-                onClick={() => handleTabChange("settings")}
-              >
-                Settings
-              </button>
+      {/* Main Container */}
+      <div className="mgr-main">
+        {/* Top Header Bar */}
+        <header className="mgr-topbar">
+          <div className="mgr-topbar-left">
+            <span className="mgr-topbar-appname" style={{ fontSize: "0.95rem", fontWeight: 600, color: "rgba(255,255,255,0.9)", letterSpacing: "0.02em" }}>
+              Payroll Operations
+            </span>
+            <div className="mgr-topbar-search-box">
+              <span style={{ color: "rgba(255,255,255,0.7)" }}>🔍</span>
+              <input
+                type="text"
+                className="mgr-topbar-search-input"
+                placeholder="Search employees, payruns, reports..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="pay-topbar-right">
+          <div className="mgr-topbar-right">
+            {/* Quick Screen Jumper */}
+            <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  backgroundColor: "rgba(0,0,0,0.25)",
+                  color: "#ffffff",
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                title="Jump to any screen directly"
+              >
+                {screenShortcuts.map((s) => (
+                  <option key={s.id} value={s.id} style={{ background: "#58374f", color: "#fff" }}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notifications & Settings Icons */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "10px" }}>
+              <button
+                type="button"
+                className="mgr-topbar-icon-btn"
+                title="Notifications"
+                onClick={() => alert("No new notifications at this time.")}
+              >
+                🔔
+              </button>
+              <button
+                type="button"
+                className="mgr-topbar-icon-btn"
+                title="Settings"
+                onClick={() => alert("Payroll Settings & Configuration (View-Only)")}
+              >
+                ⚙️
+              </button>
+            </div>
+
+            {/* User Profile Pill */}
             <div style={{ position: "relative" }}>
               <div
-                className="pay-user-pill"
+                className="mgr-user-pill"
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               >
-                <div className="pay-user-avatar">HM</div>
-                <span className="pay-user-name">HR Manager</span>
-                <span className="pay-user-caret">⌵</span>
+                <div className="mgr-user-avatar">{userInitials}</div>
+                <div style={{ display: "flex", flexDirection: "column", textAlign: "left", lineHeight: 1.15 }}>
+                  <span className="mgr-user-name" style={{ fontSize: "0.82rem", fontWeight: 700 }}>
+                    {displayName}
+                  </span>
+                  <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.75)" }}>
+                    {displayRole}
+                  </span>
+                </div>
+                <span className="mgr-user-caret">⌵</span>
               </div>
 
+              {/* Profile Dropdown */}
               {isProfileMenuOpen && (
                 <div
                   style={{
                     position: "absolute",
-                    top: "44px",
                     right: 0,
-                    width: "200px",
+                    top: "46px",
+                    width: "220px",
                     backgroundColor: "#ffffff",
                     borderRadius: "8px",
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    border: "1px solid #e2e8f0",
-                    padding: "8px 0",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                    border: "1px solid #e5e7eb",
                     zIndex: 100,
+                    overflow: "hidden",
                   }}
                 >
-                  <div style={{ padding: "8px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>
-                      HR Payroll User
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#111827" }}>
+                      {displayName}
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>
-                      payroll@peoplepay360.com
+                    <div style={{ fontSize: "0.74rem", color: "var(--mgr-plum-primary)", fontWeight: 600, marginTop: "1px" }}>
+                      {displayRole}
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#6b7280", marginTop: "2px" }}>
+                      {displayEmail}
                     </div>
                   </div>
                   <button
                     type="button"
+                    onClick={handleLogout}
                     style={{
                       width: "100%",
+                      padding: "10px 14px",
                       textAlign: "left",
-                      padding: "8px 16px",
                       background: "none",
                       border: "none",
+                      color: "#dc2626",
                       fontSize: "0.82rem",
-                      color: "#ef4444",
+                      fontWeight: 600,
                       cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
-                    onClick={handleLogout}
                   >
-                    ↪ Sign Out
+                    <span>🚪</span> Sign Out
                   </button>
                 </div>
               )}
@@ -314,89 +311,104 @@ const PayrollUserDashboard = () => {
           </div>
         </header>
 
-        {/* 3. Screen Views Dispatcher */}
-        {activeTab === "dashboard" && (
-          <PayrollDashboardView
-            onNavigateTab={handleTabChange}
-            onSelectEmployee={handleSelectEmployee}
-          />
-        )}
+        {/* View Content Renderer */}
+        <main>
+          {activeTab === "dashboard" && (
+            <ManagerDashboardView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
 
-        {activeTab === "employees" && (
-          <EmployeesPayrollView
-            employees={employees}
-            onOpenAddModal={() => setIsAddEmployeeOpen(true)}
-            onSelectEmployee={handleSelectEmployee}
-          />
-        )}
+          {activeTab === "pay-cycles" && (
+            <PayCyclesListView
+              onOpenCreateWizard={() => setActiveTab("create-cycle")}
+              onSelectCycle={(cycle) => {
+                setSelectedCycle(cycle);
+                setActiveTab("process-payroll");
+              }}
+            />
+          )}
 
-        {activeTab === "employee-details" && (
-          <EmployeeDetailsView
-            employee={selectedEmployee}
-            onBack={() => handleTabChange("employees")}
-            onNavigateTab={handleTabChange}
-          />
-        )}
+          {activeTab === "create-cycle" && (
+            <CreatePayCycleWizardView
+              onBack={() => setActiveTab("pay-cycles")}
+              onComplete={(createdRun) => {
+                if (createdRun) setSelectedCycle(createdRun);
+                setActiveTab("process-payroll");
+              }}
+            />
+          )}
 
-        {activeTab === "pay-cycles" && (
-          <PayCyclesView
-            onOpenCreateModal={() => setIsCreateCycleOpen(true)}
-            onSelectCycle={() => handleTabChange("process-payroll")}
-          />
-        )}
+          {activeTab === "process-payroll" && (
+            <ProcessPayrollListView
+              cycle={selectedCycle}
+              onBack={() => setActiveTab("pay-cycles")}
+              onProceedToVerify={() => setActiveTab("verify-payroll")}
+              onSelectPayslip={handleSelectPaySlip}
+            />
+          )}
 
-        {activeTab === "process-payroll" && (
-          <ProcessPayrollView
-            onBack={() => handleTabChange("pay-cycles")}
-            onComplete={() => handleTabChange("pay-cycles")}
-          />
-        )}
+          {activeTab === "verify-payroll" && (
+            <VerifyPayrollView
+              onBack={() => setActiveTab("process-payroll")}
+              onProcessPayroll={() => setActiveTab("processing")}
+            />
+          )}
 
-        {activeTab === "payslips" && (
-          <PaySlipsListView
-            onSelectPaySlip={handleSelectPaySlip}
-          />
-        )}
+          {activeTab === "processing" && (
+            <PayrollProcessingView
+              onFinish={() => setActiveTab("completed")}
+            />
+          )}
 
-        {activeTab === "payslip-detail" && (
-          <PaySlipDocumentView
-            slip={selectedPaySlip}
-            onBack={() => handleTabChange("payslips")}
-          />
-        )}
+          {activeTab === "completed" && (
+            <ProcessCompletedView
+              onViewPaySlips={() => setActiveTab("pay-slips")}
+              onBackToDashboard={() => setActiveTab("dashboard")}
+            />
+          )}
 
-        {activeTab === "reports" && <PayrollReportsView />}
+          {activeTab === "pay-slips" && (
+            <ManagerPaySlipsView
+              onSelectPaySlip={handleSelectPaySlip}
+            />
+          )}
 
-        {activeTab === "settings" && (
-          <PayrollSettingsView
-            onOpenAddComponent={() => setIsAddComponentOpen(true)}
-          />
-        )}
+          {activeTab === "payslip-detail" && (
+            <ManagerPaySlipDetailView
+              slip={selectedPaySlip}
+              onBack={() => setActiveTab("pay-slips")}
+            />
+          )}
+
+          {activeTab === "reports" && (
+            <ManagerReportsView />
+          )}
+
+          {/* Configuration Views rendered in READ-ONLY mode for HR Payroll User */}
+          {activeTab === "salary-structures" && (
+            <SalaryStructuresView readOnly={true} />
+          )}
+
+          {activeTab === "salary-rules" && (
+            <SalaryRulesView readOnly={true} />
+          )}
+
+          {activeTab === "employees" && (
+            <EmployeesKanbanView />
+          )}
+
+          {activeTab === "contracts" && (
+            <ContractsPayrollView />
+          )}
+
+          {activeTab === "attendance" && (
+            <AttendancePayrollView />
+          )}
+
+          {activeTab === "time-off" && (
+            <TimeOffPayrollView />
+          )}
+        </main>
       </div>
-
-      {/* 4. Modals */}
-      <AddEmployeePayrollModal
-        isOpen={isAddEmployeeOpen}
-        onClose={() => setIsAddEmployeeOpen(false)}
-        onAdd={handleAddEmployee}
-      />
-
-      <CreatePayCycleModal
-        isOpen={isCreateCycleOpen}
-        onClose={() => setIsCreateCycleOpen(false)}
-        onCreate={(c) => {
-          alert(`Pay cycle for ${c.month} ${c.year} created!`);
-          handleTabChange("process-payroll");
-        }}
-      />
-
-      <AddComponentModal
-        isOpen={isAddComponentOpen}
-        onClose={() => setIsAddComponentOpen(false)}
-        onAdd={(comp) => {
-          alert(`Component "${comp.name}" added successfully!`);
-        }}
-      />
     </div>
   );
 };

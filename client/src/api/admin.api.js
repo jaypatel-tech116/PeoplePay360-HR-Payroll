@@ -163,16 +163,26 @@ export const createSalaryRule = async (data) => {
 };
 
 /**
- * 10. Users & Roles Management
+ * 10. Users & Stakeholder Management
  */
-export const getUsers = async () => {
-  const response = await api.get("/users");
+export const getUsers = async (params) => {
+  const response = await api.get("/users", { params });
   return response.data?.data?.users || [];
+};
+
+export const getUserById = async (id) => {
+  const response = await api.get(`/users/${id}`);
+  return response.data?.data?.user || response.data;
 };
 
 export const getRoles = async () => {
   const response = await api.get("/users/roles");
   return response.data?.data?.roles || [];
+};
+
+export const getStakeholderStats = async () => {
+  const response = await api.get("/users/stats");
+  return response.data?.data || null;
 };
 
 export const createUser = async (data) => {
@@ -183,6 +193,16 @@ export const createUser = async (data) => {
 export const updateUser = async (id, data) => {
   const response = await api.put(`/users/${id}`, data);
   return response.data?.data?.user || response.data;
+};
+
+export const deactivateUser = async (id) => {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+};
+
+export const activateUser = async (id) => {
+  const response = await api.patch(`/users/${id}/activate`);
+  return response.data;
 };
 
 /**

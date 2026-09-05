@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import payrollApi from "../../../api/payroll.api";
 
-const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
+const ProcessPayrollListView = ({ cycle, onProceedToVerify, onBack, onSelectPayslip }) => {
   const [payrun, setPayrun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -20,7 +20,20 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
       }
 
       if (targetId) {
-        const details = await payrollApi.getPayrunById(targetId);
+        let details = await payrollApi.getPayrunById(targetId);
+        // If payrun has zero payslips and is in Draft, automatically compute so UI never displays blank 0s
+        if (
+          (!details.payslips || details.payslips.length === 0) &&
+          details.status !== "Completed" &&
+          details.status !== "Paid"
+        ) {
+          try {
+            await payrollApi.computePayrun(targetId);
+            details = await payrollApi.getPayrunById(targetId);
+          } catch (autoErr) {
+            console.warn("Auto-compute fallback:", autoErr.message);
+          }
+        }
         setPayrun(details);
       }
     } catch (err) {
@@ -108,9 +121,23 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
   };
 
   const status = payrun?.status || "Draft";
-  const isComputed = status === "Computed" || status === "Validated" || status === "Completed" || status === "Paid";
-  const isValidated = status === "Validated" || status === "Completed" || status === "Paid";
-  const isPaid = status === "Completed" || status === "Paid";
+
+  // Strict 4-Step Pipeline Index: 1 = Draft, 2 = Computed, 3 = Validated, 4 = Paid
+  let currentStep = 1;
+  if (status === "Draft" || status === "Processing") {
+    currentStep = 1;
+  } else if (status === "Computed") {
+    currentStep = 2;
+  } else if (status === "Validated") {
+    currentStep = 3;
+  } else if (status === "Completed" || status === "Paid") {
+    currentStep = 4;
+  }
+
+  const isDraft = currentStep === 1;
+  const isComputed = currentStep === 2;
+  const isValidated = currentStep === 3;
+  const isPaid = currentStep === 4;
 
   const grossNum = parseFloat(payrun?.total_gross) || 0;
   const netNum = parseFloat(payrun?.total_net) || 0;
@@ -119,89 +146,156 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
   return (
     <div className="mgr-content-body">
       {/* 1. Header & Primary Action Bar */}
-      <div className="mgr-page-header" style={{ alignItems: "flex-start" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <h1 className="mgr-page-title" style={{ margin: 0 }}>
-              {payrun?.month && payrun?.year ? `${payrun.month} ${payrun.year} Payrun` : payrun?.run_number || "Payrun Processing"}
-            </h1>
-            <span
-              className={`mgr-badge ${
-                isPaid
-                  ? "mgr-badge-green"
-                  : isValidated
-                  ? "mgr-badge-purple"
-                  : isComputed
-                  ? "mgr-badge-blue"
-                  : "mgr-badge-amber"
-              }`}
-              style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+      <div className="mgr-page-header" style={{ alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+          {onBack && (
+            <button
+              type="button"
+              className="mgr-btn-secondary"
+              onClick={onBack}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+              title="Return to Payruns Batches List"
             >
-              {status}
-            </span>
+              <span>←</span> Back to Payruns
+            </button>
+          )}
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <h1 className="mgr-page-title" style={{ margin: 0 }}>
+                {payrun?.month && payrun?.year ? `${payrun.month} ${payrun.year} Payrun` : payrun?.run_number || "Payrun Processing"}
+              </h1>
+              <span
+                className={`mgr-badge ${
+                  isPaid
+                    ? "mgr-badge-green"
+                    : isValidated
+                    ? "mgr-badge-purple"
+                    : isComputed
+                    ? "mgr-badge-blue"
+                    : "mgr-badge-amber"
+                }`}
+                style={{ fontSize: "0.8rem", padding: "4px 10px" }}
+              >
+                {status}
+              </span>
+            </div>
+            <p className="mgr-page-subtitle">
+              {payrun?.period_start && payrun?.period_end
+                ? `Period: ${new Date(payrun.period_start).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} – ${new Date(payrun.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} • Structure: ${payrun?.salary_structure_name || "Default Structure (Full Time)"}`
+                : "Synchronized live payroll execution"}
+            </p>
           </div>
-          <p className="mgr-page-subtitle">
-            {payrun?.period_start && payrun?.period_end
-              ? `Period: ${new Date(payrun.period_start).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} – ${new Date(payrun.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} • Structure: ${payrun?.salary_structure_name || "Default Structure"}`
-              : "Synchronized live payroll execution"}
-          </p>
         </div>
 
-        {/* Action Button Hierarchy */}
+        {/* Action Button Hierarchy (Strict Pipeline 1 -> 2 -> 3 -> 4) */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          {/* Primary: Compute */}
+          {/* Step 2: Compute Button (Enabled only in Draft or Computed) */}
           <button
             type="button"
             className="mgr-btn-primary"
             onClick={handleCompute}
-            disabled={actionLoading || isPaid}
-            title="Compute salary components and rule calculations"
+            disabled={actionLoading || isValidated || isPaid}
+            style={{
+              opacity: isValidated || isPaid ? 0.45 : 1,
+              cursor: isValidated || isPaid ? "not-allowed" : "pointer",
+            }}
+            title={
+              isPaid
+                ? "Payrun is finalized and closed. Calculations locked."
+                : isValidated
+                ? "Payrun is validated and locked for payout. Cannot recompute."
+                : isComputed
+                ? "Re-compute salary rules across active contracts"
+                : "Step 2: Compute salary components and rule formulas across active contracts"
+            }
           >
-            <span>⚙️</span> Compute
+            <span>⚙️</span> {isComputed ? "Re-Compute" : "Compute"}
           </button>
 
-          {/* Secondary: Validate */}
+          {/* Step 3: Validate Button (Strictly DISABLED in Draft; Enabled only in Computed) */}
           <button
             type="button"
             className="mgr-btn-secondary"
             onClick={handleValidate}
-            disabled={actionLoading || !isComputed || isPaid}
-            title="Validate pre-payroll audit and calculations"
+            disabled={actionLoading || isDraft || isValidated || isPaid}
+            style={{
+              opacity: isDraft || isValidated || isPaid ? 0.45 : 1,
+              cursor: isDraft || isValidated || isPaid ? "not-allowed" : "pointer",
+              backgroundColor: isComputed ? "var(--mgr-plum-subtle, #f5f3ff)" : undefined,
+              borderColor: isComputed ? "var(--mgr-plum-primary, #714B67)" : undefined,
+              color: isComputed ? "var(--mgr-plum-primary, #714B67)" : undefined,
+              fontWeight: 600,
+            }}
+            title={
+              isDraft
+                ? "🔒 Step 3 Locked: You must Compute salary rules first (Step 2) before validating."
+                : isValidated
+                ? "✓ Step 3 Complete: Payrun already validated. Proceed to Mark Paid."
+                : isPaid
+                ? "Payrun finalized."
+                : "Step 3: Validate pre-payroll audit and calculations"
+            }
           >
-            <span>✓</span> Validate
+            <span>{isValidated ? "✓" : "🔒"}</span> {isValidated ? "Validated" : "Validate"}
           </button>
 
-          {/* Success: Mark Paid */}
+          {/* Step 4: Mark Paid Button (Strictly DISABLED in Draft & Computed; Enabled only in Validated) */}
           <button
             type="button"
             onClick={handleMarkPaid}
-            disabled={actionLoading || !isValidated || isPaid}
+            disabled={actionLoading || isDraft || isComputed || isPaid}
             style={{
-              backgroundColor: isPaid ? "#9ca3af" : "#059669",
-              color: "#ffffff",
+              backgroundColor: isPaid ? "#9ca3af" : isValidated ? "#059669" : "#e5e7eb",
+              color: isPaid || isValidated ? "#ffffff" : "#9ca3af",
               border: "none",
               borderRadius: "6px",
               padding: "7px 16px",
               fontSize: "0.84rem",
               fontWeight: 600,
-              cursor: isPaid ? "not-allowed" : "pointer",
+              cursor: isValidated ? "pointer" : "not-allowed",
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              opacity: isDraft || isComputed ? 0.5 : 1,
               transition: "all 0.15s ease",
             }}
-            title="Confirm disbursement and finalize payrun"
+            title={
+              isDraft
+                ? "🔒 Step 4 Locked: Compute and validate payrun first before payout."
+                : isComputed
+                ? "🔒 Step 4 Locked: Validate payrun (Step 3) before marking as paid."
+                : isValidated
+                ? "Step 4: Confirm disbursement and finalize payrun"
+                : "Payrun disbursed and finalized."
+            }
           >
-            <span>🏦</span> {isPaid ? "Paid & Finalized" : "Mark Paid"}
+            <span>{isPaid ? "✓" : isValidated ? "🏦" : "🔒"}</span> {isPaid ? "Paid & Finalized" : "Mark Paid"}
           </button>
 
-          {/* Outline: Send Payslips */}
+          {/* Dispatch Payslips (Enabled only after Validated or Paid) */}
           <button
             type="button"
             className="mgr-btn-secondary"
             onClick={handleSendPayslips}
-            disabled={actionLoading || !isComputed}
-            title="Email payslips to all employees"
+            disabled={actionLoading || currentStep < 3}
+            style={{
+              opacity: currentStep < 3 ? 0.45 : 1,
+              cursor: currentStep < 3 ? "not-allowed" : "pointer",
+            }}
+            title={
+              currentStep < 3
+                ? "🔒 Locked: Payslips can only be emailed after validation or completion."
+                : "Email payslips to all employees"
+            }
           >
             <span>✉️</span> Send Payslips
           </button>
@@ -210,7 +304,7 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
             type="button"
             className="mgr-btn-secondary"
             onClick={loadPayrunData}
-            title="Refresh"
+            title="Refresh from database"
           >
             🔄
           </button>
@@ -234,69 +328,138 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
         </div>
       )}
 
-      {/* 2. Horizontal Status Progression Bar */}
-      <div
-        className="mgr-section-card"
-        style={{
-          padding: "16px 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: "#ffffff",
-          marginBottom: "16px",
-        }}
-      >
-        {[
-          { label: "Draft", active: true },
-          { label: "Processing", active: true },
-          { label: "Computed", active: isComputed },
-          { label: "Validated", active: isValidated },
-          { label: "Paid", active: isPaid },
-        ].map((step, idx, arr) => (
-          <React.Fragment key={idx}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div
-                style={{
-                  width: "26px",
-                  height: "26px",
-                  borderRadius: "50%",
-                  backgroundColor: step.active ? "var(--mgr-plum-primary)" : "#e2e8f0",
-                  color: "#ffffff",
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {step.active ? "✓" : idx + 1}
-              </div>
-              <span
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: step.active ? 700 : 500,
-                  color: step.active ? "var(--mgr-plum-primary)" : "#64748b",
-                }}
-              >
-                {step.label}
-              </span>
-            </div>
-            {idx < arr.length - 1 && (
-              <div
-                style={{
-                  flex: 1,
-                  height: "2px",
-                  backgroundColor: step.active ? "var(--mgr-plum-primary)" : "#e2e8f0",
-                  margin: "0 12px",
-                }}
-              />
-            )}
-          </React.Fragment>
-        ))}
+      {/* 2. Strict 4-Step Interactive Pipeline Stepper (Draft -> Computed -> Validated -> Paid) */}
+      <div className="mgr-pipeline-card" style={{ marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", padding: "0 4px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280" }}>
+              Payroll Pipeline Stage:
+            </span>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--mgr-plum-primary, #714B67)" }}>
+              Step {currentStep} of 4 — {status}
+            </span>
+          </div>
+
+          <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
+            {isDraft && "👉 Click 'Compute' to calculate salary rules"}
+            {isComputed && "👉 Review payslips below, then click 'Validate'"}
+            {isValidated && "👉 Audit complete. Click 'Mark Paid' to disburse"}
+            {isPaid && "✓ Batch closed and payslips locked"}
+          </span>
+        </div>
+
+        <div className="mgr-pipeline-stepper">
+          {[
+            {
+              stepNum: 1,
+              label: "Draft",
+              desc: "Batch configured",
+              isCompleted: currentStep > 1,
+              isCurrent: currentStep === 1,
+              isClickable: false,
+              onClick: null,
+              tooltip: "Step 1: Batch parameters configured",
+            },
+            {
+              stepNum: 2,
+              label: "Computed",
+              desc: "Salary rules calculated",
+              isCompleted: currentStep > 2,
+              isCurrent: currentStep === 2,
+              isClickable: isDraft && !actionLoading,
+              onClick: isDraft ? handleCompute : null,
+              tooltip: isDraft
+                ? "Click to execute Step 2 (Compute salary rules)"
+                : currentStep >= 2
+                ? "Salary rules computed"
+                : "Step 2: Computed",
+            },
+            {
+              stepNum: 3,
+              label: "Validated",
+              desc: "Audit & compliance verified",
+              isCompleted: currentStep > 3,
+              isCurrent: currentStep === 3,
+              isClickable: isComputed && !actionLoading,
+              onClick: isComputed ? handleValidate : null,
+              tooltip: isDraft
+                ? "🔒 Locked: Compute salary rules first before validating"
+                : isComputed
+                ? "Click to execute Step 3 (Validate audit)"
+                : "Step 3: Validated",
+            },
+            {
+              stepNum: 4,
+              label: "Paid",
+              desc: "Disbursed & finalized",
+              isCompleted: currentStep === 4,
+              isCurrent: currentStep === 4,
+              isClickable: isValidated && !actionLoading,
+              onClick: isValidated ? handleMarkPaid : null,
+              tooltip: isDraft || isComputed
+                ? "🔒 Locked: Must validate payrun first before payout"
+                : isValidated
+                ? "Click to execute Step 4 (Mark Paid & finalize)"
+                : "Step 4: Paid & Closed",
+            },
+          ].map((step, idx, arr) => {
+            const isClickable = Boolean(step.isClickable);
+            const isCompleted = step.isCompleted;
+            const isCurrent = step.isCurrent;
+            const isLocked = !isCompleted && !isCurrent && !isClickable;
+
+            return (
+              <React.Fragment key={step.stepNum}>
+                <button
+                  type="button"
+                  className={`mgr-pipeline-step ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""} ${isPaid && isCompleted ? "paid-done" : ""} ${isClickable ? "clickable" : ""}`}
+                  onClick={step.onClick || undefined}
+                  title={step.tooltip}
+                  disabled={!isClickable}
+                  style={{
+                    outline: "none",
+                    cursor: isClickable ? "pointer" : isCurrent ? "default" : "not-allowed",
+                    opacity: isLocked ? 0.45 : 1,
+                  }}
+                >
+                  <div
+                    className="mgr-pipeline-circle"
+                    style={{
+                      border: isCurrent ? "2px solid var(--mgr-plum-primary, #714B67)" : undefined,
+                      boxShadow: isCurrent ? "0 0 0 4px rgba(113, 75, 103, 0.15)" : undefined,
+                    }}
+                  >
+                    {isCompleted ? "✓" : isLocked ? "🔒" : step.stepNum}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <span className="mgr-pipeline-label" style={{ fontWeight: isCurrent ? 700 : 600 }}>
+                      {step.stepNum}. {step.label}
+                    </span>
+                    <span style={{ fontSize: "0.68rem", color: isCurrent ? "var(--mgr-plum-primary, #714B67)" : "#9ca3af" }}>
+                      {step.desc}
+                    </span>
+                  </div>
+                </button>
+
+                {idx < arr.length - 1 && (
+                  <div
+                    className={`mgr-pipeline-line ${
+                      arr[idx + 1].isCompleted || arr[idx + 1].isCurrent
+                        ? isPaid
+                          ? "paid-done"
+                          : "completed"
+                        : ""
+                    }`}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 3. Summary Cards */}
-      <div className="mgr-kpi-grid" style={{ marginBottom: "16px" }}>
+      {/* 3. Summary KPI Cards */}
+      <div className="mgr-kpi-grid">
         <div className="mgr-kpi-card">
           <span className="mgr-kpi-title">Batch Employees</span>
           <div className="mgr-kpi-val">{payrun?.employee_count || payslips.length || 0}</div>
@@ -318,7 +481,7 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
         </div>
         <div className="mgr-kpi-card">
           <span className="mgr-kpi-title">Current Status</span>
-          <div className="mgr-kpi-val" style={{ fontSize: "1.3rem" }}>
+          <div className="mgr-kpi-val" style={{ fontSize: "1.35rem", color: isPaid ? "#059669" : isValidated ? "var(--mgr-plum-primary)" : "#2563eb" }}>
             {status}
           </div>
           <span className="mgr-kpi-sub">{isPaid ? "Locked & Protected" : "Operational Batch"}</span>
@@ -387,7 +550,11 @@ const ProcessPayrollListView = ({ cycle, onProceedToVerify }) => {
                   const slipNet = parseFloat(slip.net_amount) || 0;
 
                   return (
-                    <tr key={slip.id || index}>
+                    <tr
+                      key={slip.id || index}
+                      style={{ cursor: onSelectPayslip ? "pointer" : "default" }}
+                      onClick={() => onSelectPayslip && onSelectPayslip(slip)}
+                    >
                       <td style={{ color: "#9ca3af" }}>{index + 1}</td>
                       <td>
                         <div style={{ fontWeight: 600, color: "#111827" }}>{slip.employee_name}</div>

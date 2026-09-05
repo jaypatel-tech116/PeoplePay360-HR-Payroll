@@ -8,6 +8,7 @@ const {
   createSalaryRule,
   updateSalaryRule,
   deleteSalaryRule,
+  validateFormula,
 } = require("../controllers/salary-rule.controller");
 const { authenticateToken } = require("../middleware/auth.middleware");
 const { requireRole } = require("../middleware/role.middleware");
@@ -25,6 +26,9 @@ router.get("/structures", authenticateToken, requireRole(READ_ROLES), getSalaryS
 router.post("/structures", authenticateToken, requireRole(MUTATE_ROLES), createSalaryStructure);
 router.put("/structures/:id", authenticateToken, requireRole(MUTATE_ROLES), updateSalaryStructure);
 router.delete("/structures/:id", authenticateToken, requireRole(MUTATE_ROLES), deleteSalaryStructure);
+
+// Formula Dry-Run Validation (Accessible to all payroll users to test safely)
+router.post("/rules/validate-formula", authenticateToken, requireRole(READ_ROLES), validateFormula);
 
 // Rules
 router.get("/rules", authenticateToken, requireRole(READ_ROLES), getSalaryRules);

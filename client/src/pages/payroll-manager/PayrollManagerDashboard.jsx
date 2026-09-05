@@ -320,7 +320,9 @@ const PayrollManagerDashboard = () => {
           {activeTab === "process-payroll" && (
             <ProcessPayrollListView
               cycle={selectedCycle}
+              onBack={() => setActiveTab("pay-cycles")}
               onProceedToVerify={() => setActiveTab("verify-payroll")}
+              onSelectPayslip={handleSelectPaySlip}
             />
           )}
 

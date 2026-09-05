@@ -1,10 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import hrApi from "../../../api/hr.api";
 
-const RequestLeaveModal = ({ isOpen, onClose, onSubmit }) => {
+const RequestLeaveModal = ({ isOpen, onClose, onSubmit, leaveTypes = [] }) => {
+  const [typesList, setTypesList] = useState([]);
   const [leaveType, setLeaveType] = useState("Annual Leave");
   const [fromDate, setFromDate] = useState("2025-09-15");
   const [toDate, setToDate] = useState("2025-09-16");
   const [reason, setReason] = useState("Family function");
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Load dynamic leave types from DB
+    hrApi
+      .getLeaveTypes()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : res?.leave_types || [];
+        if (list.length > 0) {
+          setTypesList(list);
+          setLeaveType(list[0].name);
+        }
+      })
+      .catch(() => {
+        if (leaveTypes && leaveTypes.length > 0) {
+          setTypesList(leaveTypes);
+          setLeaveType(leaveTypes[0].name);
+        } else {
+          setTypesList([
+            { id: 1, name: "Annual Leave", unit: "DAYS" },
+            { id: 2, name: "Sick Leave", unit: "DAYS" },
+            { id: 3, name: "Casual Leave", unit: "DAYS" },
+          ]);
+        }
+      });
+  }, [isOpen, leaveTypes]);
 
   if (!isOpen) return null;
 
@@ -20,9 +49,11 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const matchedType = typesList.find((t) => t.name === leaveType);
     if (onSubmit) {
       onSubmit({
         leaveType,
+        leave_type_id: matchedType?.id,
         fromDate,
         toDate,
         duration: `${calculateDays()} days`,
@@ -71,11 +102,11 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit }) => {
               onChange={(e) => setLeaveType(e.target.value)}
               required
             >
-              <option value="Annual Leave">📅 Annual Leave</option>
-              <option value="Sick Leave">🤒 Sick Leave</option>
-              <option value="Casual Leave">🏖️ Casual Leave</option>
-              <option value="Personal Leave">👤 Personal Leave</option>
-              <option value="Maternity Leave">👶 Maternity Leave</option>
+              {typesList.map((t) => (
+                <option key={t.id || t.name} value={t.name}>
+                  📅 {t.name} ({t.unit ? t.unit.toLowerCase() : "days"})
+                </option>
+              ))}
             </select>
           </div>
 

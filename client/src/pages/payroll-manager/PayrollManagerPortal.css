@@ -900,3 +900,353 @@
   color: #ffffff;
   border-color: var(--mgr-plum-primary);
 }
+
+/* ==========================================================================
+   KPI Summary Grid & KPI Cards
+   ========================================================================== */
+.mgr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1024px) {
+  .mgr-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .mgr-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mgr-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--mgr-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mgr-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 75, 103, 0.08);
+  border-color: rgba(113, 75, 103, 0.3);
+}
+
+.mgr-kpi-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.mgr-kpi-val {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  font-feature-settings: "tnum";
+}
+
+.mgr-kpi-sub {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Pipeline Progression Bar & Stepper
+   ========================================================================== */
+.mgr-pipeline-card {
+  background: #ffffff;
+  border: 1px solid var(--mgr-border);
+  border-radius: 10px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.mgr-pipeline-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mgr-pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.mgr-pipeline-step.clickable {
+  cursor: pointer;
+}
+
+.mgr-pipeline-step.clickable:hover {
+  background-color: #f8f6f8;
+}
+
+.mgr-pipeline-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  border: 2px solid transparent;
+}
+
+.mgr-pipeline-step.completed .mgr-pipeline-circle {
+  background-color: var(--mgr-plum-primary);
+  color: #ffffff;
+}
+
+.mgr-pipeline-step.current .mgr-pipeline-circle {
+  background-color: var(--mgr-plum-primary);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.25);
+}
+
+.mgr-pipeline-step.paid-done .mgr-pipeline-circle {
+  background-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+}
+
+.mgr-pipeline-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+
+.mgr-pipeline-step.completed .mgr-pipeline-label,
+.mgr-pipeline-step.current .mgr-pipeline-label {
+  color: var(--mgr-plum-primary);
+  font-weight: 700;
+}
+
+.mgr-pipeline-step.paid-done .mgr-pipeline-label {
+  color: #059669;
+  font-weight: 700;
+}
+
+.mgr-pipeline-line {
+  flex: 1;
+  height: 3px;
+  background-color: #e2e8f0;
+  margin: 0 14px;
+  border-radius: 2px;
+  transition: background-color 0.25s ease;
+}
+
+.mgr-pipeline-line.completed {
+  background-color: var(--mgr-plum-primary);
+}
+
+.mgr-pipeline-line.paid-done {
+  background-color: #059669;
+}
+
+/* ==========================================================================
+   Wizard Form Controls & Stepper
+   ========================================================================== */
+.mgr-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid var(--mgr-border);
+  border-radius: 12px;
+  padding: 12px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mgr-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.mgr-step.active {
+  color: var(--mgr-plum-primary);
+  font-weight: 700;
+}
+
+.mgr-step.completed {
+  color: var(--mgr-plum-primary);
+}
+
+.mgr-step-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.mgr-step.active .mgr-step-num {
+  background-color: var(--mgr-plum-primary);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.2);
+}
+
+.mgr-step.completed .mgr-step-num {
+  background-color: #f3ebf2;
+  color: var(--mgr-plum-primary);
+  border-color: var(--mgr-plum-primary);
+}
+
+.mgr-step-divider {
+  width: 60px;
+  height: 2px;
+  background-color: #e2e8f0;
+}
+
+.mgr-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.mgr-label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: 0.01em;
+}
+
+.mgr-label span.req {
+  color: #e11d48;
+  margin-left: 2px;
+}
+
+.mgr-select,
+.mgr-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.mgr-select:hover,
+.mgr-input:hover {
+  border-color: #94a3b8;
+}
+
+.mgr-select:focus,
+.mgr-input:focus {
+  border-color: var(--mgr-plum-primary);
+  box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+}
+
+.mgr-period-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.mgr-period-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mgr-period-pill:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.mgr-period-pill.active {
+  background-color: var(--mgr-plum-primary);
+  border-color: var(--mgr-plum-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(113, 75, 103, 0.25);
+}
+
+.mgr-period-preview-card {
+  background: linear-gradient(135deg, #fbf7fa 0%, #f4eff3 100%);
+  border: 1px solid rgba(113, 75, 103, 0.2);
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .mgr-period-preview-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mgr-preview-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.mgr-preview-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mgr-preview-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 2px;
+}

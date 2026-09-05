@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import hrApi from "../../../api/hr.api";
 import { SkeletonReports } from "../../../components/ui/SkeletonLoader";
+import ViewEmployeeReportModal from "../modals/ViewEmployeeReportModal";
 
 const ReportsView = () => {
   const [activeSubtab, setActiveSubtab] = useState("attendance");
@@ -9,6 +10,7 @@ const ReportsView = () => {
   const [searchEmployee, setSearchEmployee] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReportEmployee, setSelectedReportEmployee] = useState(null);
 
   // Dynamic report state
   const [attendanceReport, setAttendanceReport] = useState(null);
@@ -557,6 +559,7 @@ const ReportsView = () => {
                     <th>Half Day ▾</th>
                     <th>Total Working Days</th>
                     <th>Attendance %</th>
+                    <th>Remaining Leaves</th>
                     <th style={{ textAlign: "right" }}>Action</th>
                   </tr>
                 </thead>
@@ -583,15 +586,17 @@ const ReportsView = () => {
                           {row.attendancePct || `${row.pct}%`}
                         </span>
                       </td>
+                      <td>
+                        <strong style={{ color: "#15803d", fontSize: "0.86rem" }}>
+                          {row.remainingLeaves !== undefined ? `${row.remainingLeaves} d` : "30 d"}
+                        </strong>
+                      </td>
                       <td style={{ textAlign: "right" }}>
                         <button
                           type="button"
                           className="hr-btn-view"
-                          onClick={() =>
-                            alert(
-                              `Detailed Attendance Audit for ${row.name} (${row.code}):\nPresent: ${row.presentDays || row.present} days\nAbsent: ${row.absentDays || row.absent} days\nOn Leave: ${row.onLeave} days\nAttendance: ${row.attendancePct || row.pct}%`
-                            )
-                          }
+                          onClick={() => setSelectedReportEmployee(row)}
+                          title="View detailed employee attendance & leave report"
                         >
                           <span>👁</span> View
                         </button>
@@ -820,6 +825,13 @@ const ReportsView = () => {
           <span className="hr-badge hr-badge-green">Integrated with Employee Contracts</span>
         </div>
       )}
+
+      {/* 9. Detailed Employee Attendance & Leave Report Modal */}
+      <ViewEmployeeReportModal
+        isOpen={!!selectedReportEmployee}
+        onClose={() => setSelectedReportEmployee(null)}
+        employee={selectedReportEmployee}
+      />
     </div>
   );
 };
