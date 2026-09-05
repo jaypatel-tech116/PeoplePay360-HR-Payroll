@@ -32,6 +32,12 @@
   --color-success: #16a34a;
   --color-success-light: #f0fdf4;
   --color-success-border: #bbf7d0;
+  --color-warning: #d97706;
+  --color-warning-light: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-info: #0284c7;
+  --color-info-light: #f0f9ff;
+  --color-info-border: #bae6fd;
 
   /* Spacing Scale */
   --spacing-xs: 0.25rem;  /* 4px */

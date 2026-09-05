@@ -73,6 +73,28 @@ export const AuthProvider = ({ children }) => {
     setUser(updatedUser);
   };
 
+  /**
+   * Switch role on the fly for Hackathon presentations & testing
+   */
+  const switchDemoRole = (newRole) => {
+    setUser((prev) => {
+      if (!prev) {
+        return {
+          id: 999,
+          name: `Demo ${newRole.replace("_", " ")}`,
+          email: `${newRole.toLowerCase()}@peoplepay360.com`,
+          role: newRole,
+          employee_code: "EMP-DEMO",
+          department: "Operations",
+        };
+      }
+      return {
+        ...prev,
+        role: newRole,
+      };
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -82,6 +104,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateUser,
+        switchDemoRole,
         checkAuth,
       }}
     >

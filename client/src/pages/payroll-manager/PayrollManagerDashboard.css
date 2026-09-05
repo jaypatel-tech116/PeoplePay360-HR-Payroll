@@ -1,0 +1,27 @@
+.btn-approve-batch {
+  background-color: var(--color-warning);
+  color: #1e1b4b;
+  padding: 6px 14px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn-approve-batch:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.compliance-stat {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding: 10px;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.text-muted-xs {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

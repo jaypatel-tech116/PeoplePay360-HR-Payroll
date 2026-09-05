@@ -1,0 +1,1157 @@
+/* ==========================================================================
+   Odoo / PeoplePay360 Plum Theme - Employee Portal Design System
+   Exact match to the provided UI designs
+   ========================================================================== */
+
+:root {
+  --odoo-plum-primary: #714B67;
+  --odoo-plum-dark: #57394f;
+  --odoo-plum-darker: #4a2f43;
+  --odoo-plum-light: #f3ebf1;
+  --odoo-plum-hover: #613e57;
+  --odoo-plum-active-item: #865d7b;
+  --odoo-plum-muted-text: #d8c7d3;
+
+  --odoo-bg: #f8f9fa;
+  --odoo-card-bg: #ffffff;
+  --odoo-border: #e6e8ec;
+  --odoo-border-subtle: #f0f2f5;
+
+  --odoo-text-main: #1f2937;
+  --odoo-text-secondary: #4b5563;
+  --odoo-text-muted: #9ca3af;
+
+  /* Status Colors */
+  --odoo-badge-green-bg: #e6f7ef;
+  --odoo-badge-green-text: #059669;
+  --odoo-badge-orange-bg: #fef3c7;
+  --odoo-badge-orange-text: #d97706;
+  --odoo-badge-red-bg: #fee2e2;
+  --odoo-badge-red-text: #dc2626;
+  --odoo-badge-blue-bg: #e0f2fe;
+  --odoo-badge-blue-text: #0284c7;
+}
+
+/* Master Shell */
+.odoo-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--odoo-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--odoo-text-main);
+  overflow-x: hidden;
+}
+
+/* Sidebar */
+.odoo-sidebar {
+  width: 230px;
+  background-color: var(--odoo-plum-primary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 50;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+}
+
+.odoo-sidebar-brand {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.odoo-logo-text {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.04em;
+  font-family: "Lucida Console", -apple-system, sans-serif;
+}
+
+.odoo-sidebar-menu {
+  list-style: none;
+  padding: 14px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.odoo-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--odoo-plum-muted-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease-in-out;
+}
+
+.odoo-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.odoo-nav-item.active {
+  background-color: var(--odoo-plum-active-item);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.odoo-nav-icon {
+  font-size: 1.05rem;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Main Canvas Area */
+.odoo-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Topbar Header */
+.odoo-topbar {
+  height: 60px;
+  background-color: var(--odoo-plum-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.odoo-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.odoo-topbar-appname {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.odoo-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.odoo-bell-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.15s;
+}
+
+.odoo-bell-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.odoo-user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+}
+
+.odoo-user-dropdown:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.odoo-avatar-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.odoo-user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.odoo-user-fullname {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.odoo-user-role-label {
+  color: var(--odoo-plum-muted-text);
+  font-size: 0.725rem;
+}
+
+.odoo-caret {
+  color: #ffffff;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+/* Page Body Container */
+.odoo-body {
+  flex: 1;
+  padding: 24px;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.odoo-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.odoo-page-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0 0 3px 0;
+}
+
+.odoo-page-subtitle {
+  font-size: 0.85rem;
+  color: var(--odoo-text-muted);
+  margin: 0;
+}
+
+.odoo-header-date {
+  font-size: 0.85rem;
+  color: var(--odoo-text-secondary);
+  font-weight: 500;
+}
+
+/* Primary Action Buttons */
+.odoo-btn-primary {
+  background-color: var(--odoo-plum-primary);
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.odoo-btn-primary:hover {
+  background-color: var(--odoo-plum-hover);
+  transform: translateY(-1px);
+}
+
+.odoo-btn-secondary {
+  background-color: #ffffff;
+  color: var(--odoo-text-main);
+  border: 1px solid var(--odoo-border);
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.odoo-btn-secondary:hover {
+  background-color: var(--odoo-bg);
+  border-color: #cbd5e1;
+}
+
+/* Card Component */
+.odoo-card {
+  background-color: var(--odoo-card-bg);
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.odoo-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.odoo-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.odoo-view-all-link {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--odoo-plum-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.odoo-view-all-link:hover {
+  text-decoration: underline;
+}
+
+/* Top Mini Stat Cards (Image 2) */
+.odoo-mini-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.odoo-mini-stat-card {
+  background: var(--odoo-card-bg);
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.odoo-mini-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: var(--odoo-plum-light);
+  color: var(--odoo-plum-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.odoo-mini-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.odoo-mini-stat-label {
+  font-size: 0.75rem;
+  color: var(--odoo-text-muted);
+  font-weight: 500;
+}
+
+.odoo-mini-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* 4 Big Stat Cards (Image 1 Attendance & Image 4 Payslips) */
+.odoo-stat-row-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.odoo-stat-box {
+  background: var(--odoo-card-bg);
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.odoo-stat-box-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.odoo-stat-box-icon.green {
+  background-color: #e6f7ef;
+  color: #059669;
+}
+
+.odoo-stat-box-icon.orange {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.odoo-stat-box-icon.red {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.odoo-stat-box-icon.purple {
+  background-color: #f3ebf1;
+  color: var(--odoo-plum-primary);
+}
+
+.odoo-stat-box-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.odoo-stat-box-label {
+  font-size: 0.775rem;
+  color: var(--odoo-text-muted);
+  font-weight: 500;
+}
+
+.odoo-stat-box-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.odoo-stat-box-sub {
+  font-size: 0.725rem;
+  color: var(--odoo-text-muted);
+}
+
+/* Badges */
+.odoo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.725rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.odoo-badge-green {
+  background-color: var(--odoo-badge-green-bg);
+  color: var(--odoo-badge-green-text);
+}
+
+.odoo-badge-orange {
+  background-color: var(--odoo-badge-orange-bg);
+  color: var(--odoo-badge-orange-text);
+}
+
+.odoo-badge-red {
+  background-color: var(--odoo-badge-red-bg);
+  color: var(--odoo-badge-red-text);
+}
+
+.odoo-badge-blue {
+  background-color: var(--odoo-badge-blue-bg);
+  color: var(--odoo-badge-blue-text);
+}
+
+.odoo-badge-purple {
+  background-color: var(--odoo-plum-light);
+  color: var(--odoo-plum-primary);
+}
+
+/* Tables */
+.odoo-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.odoo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+  text-align: left;
+}
+
+.odoo-table th {
+  padding: 10px 14px;
+  color: var(--odoo-text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--odoo-border);
+  background-color: #fafafa;
+  white-space: nowrap;
+}
+
+.odoo-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--odoo-border);
+  color: var(--odoo-text-main);
+  vertical-align: middle;
+}
+
+.odoo-table tbody tr:hover {
+  background-color: #fcfdfe;
+}
+
+.odoo-table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.odoo-table-action-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+/* Circular Donut Ring (Leaves Widget) */
+.donut-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 16px 0;
+  position: relative;
+}
+
+.donut-svg {
+  width: 130px;
+  height: 130px;
+  transform: rotate(-90deg);
+}
+
+.donut-circle-bg {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 14;
+}
+
+.donut-circle-val {
+  fill: none;
+  stroke: var(--odoo-plum-primary);
+  stroke-width: 14;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.donut-center-text {
+  position: absolute;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.donut-big-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+
+.donut-sub-text {
+  font-size: 0.65rem;
+  color: var(--odoo-text-muted);
+  max-width: 70px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.775rem;
+  margin-bottom: 16px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.donut-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--odoo-text-secondary);
+}
+
+.donut-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.donut-dot.allocated { background-color: var(--odoo-plum-primary); }
+.donut-dot.used { background-color: #9333ea; }
+.donut-dot.remaining { background-color: #0d9488; }
+
+/* Filter Bars */
+.odoo-filter-select {
+  padding: 6px 12px;
+  border: 1px solid var(--odoo-border);
+  border-radius: 6px;
+  background-color: #ffffff;
+  font-size: 0.8rem;
+  color: var(--odoo-text-main);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Modal Overlay */
+.odoo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.odoo-modal-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.odoo-modal-header {
+  padding: 16px 20px;
+  background-color: var(--odoo-plum-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.odoo-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.odoo-modal-close {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.odoo-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.odoo-modal-footer {
+  padding: 14px 20px;
+  background-color: #f9fafb;
+  border-top: 1px solid var(--odoo-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form Styles */
+.odoo-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.odoo-form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--odoo-text-secondary);
+}
+
+.odoo-form-input,
+.odoo-form-select,
+.odoo-form-textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--odoo-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: #fcfcfc;
+  outline: none;
+  font-family: inherit;
+}
+
+.odoo-form-input:focus,
+.odoo-form-select:focus,
+.odoo-form-textarea:focus {
+  border-color: var(--odoo-plum-primary);
+  background-color: #ffffff;
+}
+
+/* Responsive Grid Helpers */
+@media (max-width: 1100px) {
+  .odoo-mini-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .odoo-stat-row-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .odoo-shell {
+    flex-direction: column;
+  }
+  .odoo-sidebar {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    position: relative;
+  }
+  .odoo-mini-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .odoo-stat-row-4 {
+    grid-template-columns: 1fr;
+  }
+  .attendance-live-hero {
+    grid-template-columns: 1fr;
+  }
+  .odoo-timeline-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Breadcrumbs */
+.odoo-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.odoo-breadcrumb-sep {
+  color: var(--odoo-text-muted);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.odoo-breadcrumb-current {
+  color: #111827;
+}
+
+/* Photo Uploader (Profile Edit) */
+.odoo-photo-uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
+}
+
+.odoo-photo-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: var(--odoo-plum-light);
+  color: var(--odoo-plum-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px dashed #d1d5db;
+}
+
+.odoo-photo-circle:hover {
+  filter: brightness(0.95);
+  transform: scale(1.03);
+  border-color: var(--odoo-plum-primary);
+}
+
+.odoo-photo-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--odoo-text-main);
+}
+
+.odoo-photo-hint {
+  font-size: 0.7rem;
+  color: var(--odoo-text-muted);
+}
+
+/* Contract Timeline */
+.odoo-contract-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.odoo-contract-timeline::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  left: 20px;
+  width: 2px;
+  background-color: var(--odoo-border);
+  z-index: 1;
+}
+
+.odoo-timeline-item {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+}
+
+.odoo-timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-top: 18px;
+  margin-left: 14px;
+  flex-shrink: 0;
+  border: 2px solid #ffffff;
+}
+
+.odoo-timeline-dot.active {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px #10b981;
+}
+
+.odoo-timeline-dot.expired {
+  background-color: #9ca3af;
+  box-shadow: 0 0 0 2px #9ca3af;
+}
+
+.odoo-timeline-card {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.odoo-timeline-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--odoo-border-subtle);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.odoo-timeline-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.odoo-timeline-code {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.odoo-timeline-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+.odoo-timeline-dates {
+  font-size: 0.775rem;
+  color: var(--odoo-text-muted);
+}
+
+.odoo-timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  font-size: 0.775rem;
+}
+
+.odoo-timeline-grid-item span:first-child {
+  display: block;
+  color: var(--odoo-text-muted);
+  margin-bottom: 2px;
+}
+
+.odoo-timeline-grid-item span:last-child {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Attendance Live Hero & Timing Widgets (Image 3) */
+.attendance-live-hero {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.attendance-time-card {
+  background: #ffffff;
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.attendance-time-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background-color: var(--odoo-plum-light);
+  color: var(--odoo-plum-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.attendance-time-clock {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.attendance-checked-in-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.775rem;
+  color: #059669;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.attendance-actions-card {
+  background: #ffffff;
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.attendance-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.attendance-btn-check {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.attendance-btn-check.active {
+  background-color: var(--odoo-plum-primary);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 4px rgba(113, 75, 103, 0.25);
+}
+
+.attendance-btn-check.active:hover {
+  background-color: var(--odoo-plum-hover);
+}
+
+.attendance-btn-check.disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+  cursor: not-allowed;
+}
+
+.attendance-action-sub {
+  font-size: 0.725rem;
+  color: var(--odoo-text-muted);
+}
+
+.attendance-working-card {
+  background: #ffffff;
+  border: 1px solid var(--odoo-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.attendance-working-top {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.attendance-working-badge {
+  background-color: #e6f7ef;
+  color: #059669;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.725rem;
+  font-weight: 600;
+}
+
+.attendance-working-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.attendance-working-icon {
+  font-size: 1.8rem;
+  color: var(--odoo-plum-primary);
+}
+
+.attendance-working-timer {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+
+.attendance-working-label {
+  font-size: 0.725rem;
+  color: var(--odoo-text-muted);
+  margin-bottom: 2px;
+}
+
+.attendance-working-since {
+  font-size: 0.725rem;
+  color: var(--odoo-text-muted);
+}
+
+/* Leave Request Modal Customizations (Image 1) */
+.odoo-leave-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: var(--odoo-plum-light);
+  color: var(--odoo-plum-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.odoo-leave-info-banner {
+  background-color: #f3ebf1;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: #1f2937;
+}
+
+.odoo-leave-info-banner strong {
+  color: var(--odoo-plum-primary);
+}
+
+.odoo-char-count {
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--odoo-text-muted);
+  margin-top: 4px;
+}
+
