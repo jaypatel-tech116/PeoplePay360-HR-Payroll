@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeeAttendance } from "../../../api/employee.api";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
   const [selectedMonth, setSelectedMonth] = useState("Aug 2025");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const fetchAttendance = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeAttendance({
           month: selectedMonth,
           status: statusFilter,
@@ -19,6 +22,8 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
         }
       } catch (err) {
         console.warn("Failed to load attendance records:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchAttendance();
@@ -56,6 +61,8 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
     { id: 5, date: "20 Aug 2025", checkIn: "09:00 AM", checkOut: "06:00 PM", hours: "9.00", status: "Present", location: "Bangalore Office" },
   ];
 
+  if (loading) return <SkeletonListPage rows={6} cols={6} />;
+
   return (
     <div className="employee-attendance-view">
       {/* Header */}
@@ -90,7 +97,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
             <button
               type="button"
               className={`attendance-btn-check ${!checkedIn ? "active" : "disabled"}`}
-              onClick={!checkedIn ? onToggleCheckIn : undefined}
+              onClick={!checkedIn ? () => onToggleCheckIn && onToggleCheckIn({ action: "IN" }) : undefined}
               disabled={checkedIn}
             >
               <span>➔</span>
@@ -105,7 +112,7 @@ const AttendanceView = ({ checkedIn, onToggleCheckIn, refreshKey }) => {
             <button
               type="button"
               className={`attendance-btn-check ${checkedIn ? "active" : "disabled"}`}
-              onClick={checkedIn ? onToggleCheckIn : undefined}
+              onClick={checkedIn ? () => onToggleCheckIn && onToggleCheckIn({ action: "OUT" }) : undefined}
               disabled={!checkedIn}
             >
               <span>➔</span>

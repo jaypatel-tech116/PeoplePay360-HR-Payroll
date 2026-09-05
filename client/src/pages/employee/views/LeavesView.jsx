@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeeLeaves } from "../../../api/employee.api";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const fetchLeaves = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeLeaves({ status: statusFilter });
         if (isMounted && res?.data) {
           setData(res.data);
         }
       } catch (err) {
         console.warn("Could not load employee leaves:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchLeaves();
@@ -45,6 +50,8 @@ const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
 
   const ratio = balance.totalAllocated > 0 ? balance.remaining / balance.totalAllocated : 0.75;
   const strokeDashoffset = Math.round(238.76 * (1 - Math.min(1, Math.max(0, ratio))));
+
+  if (loading) return <SkeletonListPage rows={5} cols={6} />;
 
   return (
     <div className="employee-leaves-view">

@@ -35,8 +35,8 @@ export const getEmployeeAttendance = async (params = {}) => {
   return res.data;
 };
 
-export const punchAttendance = async () => {
-  const res = await api.post("/employee/me/attendance/punch");
+export const punchAttendance = async (data = {}) => {
+  const res = await api.post("/employee/me/attendance/punch", data);
   return res.data;
 };
 

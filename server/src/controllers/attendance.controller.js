@@ -69,7 +69,8 @@ const getAttendance = async (req, res, next) => {
  */
 const punch = async (req, res, next) => {
   try {
-    let employeeId = req.body.employee_id;
+    const body = req.body || {};
+    let employeeId = body.employee_id;
 
     if (!employeeId) {
       const [u] = await pool.query(`SELECT employee_id FROM users WHERE id = ?;`, [req.user.id]);
@@ -91,7 +92,7 @@ const punch = async (req, res, next) => {
       [employeeId, today]
     );
 
-    const action = req.body.action ? req.body.action.toUpperCase() : null;
+    const action = body.action ? String(body.action).toUpperCase() : null;
 
     if (action === "IN") {
       if (existing.length > 0 && !existing[0].check_out) {
@@ -126,8 +127,8 @@ const punch = async (req, res, next) => {
     if (existing.length === 0) {
       // Punch In
       await pool.query(`
-        INSERT INTO attendance (employee_id, attendance_date, check_in, status)
-        VALUES (?, ?, NOW(), 'Present');
+        INSERT INTO attendance (employee_id, attendance_date, check_in, worked_hours, overtime_hours, status)
+        VALUES (?, ?, NOW(), 0.00, 0.00, 'Present');
       `, [employeeId, today]);
 
       const [record] = await pool.query(

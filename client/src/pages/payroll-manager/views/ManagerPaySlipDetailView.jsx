@@ -8,24 +8,32 @@ const ManagerPaySlipDetailView = ({ slip, onBack }) => {
     code: "EMP001",
     dept: "Engineering",
     designation: "Software Developer",
-    period: "01 Aug 2025 - 31 Aug 2025",
-    payDate: "31 Aug 2025",
-    workingDays: 26,
+    payrun: "August 2026 Payrun",
+    period: "01 Aug 2026 – 31 Aug 2026",
+    payDate: "31 Aug 2026",
+    workedDays: 26,
     paidDays: 26,
     lopDays: 0,
-    basic: "₹ 30,000",
-    hra: "₹ 12,000",
-    conveyance: "₹ 2,000",
-    special: "₹ 5,000",
-    totalEarnings: "₹ 49,000",
-    pf: "₹ 3,600",
-    pt: "₹ 200",
-    esi: "₹ 0",
-    tds: "₹ 1,500",
-    totalDeductions: "₹ 5,300",
-    netSalary: "₹ 46,700",
-    netWords: "Indian Rupees Forty Six Thousand Seven Hundred Only",
+    status: isPaid ? "Paid" : "Pending",
   };
+
+  const earnings = [
+    { name: "Basic Salary", amount: "₹ 30,000.00" },
+    { name: "House Rent Allowance (HRA)", amount: "₹ 12,000.00" },
+    { name: "Conveyance Allowance", amount: "₹ 2,000.00" },
+    { name: "Special Allowance", amount: "₹ 5,000.00" },
+    { name: "Performance Bonus", amount: "₹ 3,000.00" },
+  ];
+
+  const deductions = [
+    { name: "Provident Fund (PF)", amount: "₹ 3,600.00" },
+    { name: "Professional Tax (PT)", amount: "₹ 200.00" },
+    { name: "Income Tax (TDS)", amount: "₹ 1,500.00" },
+  ];
+
+  const grossSalary = "₹ 52,000.00";
+  const totalDeductions = "₹ 5,300.00";
+  const netSalary = "₹ 46,700.00";
 
   const handleMarkAsPaid = () => {
     setIsPaid(true);
@@ -34,199 +42,213 @@ const ManagerPaySlipDetailView = ({ slip, onBack }) => {
 
   return (
     <div className="mgr-content-body">
-      {/* 1. Breadcrumb & Action Controls */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-        <div className="mgr-breadcrumb">
-          <span className="mgr-breadcrumb-link" onClick={onBack}>
-            Pay Slips
-          </span>
-          <span>&gt;</span>
-          <span className="mgr-breadcrumb-link" onClick={onBack}>
-            August 2025
-          </span>
-          <span>&gt;</span>
-          <strong style={{ color: "#111827" }}>{data.name}</strong>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      {/* 1. Header & Action Bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
             type="button"
             className="mgr-btn-secondary"
-            onClick={() => alert(`Downloading official PDF for ${data.name}...`)}
+            onClick={onBack}
+            style={{ padding: "6px 12px" }}
           >
-            <span>📥</span> Download PDF
+            ← Back to Payslips
           </button>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h1 className="mgr-page-title" style={{ margin: 0 }}>Payslip</h1>
+              <span className={`mgr-badge ${isPaid ? "mgr-badge-green" : "mgr-badge-amber"}`}>
+                {isPaid ? "Paid" : "Pending"}
+              </span>
+            </div>
+            <p className="mgr-page-subtitle" style={{ margin: "2px 0 0 0" }}>
+              Official monthly salary statement for {data.name} ({data.code})
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <button
             type="button"
             className="mgr-btn-secondary"
             onClick={() => window.print()}
           >
-            <span>🖨</span> Print
+            <span>🖨</span> Print Payslip
           </button>
+
           <button
             type="button"
+            className="mgr-btn-secondary"
+            onClick={() => alert(`Downloading official PDF payslip for ${data.name}...`)}
+          >
+            <span>📥</span> Download PDF
+          </button>
+
+          <button
+            type="button"
+            onClick={handleMarkAsPaid}
             style={{
-              backgroundColor: isPaid ? "#10b981" : "#0284c7",
+              backgroundColor: isPaid ? "#059669" : "#0284c7",
               color: "#ffffff",
               border: "none",
               borderRadius: "6px",
-              padding: "7px 14px",
+              padding: "7px 16px",
               fontSize: "0.82rem",
               fontWeight: 600,
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}
-            onClick={handleMarkAsPaid}
           >
-            {isPaid ? "✓ Marked as Paid" : "Mark as Paid"}
+            {isPaid ? "✓ Marked Paid" : "Mark as Paid"}
           </button>
         </div>
       </div>
 
-      {/* 2. Employee Profile Card */}
-      <div className="mgr-section-card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      {/* 2. Employee & Payrun Metadata Card */}
+      <div className="mgr-section-card" style={{ padding: "22px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", fontSize: "0.84rem" }}>
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Employee Name</span>
+            <strong style={{ color: "#111827", fontSize: "0.95rem" }}>{data.name}</strong>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Employee Code</span>
+            <code style={{ fontWeight: 600 }}>{data.code}</code>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Department</span>
+            <span style={{ fontWeight: 600 }}>{data.dept}</span>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Job Position</span>
+            <span style={{ fontWeight: 600 }}>{data.designation || "Software Developer"}</span>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Payrun Batch</span>
+            <span style={{ fontWeight: 600 }}>{data.payrun || "August 2026 Payrun"}</span>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Pay Period</span>
+            <span style={{ fontWeight: 600 }}>{data.period || "01 Aug – 31 Aug 2026"}</span>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Worked Days</span>
+            <span style={{ fontWeight: 700, color: "#111827" }}>{data.workedDays || 26} Days</span>
+          </div>
+
+          <div>
+            <span style={{ color: "var(--mgr-text-muted)", fontSize: "0.74rem", display: "block", marginBottom: "2px" }}>Disbursement Status</span>
+            <span className={`mgr-badge ${isPaid ? "mgr-badge-green" : "mgr-badge-amber"}`}>
+              {isPaid ? "Disbursed / Paid" : "Pending Approval"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Professional Salary Statement: Earnings & Deductions */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        {/* Earnings Card */}
+        <div className="mgr-section-card">
+          <div className="mgr-section-header" style={{ borderBottom: "2px solid #e2e8f0" }}>
+            <h3 className="mgr-section-heading" style={{ color: "var(--mgr-plum-primary)" }}>Earnings</h3>
+            <span style={{ fontSize: "0.75rem", color: "var(--mgr-text-muted)" }}>Credit Components</span>
+          </div>
+
+          <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.85rem" }}>
+            {earnings.map((e, idx) => (
+              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#374151" }}>{e.name}</span>
+                <span style={{ fontWeight: 600, color: "#111827" }}>{e.amount}</span>
+              </div>
+            ))}
+
+            {/* Gross Salary Total */}
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "50%",
-                backgroundColor: "#ede9fe",
-                color: "#6d28d9",
-                fontSize: "1.1rem",
-                fontWeight: 700,
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
+                borderTop: "2px dashed #e2e8f0",
+                paddingTop: "14px",
+                marginTop: "6px",
               }}
             >
-              RS
+              <strong style={{ fontSize: "0.95rem", color: "#111827" }}>Gross Salary</strong>
+              <strong style={{ fontSize: "1.1rem", color: "var(--mgr-plum-primary)" }}>{grossSalary}</strong>
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
-                  {data.name}
-                </h3>
-                <span className={`mgr-badge ${isPaid ? "mgr-badge-green" : "mgr-badge-amber"}`}>
-                  {isPaid ? "Paid" : "Pending"}
-                </span>
+          </div>
+        </div>
+
+        {/* Deductions Card */}
+        <div className="mgr-section-card">
+          <div className="mgr-section-header" style={{ borderBottom: "2px solid #e2e8f0" }}>
+            <h3 className="mgr-section-heading" style={{ color: "#dc2626" }}>Deductions</h3>
+            <span style={{ fontSize: "0.75rem", color: "var(--mgr-text-muted)" }}>Debit & Statutory</span>
+          </div>
+
+          <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.85rem" }}>
+            {deductions.map((d, idx) => (
+              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#374151" }}>{d.name}</span>
+                <span style={{ fontWeight: 600, color: "#dc2626" }}>{d.amount}</span>
               </div>
-              <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-                {data.designation || "Software Developer"} - {data.dept || "Engineering"} • {data.code || "EMP001"}
-              </span>
-            </div>
-          </div>
+            ))}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, auto)", gap: "20px", fontSize: "0.8rem" }}>
-            <div>
-              <span style={{ color: "#9ca3af", display: "block" }}>Payroll Period</span>
-              <strong style={{ color: "#111827" }}>{data.period || "01 Aug 2025 - 31 Aug 2025"}</strong>
-            </div>
-            <div>
-              <span style={{ color: "#9ca3af", display: "block" }}>Pay Date</span>
-              <strong style={{ color: "#111827" }}>{data.payDate || "31 Aug 2025"}</strong>
-            </div>
-            <div>
-              <span style={{ color: "#9ca3af", display: "block" }}>Working Days</span>
-              <strong style={{ color: "#111827" }}>{data.workingDays || 26}</strong>
-            </div>
-            <div>
-              <span style={{ color: "#9ca3af", display: "block" }}>Paid Days</span>
-              <strong style={{ color: "#111827" }}>{data.paidDays || 26}</strong>
+            {/* Total Deductions */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderTop: "2px dashed #e2e8f0",
+                paddingTop: "14px",
+                marginTop: "24px",
+              }}
+            >
+              <strong style={{ fontSize: "0.95rem", color: "#111827" }}>Total Deductions</strong>
+              <strong style={{ fontSize: "1.1rem", color: "#dc2626" }}>{totalDeductions}</strong>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Breakdown Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-        {/* Earnings */}
-        <div className="mgr-section-card">
-          <div className="mgr-section-header">
-            <h3 className="mgr-section-heading">Earnings</h3>
-          </div>
-          <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.84rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Basic Salary</span>
-              <strong>{data.basic || "₹ 30,000"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>HRA</span>
-              <strong>{data.hra || "₹ 12,000"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Conveyance Allowance</span>
-              <strong>{data.conveyance || "₹ 2,000"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Special Allowance</span>
-              <strong>{data.special || "₹ 5,000"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>
-              <strong>Total Earnings</strong>
-              <strong style={{ color: "#111827" }}>{data.totalEarnings || "₹ 49,000"}</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Deductions */}
-        <div className="mgr-section-card">
-          <div className="mgr-section-header">
-            <h3 className="mgr-section-heading">Deductions</h3>
-          </div>
-          <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.84rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>PF (12%)</span>
-              <strong>{data.pf || "₹ 3,600"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Professional Tax</span>
-              <strong>{data.pt || "₹ 200"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>ESI</span>
-              <strong>{data.esi || "₹ 0"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>TDS</span>
-              <strong>{data.tds || "₹ 1,500"}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>
-              <strong>Total Deductions</strong>
-              <strong style={{ color: "#111827" }}>{data.totalDeductions || "₹ 5,300"}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Net Salary Footer */}
+      {/* 4. Large Highlighted Net Salary Statement */}
       <div
+        className="mgr-section-card"
         style={{
-          backgroundColor: "#f0fdf4",
-          border: "1px solid #bbf7d0",
-          borderRadius: "8px",
-          padding: "16px 24px",
+          padding: "24px 30px",
+          backgroundColor: "#f5edf5",
+          border: "2px solid var(--mgr-plum-primary)",
           display: "flex",
-          alignItems: "center",
           justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
         }}
       >
         <div>
-          <span style={{ fontSize: "0.72rem", color: "#065f46", display: "block" }}>
-            Net Salary (In Words)
+          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--mgr-plum-primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Net Salary Payable
           </span>
-          <strong style={{ fontSize: "0.85rem", color: "#065f46" }}>
-            {data.netWords || "Indian Rupees Forty Six Thousand Seven Hundred Only"}
-          </strong>
+          <p style={{ margin: "4px 0 0 0", fontSize: "0.82rem", color: "#6b7280" }}>
+            Disbursed via Direct Company Bank Account Transfer
+          </p>
         </div>
 
         <div style={{ textAlign: "right" }}>
-          <span style={{ fontSize: "0.72rem", color: "#065f46", display: "block" }}>
-            Net Salary
+          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--mgr-plum-primary)", letterSpacing: "-0.02em" }}>
+            {netSalary}
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "#6b7280", fontStyle: "italic" }}>
+            Indian Rupees Forty Six Thousand Seven Hundred Only
           </span>
-          <strong style={{ fontSize: "1.5rem", color: "#059669" }}>
-            {data.netSalary || "₹ 46,700"}
-          </strong>
         </div>
       </div>
     </div>

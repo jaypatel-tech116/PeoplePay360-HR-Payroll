@@ -1,0 +1,206 @@
+/* =============================================================================
+   SkeletonLoader — Universal shimmer/pulse CSS
+   ============================================================================= */
+
+/* ── Core shimmer animation ─────────────────────────────────────────────────── */
+@keyframes sk-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.sk-box {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    #e8ecf0 25%,
+    #f0f4f7 50%,
+    #e8ecf0 75%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Stat card grid ──────────────────────────────────────────────────────────── */
+.sk-stat-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.sk-stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.sk-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────────── */
+.sk-table-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sk-table-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sk-table-header {
+  background: #f8fafc;
+  border-radius: 8px 8px 0 0;
+  padding: 10px 16px;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────────── */
+.sk-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* ── Profile header ─────────────────────────────────────────────────────────── */
+.sk-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.sk-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Kanban ──────────────────────────────────────────────────────────────────── */
+.sk-kanban {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  min-height: 360px;
+}
+
+.sk-kanban-col {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sk-kanban-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.sk-kanban-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Two-column layout ───────────────────────────────────────────────────────── */
+.sk-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Dashboard page wrapper ─────────────────────────────────────────────────── */
+.sk-dashboard-wrap {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  animation: sk-fade-in 0.3s ease;
+}
+
+@keyframes sk-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── List page header + filters ─────────────────────────────────────────────── */
+.sk-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.sk-list-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sk-filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* ── Reports chart bars ──────────────────────────────────────────────────────── */
+.sk-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 120px;
+  padding-top: 10px;
+}
+
+.sk-bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+}
+
+/* ── Responsive tweaks ───────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sk-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .sk-kanban {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sk-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 580px) {
+  .sk-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .sk-kanban {
+    grid-template-columns: 1fr;
+  }
+}

@@ -135,25 +135,81 @@ const updateLeaveStatus = async (req, res, next) => {
       });
     }
 
+    const [existing] = await pool.query(`SELECT * FROM leave_requests WHERE id = ?;`, [id]);
+    const reqData = existing[0];
+    if (!reqData) {
+      return errorResponse(res, { statusCode: 404, message: "Leave request not found." });
+    }
+
+    const previousStatus = reqData.status;
+
+    // Idempotency: If already in this status, return without duplicate operations
+    if (previousStatus === formattedStatus) {
+      return successResponse(res, {
+        statusCode: 200,
+        message: `Leave request is already ${formattedStatus.toLowerCase()}.`,
+        data: { request: reqData },
+      });
+    }
+
+    // If transitioning to Approved, verify and update leave_allocations safely
+    if (formattedStatus === "Approved" && previousStatus !== "Approved") {
+      const [typeRows] = await pool.query(`SELECT requires_allocation FROM leave_types WHERE id = ?;`, [reqData.leave_type_id]);
+      const requiresAlloc = typeRows[0]?.requires_allocation !== false;
+
+      if (requiresAlloc) {
+        const [allocRows] = await pool.query(`
+          SELECT * FROM leave_allocations 
+          WHERE employee_id = ? AND leave_type_id = ?;
+        `, [reqData.employee_id, reqData.leave_type_id]);
+
+        const alloc = allocRows[0];
+        if (alloc) {
+          const requestedDays = parseFloat(reqData.days) || 0;
+          const currentUsed = parseFloat(alloc.used_days) || 0;
+          const totalDays = parseFloat(alloc.total_days) || 0;
+
+          if (currentUsed + requestedDays > totalDays) {
+            return errorResponse(res, {
+              statusCode: 400,
+              message: `Insufficient leave balance: Available ${(totalDays - currentUsed).toFixed(1)} days, but requested ${requestedDays} days.`,
+            });
+          }
+
+          // Safely deduct balance
+          await pool.query(`
+            UPDATE leave_allocations
+            SET used_days = used_days + ?
+            WHERE id = ?;
+          `, [requestedDays, alloc.id]);
+        }
+      }
+    } else if (previousStatus === "Approved" && (formattedStatus === "Cancelled" || formattedStatus === "Rejected")) {
+      // Revert leave allocation if un-approving
+      await pool.query(`
+        UPDATE leave_allocations
+        SET used_days = GREATEST(0, used_days - ?)
+        WHERE employee_id = ? AND leave_type_id = ?;
+      `, [reqData.days, reqData.employee_id, reqData.leave_type_id]);
+    }
+
     await pool.query(`
       UPDATE leave_requests
       SET status = ?, approved_by = ?, approved_at = NOW(), rejection_reason = ?
       WHERE id = ?;
     `, [formattedStatus, req.user.id, rejection_reason || null, id]);
 
-    // If approved, update leave_allocations used_days
-    if (formattedStatus === "Approved") {
-      const [reqData] = await pool.query(`SELECT * FROM leave_requests WHERE id = ?;`, [id]);
-      if (reqData[0]) {
-        await pool.query(`
-          UPDATE leave_allocations
-          SET used_days = used_days + ?
-          WHERE employee_id = ? AND leave_type_id = ?;
-        `, [reqData[0].days, reqData[0].employee_id, reqData[0].leave_type_id]);
-      }
-    }
-
     const [updated] = await pool.query(`SELECT * FROM leave_requests WHERE id = ?;`, [id]);
+
+    const { logAudit } = require("../utils/auditLogger");
+    await logAudit({
+      userId: req.user.id,
+      action: `LEAVE_${formattedStatus.toUpperCase()}`,
+      entityType: "LEAVE_REQUEST",
+      entityId: id,
+      oldData: reqData,
+      newData: updated[0],
+    });
 
     return successResponse(res, {
       statusCode: 200,

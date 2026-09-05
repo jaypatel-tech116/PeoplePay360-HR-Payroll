@@ -229,6 +229,96 @@
   margin-left: 2px;
 }
 
+.odoo-sidebar-footer {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+  position: relative;
+}
+
+.odoo-sidebar-user-container {
+  position: relative;
+  width: 100%;
+}
+
+.odoo-sidebar-user-pill {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px 6px 6px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.06);
+  transition: background-color 0.15s;
+}
+
+.odoo-sidebar-user-pill:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.odoo-sidebar-profile-dropdown {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 210px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.odoo-profile-dropdown-header {
+  padding: 8px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.odoo-profile-dropdown-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.odoo-profile-dropdown-email {
+  font-size: 0.72rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.odoo-profile-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  font-size: 0.82rem;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.15s;
+}
+
+.odoo-profile-dropdown-item:hover {
+  background-color: #f8fafc;
+}
+
+.odoo-profile-dropdown-item.logout {
+  color: #ef4444;
+}
+
+.odoo-profile-dropdown-item.logout:hover {
+  background-color: #fef2f2;
+}
+
+
 /* Page Body Container */
 .odoo-body {
   flex: 1;

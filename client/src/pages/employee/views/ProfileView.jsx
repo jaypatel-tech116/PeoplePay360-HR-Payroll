@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeeProfile, updateEmployeeProfile } from "../../../api/employee.api";
+import { SkeletonProfileHeader, SkeletonCard } from "../../../components/ui/SkeletonLoader";
 
 const ProfileView = ({ refreshKey }) => {
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     employeeCode: "EMP001",
@@ -26,12 +28,15 @@ const ProfileView = ({ refreshKey }) => {
     let isMounted = true;
     const fetchProfile = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeProfile();
         if (isMounted && res?.data?.profile) {
           setFormData(res.data.profile);
         }
       } catch (err) {
         console.warn("Could not load employee profile:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchProfile();
@@ -56,6 +61,13 @@ const ProfileView = ({ refreshKey }) => {
       alert("Failed to update profile. Please try again.");
     }
   };
+
+  if (loading) return (
+    <div className="sk-dashboard-wrap">
+      <SkeletonProfileHeader />
+      <div className="sk-two-col"><SkeletonCard lines={5} /><SkeletonCard lines={5} /></div>
+    </div>
+  );
 
   // State 1: Edit Profile (Image 2 Top Left)
   if (isEditing) {
@@ -339,11 +351,15 @@ const ProfileView = ({ refreshKey }) => {
               margin: "0 auto 16px auto",
             }}
           >
-            {formData.initials || "RS"}
+            {formData.initials && formData.initials.length <= 2 && formData.initials[0]?.toLowerCase() !== formData.initials[1]?.toLowerCase()
+              ? formData.initials
+              : (formData.firstName ? formData.firstName.slice(0, 2).toUpperCase() : "EM")}
           </div>
 
           <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 4px 0" }}>
-            {formData.firstName} {formData.lastName}
+            {formData.lastName && formData.lastName.toLowerCase() !== formData.firstName.toLowerCase()
+              ? `${formData.firstName} ${formData.lastName}`
+              : formData.firstName}
           </h2>
           <div style={{ fontSize: "0.8rem", color: "var(--odoo-text-muted)", marginBottom: "8px" }}>
             {formData.employeeCode}

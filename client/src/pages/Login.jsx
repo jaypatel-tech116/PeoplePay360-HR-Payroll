@@ -292,6 +292,104 @@ const Login = () => {
               </div>
             )}
 
+            {/* 1-Click Role Fill Buttons for effortless testing */}
+            <div style={{ marginBottom: "20px" }}>
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                  textAlign: "center",
+                }}
+              >
+                Quick Fill Demo Account
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ email: "payroll@gmail.com", password: "payroll" })}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: formData.email === "payroll@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
+                    background: formData.email === "payroll@gmail.com" ? "#fbf5fa" : "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>💼 Payroll Mgr</span>
+                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>payroll@gmail.com</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ email: "hr@gmail.com", password: "hrhr" })}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: formData.email === "hr@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
+                    background: formData.email === "hr@gmail.com" ? "#fbf5fa" : "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>👥 HR Manager</span>
+                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>hr@gmail.com</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ email: "employee@gmail.com", password: "123456" })}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: formData.email === "employee@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
+                    background: formData.email === "employee@gmail.com" ? "#fbf5fa" : "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>👤 Employee</span>
+                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>employee@gmail.com</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ email: "admin@gmail.com", password: "admin" })}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: formData.email === "admin@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
+                    background: formData.email === "admin@gmail.com" ? "#fbf5fa" : "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>🔑 Admin</span>
+                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>admin@gmail.com</span>
+                </button>
+              </div>
+            </div>
+
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="pp-login-form" noValidate>
               {/* Email Input Field */}

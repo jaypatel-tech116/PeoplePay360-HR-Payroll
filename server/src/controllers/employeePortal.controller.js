@@ -41,6 +41,25 @@ function formatINR(val) {
 }
 
 /**
+ * Clean duplicate first/last names (e.g. "tester1 tester1" -> "tester1")
+ */
+function formatFullName(first, last) {
+  const f = (first || "").trim();
+  const l = (last || "").trim();
+  if (!l || l.toLowerCase() === f.toLowerCase()) return f || "Employee";
+  return `${f} ${l}`.trim();
+}
+
+function formatInitials(first, last) {
+  const f = (first || "").trim();
+  const l = (last || "").trim();
+  if (!l || l.toLowerCase() === f.toLowerCase()) {
+    return f ? f.slice(0, 2).toUpperCase() : "EM";
+  }
+  return `${f[0] || ""}${l[0] || ""}`.toUpperCase();
+}
+
+/**
  * 1. GET /api/employee/me/dashboard
  * Aggregates all dashboard data for the authenticated employee:
  * - Profile header & mini cards (code, dept, position, type, leave balance)
@@ -84,7 +103,7 @@ const getDashboard = async (req, res, next) => {
     const todayAtt = todayAttRows[0] || null;
     const isCheckedIn = Boolean(todayAtt && todayAtt.check_in && !todayAtt.check_out);
 
-    // 3. Recent attendance records (5 latest)
+    // 3. Recent attendance records (5 latest) & Monthly Summary
     const [recentAttRows] = await pool.query(
       `SELECT * FROM attendance 
        WHERE employee_id = ? 
@@ -102,6 +121,38 @@ const getDashboard = async (req, res, next) => {
       status: r.status || "Present",
       location: r.notes || "Bangalore Office",
     }));
+
+    const [monthAttRows] = await pool.query(
+      `SELECT status, COUNT(*) AS count, SUM(worked_hours) AS total_hours
+       FROM attendance
+       WHERE employee_id = ? 
+         AND MONTH(attendance_date) = MONTH(CURDATE()) 
+         AND YEAR(attendance_date) = YEAR(CURDATE())
+       GROUP BY status`,
+      [employeeId]
+    );
+
+    let monthPresent = 0;
+    let monthOnLeave = 0;
+    let monthAbsent = 0;
+    let monthTotalHours = 0;
+
+    monthAttRows.forEach((r) => {
+      const c = Number(r.count);
+      monthTotalHours += parseFloat(r.total_hours || 0);
+      if (r.status === "Present") monthPresent += c;
+      else if (r.status === "On Leave") monthOnLeave += c;
+      else if (r.status === "Absent") monthAbsent += c;
+    });
+
+    const monthAttendance = {
+      totalDays: 30,
+      present: monthPresent,
+      onLeave: monthOnLeave,
+      absent: monthAbsent,
+      totalHours: `${monthTotalHours.toFixed(1)} hrs`,
+      rate: monthPresent > 0 ? `${Math.min(100, Math.round((monthPresent / 22) * 100))}%` : "100%",
+    };
 
     // 4. Leave Balance & Donut Metrics
     const [leaveAllocRows] = await pool.query(
@@ -184,8 +235,8 @@ const getDashboard = async (req, res, next) => {
           employeeCode: emp.employee_code || "EMP001",
           firstName: emp.first_name || "Rahul",
           lastName: emp.last_name || "Sharma",
-          fullName: `${emp.first_name || "Rahul"} ${emp.last_name || "Sharma"}`,
-          initials: `${(emp.first_name || "R")[0]}${(emp.last_name || "S")[0]}`,
+          fullName: formatFullName(emp.first_name || "Rahul", emp.last_name || "Sharma"),
+          initials: formatInitials(emp.first_name || "R", emp.last_name || "S"),
           email: emp.email || "rahul@company.com",
           phone: emp.phone || "+91 9876543210",
           department: emp.department_name || "Engineering",
@@ -211,6 +262,7 @@ const getDashboard = async (req, res, next) => {
           used: totalUsed,
           remaining: remainingDays,
         },
+        monthAttendance,
         recentAttendance,
         recentLeaves,
         recentPayslips,
@@ -259,8 +311,8 @@ const getProfile = async (req, res, next) => {
           department: emp.department_name || "Engineering",
           firstName: emp.first_name,
           lastName: emp.last_name,
-          fullName: `${emp.first_name} ${emp.last_name}`,
-          initials: `${emp.first_name[0]}${emp.last_name[0]}`,
+          fullName: formatFullName(emp.first_name, emp.last_name),
+          initials: formatInitials(emp.first_name, emp.last_name),
           jobPosition: emp.designation || "Software Developer",
           manager: emp.manager_name || "Priya Mehta",
           email: emp.email,
@@ -351,33 +403,33 @@ const getContract = async (req, res, next) => {
       [employeeId]
     );
 
-    const activeContract = contracts.find((c) => c.status === "ACTIVE") || contracts[0] || {};
+    const activeContract = contracts.find((c) => c.status === "ACTIVE") || contracts[0] || null;
 
-    const formattedActive = {
-      id: activeContract.id || 1,
-      contractReference: activeContract.contract_number || "CNT-EMP001",
+    const formattedActive = activeContract ? {
+      id: activeContract.id,
+      contractReference: activeContract.contract_number || `CNT-${req.employee?.employee_code || "EMP"}`,
       contractType: activeContract.contract_type || "Permanent",
-      startDate: formatDate(activeContract.start_date) || "01 Sep 2023",
-      endDate: activeContract.end_date ? formatDate(activeContract.end_date) : "31 Dec 2026",
+      startDate: formatDate(activeContract.start_date),
+      endDate: activeContract.end_date ? formatDate(activeContract.end_date) : "Indefinite",
       payFrequency: activeContract.pay_frequency ? activeContract.pay_frequency.charAt(0) + activeContract.pay_frequency.slice(1).toLowerCase() : "Monthly",
-      workingSchedule: activeContract.schedule_name || "General (Mon - Fri)",
-      salaryStructure: activeContract.salary_structure_name || "Regular Monthly Salary",
-      status: activeContract.status === "ACTIVE" ? "Active" : activeContract.status || "Active",
-      wage: formatINR(activeContract.wage || 50000),
-      probationEndDate: "28 Feb 2024",
+      workingSchedule: activeContract.schedule_name || "Standard (Mon - Fri)",
+      salaryStructure: activeContract.salary_structure_name || "Default Salary Structure",
+      status: activeContract.status === "ACTIVE" ? "Active" : activeContract.status,
+      wage: formatINR(activeContract.wage),
+      probationEndDate: "-",
       currency: activeContract.currency || "INR",
       noticePeriod: "30 Days",
-      department: activeContract.department_name || "Engineering",
-      jobPosition: activeContract.designation || "Software Developer",
-      manager: activeContract.manager_name || "Priya Mehta",
-      employeeType: activeContract.employee_type === "FULL_TIME" ? "Full Time" : "Full Time",
-      createdOn: formatDate(activeContract.created_at) || "28 Aug 2023",
-      createdBy: "HR Manager",
+      department: activeContract.department_name || req.employee?.department_name || "-",
+      jobPosition: activeContract.designation || req.employee?.designation || "-",
+      manager: activeContract.manager_name || "-",
+      employeeType: activeContract.employee_type || req.employee?.employee_type || "Full Time",
+      createdOn: formatDate(activeContract.created_at),
+      createdBy: "HR Administration",
       workingDays: "5 Days",
       dailyHours: "8 Hours",
       weeklyHours: "40 Hours",
       breakTime: "1 Hour",
-    };
+    } : null;
 
     // Contract history items
     let history = contracts.map((c) => ({
@@ -590,7 +642,8 @@ const punchAttendance = async (req, res, next) => {
       [employeeId, today]
     );
 
-    const action = req.body.action ? req.body.action.toUpperCase() : null;
+    const body = req.body || {};
+    const action = body.action ? String(body.action).toUpperCase() : null;
 
     if (action === "IN") {
       if (existing.length > 0 && !existing[0].check_out) {
@@ -625,8 +678,8 @@ const punchAttendance = async (req, res, next) => {
     if (existing.length === 0) {
       // 1. PUNCH IN
       const [insertRes] = await pool.query(
-        `INSERT INTO attendance (employee_id, attendance_date, check_in, status, notes)
-         VALUES (?, ?, NOW(), 'Present', 'Bangalore Office')`,
+        `INSERT INTO attendance (employee_id, attendance_date, check_in, worked_hours, overtime_hours, status, notes)
+         VALUES (?, ?, NOW(), 0.00, 0.00, 'Present', 'Bangalore Office')`,
         [employeeId, today]
       );
 
@@ -829,11 +882,11 @@ const getPayslips = async (req, res, next) => {
     `;
     const params = [employeeId];
 
-    if (year) {
+    if (year && year !== "All Years" && year !== "ALL" && year !== "all") {
       sql += ` AND pr.year = ?`;
       params.push(year);
     }
-    if (status && status !== "All Status") {
+    if (status && status !== "All Status" && status !== "ALL") {
       const mapped = status.toUpperCase();
       sql += ` AND p.payment_status = ?`;
       params.push(mapped);
@@ -859,7 +912,7 @@ const getPayslips = async (req, res, next) => {
     const payslips = rows.map((p) => ({
       id: p.id,
       payslipNumber: p.payslip_number,
-      period: `${p.month ? p.month.slice(0, 3) : "Aug"} ${p.year || "2025"}`,
+      period: `${p.month ? p.month.slice(0, 3) : "Payrun"} ${p.year || ""}`.trim(),
       contract: p.contract_type ? `${p.contract_type} Contract` : "Regular Contract",
       gross: formatINR(p.gross_amount),
       deduction: formatINR(p.deduction_amount),
@@ -873,10 +926,10 @@ const getPayslips = async (req, res, next) => {
       message: "Payslips retrieved successfully.",
       data: {
         stats: {
-          totalPayslips: parseInt(stats.total_payslips) || payslips.length || 12,
-          totalGross: formatINR(stats.total_gross || 840000),
-          totalDeductions: formatINR(stats.total_deductions || 168000),
-          totalNet: formatINR(stats.total_net || 672000),
+          totalPayslips: parseInt(stats.total_payslips) || 0,
+          totalGross: formatINR(stats.total_gross || 0),
+          totalDeductions: formatINR(stats.total_deductions || 0),
+          totalNet: formatINR(stats.total_net || 0),
         },
         payslips,
       },

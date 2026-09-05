@@ -1,79 +1,142 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import payrollApi from "../../../api/payroll.api";
 
 export default function SalaryStructuresView() {
+  const [structures, setStructures] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStructure, setSelectedStructure] = useState(null);
 
-  const structures = [
-    {
-      id: 1,
-      name: "Default Structure (Full Time)",
-      description: "Standard salary structure for full time employees",
-      componentsCount: 8,
-      type: "FT",
-      status: "Active",
-      components: [
-        { name: "Basic Salary", code: "BASIC", type: "Earnings", calculation: "Fixed", value: "₹ 30,000" },
-        { name: "House Rent Allowance (HRA)", code: "HRA", type: "Allowance", calculation: "Percentage (40%)", value: "₹ 12,000" },
-        { name: "Conveyance Allowance", code: "CONV", type: "Allowance", calculation: "Fixed", value: "₹ 2,000" },
-        { name: "Special Allowance", code: "SA", type: "Allowance", calculation: "Fixed", value: "₹ 5,000" },
-        { name: "Provident Fund (PF)", code: "PF", type: "Deduction", calculation: "Percentage (12%)", value: "₹ 3,600" },
-        { name: "Professional Tax", code: "PT", type: "Deduction", calculation: "Fixed", value: "₹ 200" },
-        { name: "ESI", code: "ESI", type: "Deduction", calculation: "Percentage", value: "₹ 0" },
-        { name: "TDS", code: "TDS", type: "Deduction", calculation: "Fixed", value: "₹ 1,500" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Part Time Structure",
-      description: "For part time employees",
-      componentsCount: 6,
-      type: "PT",
-      status: "Active",
-      components: [
-        { name: "Basic Hourly Wage", code: "BASIC_PT", type: "Earnings", calculation: "Hourly", value: "₹ 20,000" },
-        { name: "Conveyance Allowance", code: "CONV", type: "Allowance", calculation: "Fixed", value: "₹ 1,000" },
-        { name: "Special Allowance", code: "SA", type: "Allowance", calculation: "Fixed", value: "₹ 2,500" },
-        { name: "Provident Fund (PF)", code: "PF", type: "Deduction", calculation: "Percentage", value: "₹ 2,400" },
-        { name: "Professional Tax", code: "PT", type: "Deduction", calculation: "Fixed", value: "₹ 200" },
-        { name: "TDS", code: "TDS", type: "Deduction", calculation: "Fixed", value: "₹ 500" },
-      ],
-    },
-    {
-      id: 3,
-      name: "Contractor Structure",
-      description: "For contract employees",
-      componentsCount: 4,
-      type: "Contract",
-      status: "Active",
-      components: [
-        { name: "Contract Retainer Fee", code: "RETAINER", type: "Earnings", calculation: "Fixed", value: "₹ 45,000" },
-        { name: "Travel Reimbursement", code: "TRAVEL", type: "Allowance", calculation: "Fixed", value: "₹ 3,000" },
-        { name: "TDS under 194J", code: "TDS_194J", type: "Deduction", calculation: "Percentage (10%)", value: "₹ 4,500" },
-        { name: "Other Deduction", code: "OTHER", type: "Deduction", calculation: "Fixed", value: "₹ 0" },
-      ],
-    },
-  ];
+  const fetchStructures = async () => {
+    try {
+      setLoading(true);
+      const data = await payrollApi.getSalaryStructures();
+      const list = data?.structures || (Array.isArray(data) ? data : []);
+      setStructures(list);
+    } catch (err) {
+      console.error("Failed to load salary structures:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredStructures = structures.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchStructures();
+  }, []);
+
+  const formattedStructures = structures.map((st) => ({
+    id: st.id,
+    name: st.name || "Structure",
+    code: st.code || `SS00${st.id}`,
+    description: st.description || "Salary structure configuration",
+    componentsCount: parseInt(st.rule_count || st.rules?.length || 0, 10),
+    employeesCount: parseInt(st.assigned_employees || st.employee_count || 0, 10),
+    type: st.type || "FT",
+    status: st.is_active ? "Active" : "Inactive",
+    rules: (st.rules || []).map((r) => {
+      const rawType = (r.calculation_type || r.computation_type || "").toUpperCase();
+      let calcStr = "Fixed";
+      if (rawType === "PERCENTAGE") calcStr = `Percentage (${parseFloat(r.percentage)}%)`;
+      else if (rawType === "FORMULA") calcStr = `Formula: ${r.formula}`;
+
+      let valStr = "-";
+      if (rawType === "FIXED") {
+        valStr = "₹ " + parseFloat(r.fixed_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+      } else if (rawType === "PERCENTAGE") {
+        valStr = `${parseFloat(r.percentage)}% of ${r.base_rule_code || "BASIC"}`;
+      } else if (rawType === "FORMULA") {
+        valStr = r.formula;
+      }
+
+      return {
+        seq: r.sequence,
+        rule: r.name,
+        code: r.code,
+        category: r.category,
+        calculation: calcStr,
+        value: valStr,
+        status: r.is_active ? "Active" : "Inactive",
+      };
+    }),
+  }));
+
+  const handleOpenRules = async (s) => {
+    try {
+      const rawRules = await payrollApi.getSalaryRules(s.id);
+      const ruleList = Array.isArray(rawRules) ? rawRules : rawRules?.rules || [];
+      const mappedRules = ruleList.map((r) => {
+        const rawType = (r.calculation_type || r.computation_type || "").toUpperCase();
+        let calcStr = "Fixed";
+        if (rawType === "PERCENTAGE") calcStr = `Percentage (${parseFloat(r.percentage)}%)`;
+        else if (rawType === "FORMULA") calcStr = `Formula: ${r.formula}`;
+
+        let valStr = "-";
+        if (rawType === "FIXED") {
+          valStr = "₹ " + parseFloat(r.fixed_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+        } else if (rawType === "PERCENTAGE") {
+          valStr = `${parseFloat(r.percentage)}% of ${r.base_rule_code || "BASIC"}`;
+        } else if (rawType === "FORMULA") {
+          valStr = r.formula;
+        }
+
+        return {
+          seq: r.sequence,
+          rule: r.name,
+          code: r.code,
+          category: r.category,
+          calculation: calcStr,
+          value: valStr,
+          status: r.is_active ? "Active" : "Inactive",
+        };
+      });
+      setSelectedStructure({ ...s, rules: mappedRules });
+    } catch (err) {
+      console.error("Failed to load rules for structure:", err);
+      setSelectedStructure(s);
+    }
+  };
+
+  const filteredStructures = formattedStructures.filter((s) => {
+    const q = searchTerm.toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q);
+  });
 
   return (
     <div className="mgr-content-body">
-      {/* Page Header */}
+      {/* 1. Header */}
       <div className="mgr-page-header">
         <div>
           <h1 className="mgr-page-title">Salary Structures</h1>
-          <p className="mgr-page-subtitle">View salary structures (Read Only)</p>
+          <p className="mgr-page-subtitle">
+            Configure component packages, rule execution sequences and salary tiers synchronized with database
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            type="button"
+            className="mgr-btn-secondary"
+            onClick={fetchStructures}
+            title="Refresh structures"
+          >
+            🔄 Refresh
+          </button>
         </div>
       </div>
 
-      {/* Main Table Card */}
+      {/* 2. Structures Table */}
       <div className="mgr-section-card">
-        <div className="mgr-section-header">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--mgr-border)",
+            flexWrap: "wrap",
+            gap: "12px",
+          }}
+        >
           <div className="mgr-input-search-wrapper" style={{ width: "260px" }}>
             <span>🔍</span>
             <input
@@ -83,62 +146,86 @@ export default function SalaryStructuresView() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <span style={{ fontSize: "0.82rem", color: "#6b7280" }}>
+            Showing {filteredStructures.length} of {structures.length} structures
+          </span>
         </div>
 
-        <div className="mgr-table-responsive">
-          <table className="mgr-data-table">
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>#</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Total Components</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th style={{ textAlign: "center", width: "90px" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStructures.map((struct) => (
-                <tr key={struct.id}>
-                  <td style={{ color: "var(--mgr-text-muted)", fontWeight: 500 }}>{struct.id}</td>
-                  <td style={{ fontWeight: 600, color: "var(--mgr-text-dark)" }}>{struct.name}</td>
-                  <td style={{ color: "var(--mgr-text-muted)" }}>{struct.description}</td>
-                  <td style={{ fontWeight: 600 }}>{struct.componentsCount}</td>
-                  <td>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        backgroundColor: "#f1f5f9",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        color: "var(--mgr-text-body)",
-                      }}
-                    >
-                      {struct.type}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="mgr-badge mgr-badge-green">{struct.status}</span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      onClick={() => setSelectedStructure(struct)}
-                      className="mgr-btn-secondary"
-                      style={{ padding: "4px 10px", fontSize: "0.75rem" }}
-                    >
-                      👁 View
-                    </button>
-                  </td>
+        {loading && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
+            Loading salary structures from database...
+          </div>
+        )}
+
+        {!loading && (
+          <div className="mgr-table-container">
+            <table className="mgr-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "45px" }}>#</th>
+                  <th>Structure Name</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: "center" }}>Components</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredStructures.map((s, index) => (
+                  <tr key={s.id}>
+                    <td style={{ color: "#9ca3af" }}>{index + 1}</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: "#111827" }}>{s.name}</div>
+                      <span style={{ fontSize: "0.72rem", color: "#6b7280" }}>{s.code}</span>
+                    </td>
+                    <td style={{ fontSize: "0.82rem", color: "#4b5563" }}>{s.description}</td>
+                    <td style={{ textAlign: "center", fontWeight: 700 }}>
+                      <span
+                        style={{
+                          backgroundColor: "#f3ebf4",
+                          color: "var(--mgr-plum-primary)",
+                          padding: "3px 8px",
+                          borderRadius: "12px",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        {s.componentsCount} rules
+                      </span>
+                    </td>
+                    <td>
+                      <span className="mgr-badge mgr-badge-purple">{s.type}</span>
+                    </td>
+                    <td>
+                      <span className="mgr-badge mgr-badge-green">{s.status}</span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="hr-btn-view"
+                        onClick={() => handleOpenRules(s)}
+                      >
+                        <span>⚖️</span> Rules ({s.componentsCount})
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredStructures.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "#9ca3af" }}>
+                      No salary structures found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Read-Only Structure Detail Modal */}
+      {/* 3. Structure Detail Modal */}
       {selectedStructure && (
         <div
           style={{
@@ -158,94 +245,98 @@ export default function SalaryStructuresView() {
         >
           <div
             className="mgr-section-card"
-            style={{ width: "100%", maxWidth: "700px", maxHeight: "90vh", overflowY: "auto" }}
+            style={{ maxWidth: "780px", width: "100%", maxHeight: "90vh", overflowY: "auto", padding: "26px" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mgr-section-header">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                borderBottom: "1px solid #e5e7eb",
+                paddingBottom: "14px",
+                marginBottom: "18px",
+              }}
+            >
               <div>
-                <h3 className="mgr-section-heading">{selectedStructure.name}</h3>
-                <p className="mgr-section-subheading">{selectedStructure.description}</p>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#111827" }}>
+                  {selectedStructure.name}
+                </h3>
+                <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
+                  {selectedStructure.code} • {selectedStructure.description}
+                </span>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedStructure(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "1.2rem",
-                  cursor: "pointer",
-                  color: "var(--mgr-text-muted)",
-                }}
+                style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: "#9ca3af" }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ padding: "20px" }}>
-              <div style={{ display: "flex", gap: "20px", marginBottom: "20px", fontSize: "0.82rem" }}>
-                <div>
-                  <span style={{ color: "var(--mgr-text-muted)" }}>Type: </span>
-                  <strong>{selectedStructure.type}</strong>
-                </div>
-                <div>
-                  <span style={{ color: "var(--mgr-text-muted)" }}>Status: </span>
-                  <span className="mgr-badge mgr-badge-green">{selectedStructure.status}</span>
-                </div>
-                <div>
-                  <span style={{ color: "var(--mgr-text-muted)" }}>Components: </span>
-                  <strong>{selectedStructure.componentsCount}</strong>
-                </div>
-              </div>
+            <div
+              style={{
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "6px",
+                padding: "10px 14px",
+                fontSize: "0.8rem",
+                color: "#475569",
+                marginBottom: "16px",
+              }}
+            >
+              ⚡ <strong>Sequential Execution:</strong> Rules are evaluated in strict sequence order (1 to N) by the AST parser.
+            </div>
 
-              <h4 style={{ fontSize: "0.9rem", marginBottom: "12px", color: "var(--mgr-text-dark)" }}>
-                Configured Salary Components (Read-Only)
-              </h4>
-              <table className="mgr-data-table" style={{ border: "1px solid var(--mgr-border)" }}>
+            <div className="mgr-table-container">
+              <table className="mgr-table">
                 <thead>
                   <tr>
-                    <th>Component</th>
-                    <th>Code</th>
-                    <th>Type</th>
+                    <th style={{ width: "40px" }}>Seq</th>
+                    <th>Rule Component</th>
+                    <th>Category</th>
                     <th>Calculation</th>
-                    <th>Sample Value</th>
+                    <th style={{ textAlign: "right" }}>Value / Formula</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedStructure.components.map((c, i) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  {selectedStructure.rules.map((r) => (
+                    <tr key={r.code}>
+                      <td style={{ fontWeight: 700, color: "var(--mgr-plum-primary)" }}>{r.seq}</td>
                       <td>
-                        <code>{c.code}</code>
+                        <div style={{ fontWeight: 600, color: "#111827" }}>{r.rule}</div>
+                        <code>{r.code}</code>
                       </td>
                       <td>
                         <span
                           className={`mgr-badge ${
-                            c.type === "Earnings"
+                            r.category === "Earnings"
                               ? "mgr-badge-green"
-                              : c.type === "Allowance"
-                              ? "mgr-badge-blue"
-                              : "mgr-badge-red"
+                              : r.category === "Deduction"
+                              ? "mgr-badge-red"
+                              : "mgr-badge-purple"
                           }`}
                         >
-                          {c.type}
+                          {r.category}
                         </span>
                       </td>
-                      <td style={{ color: "var(--mgr-text-muted)" }}>{c.calculation}</td>
-                      <td style={{ fontWeight: 600 }}>{c.value}</td>
+                      <td style={{ fontSize: "0.8rem", color: "#4b5563" }}>{r.calculation}</td>
+                      <td style={{ textAlign: "right", fontWeight: 700, color: "#111827" }}>
+                        {r.value}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div
-              style={{
-                padding: "14px 20px",
-                borderTop: "1px solid var(--mgr-border-subtle)",
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button className="mgr-btn-secondary" onClick={() => setSelectedStructure(null)}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+              <button
+                type="button"
+                className="mgr-btn-secondary"
+                onClick={() => setSelectedStructure(null)}
+              >
                 Close
               </button>
             </div>

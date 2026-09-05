@@ -1,5 +1,6 @@
 const { pool } = require("../config/mysqlDb");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
+const { logAudit } = require("../utils/auditLogger");
 
 /**
  * Get salary structures with assigned employee counts
@@ -29,7 +30,7 @@ const getSalaryStructures = async (req, res, next) => {
 };
 
 /**
- * Create salary structure
+ * Create salary structure (Manager / Admin only)
  */
 const createSalaryStructure = async (req, res, next) => {
   try {
@@ -48,6 +49,15 @@ const createSalaryStructure = async (req, res, next) => {
 
     const [created] = await pool.query(`SELECT * FROM salary_structures WHERE id = ?;`, [result.insertId]);
 
+    // Audit Log
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_STRUCTURE_CREATED",
+      entityType: "SALARY_STRUCTURE",
+      entityId: result.insertId,
+      newData: created[0],
+    });
+
     return successResponse(res, {
       statusCode: 201,
       message: "Salary structure created successfully.",
@@ -59,7 +69,91 @@ const createSalaryStructure = async (req, res, next) => {
 };
 
 /**
- * Get salary rules with category sub-filters (All, Earnings, Deductions, Other)
+ * Update salary structure (Manager / Admin only)
+ */
+const updateSalaryStructure = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, description, type, is_active } = req.body;
+
+    const [oldRows] = await pool.query(`SELECT * FROM salary_structures WHERE id = ?;`, [id]);
+    if (oldRows.length === 0) {
+      return errorResponse(res, { statusCode: 404, message: "Salary structure not found." });
+    }
+
+    await pool.query(`
+      UPDATE salary_structures
+      SET 
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        type = COALESCE(?, type),
+        is_active = COALESCE(?, is_active),
+        updated_at = NOW()
+      WHERE id = ?;
+    `, [name, description, type, is_active, id]);
+
+    const [updated] = await pool.query(`SELECT * FROM salary_structures WHERE id = ?;`, [id]);
+
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_STRUCTURE_UPDATED",
+      entityType: "SALARY_STRUCTURE",
+      entityId: id,
+      oldData: oldRows[0],
+      newData: updated[0],
+    });
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Salary structure updated successfully.",
+      data: { structure: updated[0] },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete salary structure (Manager / Admin only)
+ */
+const deleteSalaryStructure = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [oldRows] = await pool.query(`SELECT * FROM salary_structures WHERE id = ?;`, [id]);
+    if (oldRows.length === 0) {
+      return errorResponse(res, { statusCode: 404, message: "Salary structure not found." });
+    }
+
+    // Check if used in active contracts or paid payruns
+    const [usedInContracts] = await pool.query(`SELECT COUNT(*) as c FROM contracts WHERE salary_structure_id = ? AND status = 'ACTIVE';`, [id]);
+    if (usedInContracts[0].c > 0) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: "Cannot delete salary structure: It is actively assigned to existing employee contracts.",
+      });
+    }
+
+    await pool.query(`DELETE FROM salary_structures WHERE id = ?;`, [id]);
+
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_STRUCTURE_DELETED",
+      entityType: "SALARY_STRUCTURE",
+      entityId: id,
+      oldData: oldRows[0],
+    });
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Salary structure deleted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get salary rules with category sub-filters
  */
 const getSalaryRules = async (req, res, next) => {
   try {
@@ -97,7 +191,6 @@ const getSalaryRules = async (req, res, next) => {
 
     const [rules] = await pool.query(sql, params);
 
-    // Counts for sub-filter pills: All, Earnings, Deductions, Other
     const [counts] = await pool.query(`
       SELECT 
         COUNT(*) AS total,
@@ -121,7 +214,7 @@ const getSalaryRules = async (req, res, next) => {
 };
 
 /**
- * Create salary rule
+ * Create salary rule (Manager / Admin only)
  */
 const createSalaryRule = async (req, res, next) => {
   try {
@@ -163,6 +256,14 @@ const createSalaryRule = async (req, res, next) => {
 
     const [created] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [result.insertId]);
 
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_RULE_CREATED",
+      entityType: "SALARY_RULE",
+      entityId: result.insertId,
+      newData: created[0],
+    });
+
     return successResponse(res, {
       statusCode: 201,
       message: "Salary rule created successfully.",
@@ -173,9 +274,101 @@ const createSalaryRule = async (req, res, next) => {
   }
 };
 
+/**
+ * Update salary rule (Manager / Admin only)
+ */
+const updateSalaryRule = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      category,
+      calculation_type,
+      percentage,
+      fixed_amount,
+      formula,
+      sequence,
+      is_active,
+    } = req.body;
+
+    const [oldRows] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [id]);
+    if (oldRows.length === 0) {
+      return errorResponse(res, { statusCode: 404, message: "Salary rule not found." });
+    }
+
+    await pool.query(`
+      UPDATE salary_rules
+      SET
+        name = COALESCE(?, name),
+        category = COALESCE(?, category),
+        calculation_type = COALESCE(?, calculation_type),
+        percentage = COALESCE(?, percentage),
+        fixed_amount = COALESCE(?, fixed_amount),
+        formula = COALESCE(?, formula),
+        sequence = COALESCE(?, sequence),
+        is_active = COALESCE(?, is_active),
+        updated_at = NOW()
+      WHERE id = ?;
+    `, [name, category, calculation_type, percentage, fixed_amount, formula, sequence, is_active, id]);
+
+    const [updated] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [id]);
+
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_RULE_UPDATED",
+      entityType: "SALARY_RULE",
+      entityId: id,
+      oldData: oldRows[0],
+      newData: updated[0],
+    });
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Salary rule updated successfully.",
+      data: { rule: updated[0] },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete salary rule (Manager / Admin only)
+ */
+const deleteSalaryRule = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [oldRows] = await pool.query(`SELECT * FROM salary_rules WHERE id = ?;`, [id]);
+    if (oldRows.length === 0) {
+      return errorResponse(res, { statusCode: 404, message: "Salary rule not found." });
+    }
+
+    await pool.query(`DELETE FROM salary_rules WHERE id = ?;`, [id]);
+
+    await logAudit({
+      userId: req.user.id,
+      action: "SALARY_RULE_DELETED",
+      entityType: "SALARY_RULE",
+      entityId: id,
+      oldData: oldRows[0],
+    });
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Salary rule deleted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getSalaryStructures,
   createSalaryStructure,
+  updateSalaryStructure,
+  deleteSalaryStructure,
   getSalaryRules,
   createSalaryRule,
+  updateSalaryRule,
+  deleteSalaryRule,
 };

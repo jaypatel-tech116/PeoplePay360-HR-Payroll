@@ -1,11 +1,13 @@
 const { verifyToken } = require("../utils/jwt");
 const { errorResponse } = require("../utils/apiResponse");
 
+const { pool } = require("../config/mysqlDb");
+
 /**
  * Server-side authentication middleware
  * Verifies JWT token from httpOnly cookie or Authorization Bearer header
  */
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   try {
     let token = null;
 
@@ -31,10 +33,28 @@ const requireAuth = (req, res, next) => {
     // Verify token using JWT_SECRET
     const decoded = verifyToken(token);
 
+    let employeeId = decoded.employee_id || null;
+
+    // If employee_id is missing from token payload, resolve directly from database
+    if (!employeeId && decoded.id) {
+      try {
+        const [uRows] = await pool.query(
+          "SELECT employee_id FROM users WHERE id = ? LIMIT 1",
+          [decoded.id]
+        );
+        if (uRows.length && uRows[0].employee_id) {
+          employeeId = uRows[0].employee_id;
+        }
+      } catch (dbErr) {
+        console.error("Failed to query employee_id in requireAuth:", dbErr);
+      }
+    }
+
     // Attach decoded user payload to request object
     req.user = {
       id: decoded.id,
       role: decoded.role,
+      employee_id: employeeId,
     };
 
     next();

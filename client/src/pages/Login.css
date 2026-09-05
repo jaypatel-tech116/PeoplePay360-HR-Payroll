@@ -6,7 +6,7 @@
 
 .pp-login-viewport {
   position: relative;
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   margin: 0;
   padding: 0;
@@ -19,7 +19,7 @@
   background-size: cover;
   background-position: center right;
   background-repeat: no-repeat;
-  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Sophisticated gradient overlay for readability on the left while revealing the team backdrop on the right */
@@ -47,22 +47,23 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1540px;
+  max-width: 1340px;
   min-height: 100vh;
-  padding: 40px 60px;
+  padding: 30px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  gap: 48px;
+  gap: 36px;
 }
 
 /* ==========================================================================
    Left Hero Branding & Information Panel
    ========================================================================== */
 .pp-hero-pane {
-  flex: 1;
-  max-width: 580px;
+  flex: 1 1 450px;
+  max-width: 540px;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -242,19 +243,21 @@
    ========================================================================== */
 .pp-form-pane {
   display: flex;
-  justify-content: flex-end;
-  flex: 0 0 auto;
+  justify-content: center;
+  flex: 0 1 470px;
+  width: 100%;
+  max-width: 480px;
   z-index: 2;
 }
 
 .pp-card-container {
   width: 100%;
-  max-width: 490px;
-  min-width: 460px;
+  max-width: 460px;
+  min-width: 0;
   background: #ffffff;
-  border-radius: 28px;
-  padding: 44px 40px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.14), 0 6px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  padding: 36px 30px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12), 0 4px 15px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
   animation: ppCardSlideUp 0.45s ease-out;
 }
@@ -514,8 +517,8 @@
   }
   .pp-card-container {
     max-width: 440px;
-    min-width: 380px;
-    padding: 36px 30px;
+    width: 100%;
+    padding: 32px 26px;
   }
 }
 

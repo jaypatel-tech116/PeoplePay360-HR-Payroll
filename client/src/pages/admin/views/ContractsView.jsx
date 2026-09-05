@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getContracts } from "../../../api/admin.api";
 import { MOCK_CONTRACTS } from "../adminMockData";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 export default function ContractsView() {
+  const [loading, setLoading] = useState(true);
   const [contracts, setContracts] = useState(MOCK_CONTRACTS);
   const [activePill, setActivePill] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +31,8 @@ export default function ContractsView() {
       }
     } catch (err) {
       console.error("Error loading contracts:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,6 +60,8 @@ export default function ContractsView() {
     const q = searchQuery.toLowerCase();
     return c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
   });
+
+  if (loading) return <SkeletonListPage rows={7} cols={6} />;
 
   return (
     <div className="adm-content-body">

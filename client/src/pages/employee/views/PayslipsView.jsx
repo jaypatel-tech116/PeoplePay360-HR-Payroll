@@ -1,24 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeePayslips } from "../../../api/employee.api";
+import api from "../../../api/axios";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 const PayslipsView = ({ onViewPayslip, refreshKey }) => {
-  const [selectedYear, setSelectedYear] = useState("2025");
+  const [selectedYear, setSelectedYear] = useState("All Years");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const fetchPayslips = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeePayslips({
-          year: selectedYear,
-          status: statusFilter,
+          year: selectedYear === "All Years" ? "" : selectedYear,
+          status: statusFilter === "All Status" ? "" : statusFilter,
         });
         if (isMounted && res?.data) {
           setData(res.data);
         }
       } catch (err) {
         console.warn("Could not load employee payslips:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchPayslips();
@@ -28,23 +34,21 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
   }, [selectedYear, statusFilter, refreshKey]);
 
   const stats = data?.stats || {
-    totalPayslips: 12,
-    totalGross: "₹ 8,40,000",
-    totalDeductions: "₹ 1,68,000",
-    totalNet: "₹ 6,72,000",
+    totalPayslips: 0,
+    totalGross: "₹ 0.00",
+    totalDeductions: "₹ 0.00",
+    totalNet: "₹ 0.00",
   };
 
-  const payslips = data?.payslips || [
-    { id: 1, period: "Aug 2025", contract: "Regular Contract", gross: "₹ 67,000.00", deduction: "₹ 12,500.00", net: "₹ 54,500.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 2, period: "Jul 2025", contract: "Regular Contract", gross: "₹ 67,000.00", deduction: "₹ 12,500.00", net: "₹ 54,500.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 3, period: "Jun 2025", contract: "Regular Contract", gross: "₹ 65,000.00", deduction: "₹ 12,000.00", net: "₹ 53,000.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 4, period: "May 2025", contract: "Regular Contract", gross: "₹ 65,000.00", deduction: "₹ 12,000.00", net: "₹ 53,000.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 5, period: "Apr 2025", contract: "Regular Contract", gross: "₹ 60,000.00", deduction: "₹ 11,000.00", net: "₹ 49,000.00", status: "Generated", paymentStatus: "Paid" },
-  ];
+  const payslips = data?.payslips || [];
 
   const handleDownload = (period, slipId) => {
-    alert(`Generating official PDF payslip for ${period}... Download started.`);
+    if (!slipId) return;
+    const pdfUrl = `${api.defaults.baseURL}/payroll/payslips/${slipId}/pdf`;
+    window.open(pdfUrl, "_blank");
   };
+
+  if (loading && !data) return <SkeletonListPage rows={5} cols={5} />;
 
   return (
     <div className="employee-payslips-view">
@@ -52,7 +56,7 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
       <div className="odoo-page-header">
         <div>
           <h1 className="odoo-page-title">My Payslips</h1>
-          <p className="odoo-page-subtitle">View and download your payslips</p>
+          <p className="odoo-page-subtitle">View and download your official payslips synchronized with database</p>
         </div>
       </div>
 
@@ -108,8 +112,9 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
             >
-              <option value="2025">2025</option>
+              <option value="All Years">All Years</option>
               <option value="2026">2026</option>
+              <option value="2025">2025</option>
               <option value="2024">2024</option>
             </select>
 
@@ -160,9 +165,9 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
                       <button
                         type="button"
                         className="odoo-table-action-btn"
-                        onClick={() => onViewPayslip(p.id || p.period)}
+                        onClick={() => handleDownload(p.period, p.id)}
                       >
-                        👁 View
+                        👁 View PDF
                       </button>
                       <button
                         type="button"
@@ -175,6 +180,14 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
                   </td>
                 </tr>
               ))}
+
+              {payslips.length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: "center", padding: "30px", color: "#9ca3af" }}>
+                    No payslips found for the selected period. Newly generated payslips will appear here after payroll processing.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

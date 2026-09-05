@@ -68,7 +68,7 @@ CREATE TABLE `working_schedules` (
   `monday_start` TIME NULL,
   `monday_end` TIME NULL,
   `tuesday_start` TIME NULL,
-  `tuesday_end` TIME NULL,
+  `tuesday_end` TIME NULL,  
   `wednesday_start` TIME NULL,
   `wednesday_end` TIME NULL,
   `thursday_start` TIME NULL,

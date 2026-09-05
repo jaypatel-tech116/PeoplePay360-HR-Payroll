@@ -107,8 +107,10 @@ const PayrollUserDashboard = () => {
               type="button"
               className={`pay-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
               onClick={() => handleTabChange("dashboard")}
+              title="Dashboard"
             >
-              <span>Dashboard</span>
+              <span className="pay-nav-icon">📊</span>
+              <span className="pay-nav-text">Dashboard</span>
             </button>
           </li>
 
@@ -121,8 +123,10 @@ const PayrollUserDashboard = () => {
                   : ""
               }`}
               onClick={() => handleTabChange("employees")}
+              title="Employees"
             >
-              <span>Employees</span>
+              <span className="pay-nav-icon">👥</span>
+              <span className="pay-nav-text">Employees</span>
             </button>
           </li>
 
@@ -131,8 +135,10 @@ const PayrollUserDashboard = () => {
               type="button"
               className="pay-nav-item"
               onClick={() => navigate("/hr-manager?tab=leaves")}
+              title="Leaves"
             >
-              <span>Leaves</span>
+              <span className="pay-nav-icon">🌴</span>
+              <span className="pay-nav-text">Leaves</span>
             </button>
           </li>
 
@@ -141,8 +147,10 @@ const PayrollUserDashboard = () => {
               type="button"
               className="pay-nav-item"
               onClick={() => navigate("/hr-manager?tab=attendance")}
+              title="Attendance"
             >
-              <span>Attendance</span>
+              <span className="pay-nav-icon">⏱️</span>
+              <span className="pay-nav-text">Attendance</span>
             </button>
           </li>
 
@@ -162,8 +170,10 @@ const PayrollUserDashboard = () => {
                   : ""
               }`}
               onClick={() => handleTabChange("dashboard")}
+              title="Payroll"
             >
-              <span>Payroll</span>
+              <span className="pay-nav-icon">💰</span>
+              <span className="pay-nav-text">Payroll</span>
             </button>
           </li>
 
@@ -172,8 +182,10 @@ const PayrollUserDashboard = () => {
               type="button"
               className={`pay-nav-item ${activeTab === "reports" ? "active" : ""}`}
               onClick={() => handleTabChange("reports")}
+              title="Reports"
             >
-              <span>Reports</span>
+              <span className="pay-nav-icon">📈</span>
+              <span className="pay-nav-text">Reports</span>
             </button>
           </li>
         </ul>
@@ -247,26 +259,6 @@ const PayrollUserDashboard = () => {
           </div>
 
           <div className="pay-topbar-right">
-            <button
-              type="button"
-              className="pay-icon-badge-btn"
-              title="3 Messages"
-              onClick={() => alert("3 new payroll notifications")}
-            >
-              💬
-              <span className="pay-badge-count">3</span>
-            </button>
-
-            <button
-              type="button"
-              className="pay-icon-badge-btn"
-              title="12 Alerts"
-              onClick={() => alert("12 payroll items awaiting sign-off")}
-            >
-              🔔
-              <span className="pay-badge-count">12</span>
-            </button>
-
             <div style={{ position: "relative" }}>
               <div
                 className="pay-user-pill"

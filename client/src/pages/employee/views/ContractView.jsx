@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeeContract } from "../../../api/employee.api";
+import { SkeletonCard, SkeletonTable } from "../../../components/ui/SkeletonLoader";
 
 const ContractView = ({ refreshKey }) => {
+  const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [activeContract, setActiveContract] = useState({
     contractReference: "CNT-EMP001",
@@ -33,6 +35,7 @@ const ContractView = ({ refreshKey }) => {
     let isMounted = true;
     const fetchContract = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeContract();
         if (isMounted && res?.data) {
           if (res.data.activeContract) setActiveContract(res.data.activeContract);
@@ -40,6 +43,8 @@ const ContractView = ({ refreshKey }) => {
         }
       } catch (err) {
         console.warn("Could not load contract details:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchContract();
@@ -47,6 +52,15 @@ const ContractView = ({ refreshKey }) => {
       isMounted = false;
     };
   }, [refreshKey]);
+
+  if (loading) return (
+    <div className="sk-dashboard-wrap">
+      <SkeletonCard lines={6} titleWidth="40%" />
+      <div className="sk-two-col" style={{ marginTop: "16px" }}>
+        <SkeletonCard lines={5} /><SkeletonCard lines={5} />
+      </div>
+    </div>
+  );
 
   // State 2: Contract History (Image 2 Bottom Right)
   if (showHistory) {
@@ -152,7 +166,7 @@ const ContractView = ({ refreshKey }) => {
           className="odoo-btn-primary"
           onClick={() => setShowHistory(true)}
         >
-          ⏱️ View History
+          View History
         </button>
       </div>
 

@@ -18,6 +18,25 @@ import LeavesView from "./views/LeavesView";
 import PayslipsView from "./views/PayslipsView";
 import "./EmployeePortal.css";
 
+const cleanName = (name) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+  return name;
+};
+
+const getInitials = (name) => {
+  const cleaned = cleanName(name);
+  if (!cleaned) return "EM";
+  const parts = cleaned.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return cleaned.slice(0, 2).toUpperCase();
+};
+
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -26,14 +45,21 @@ const EmployeeDashboard = () => {
   // Tab State
   const [activeTab, setActiveTab] = useState("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   // Interactive Live State
   const [checkedIn, setCheckedIn] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [excessWarningOpen, setExcessWarningOpen] = useState(false);
   const [payslipModalData, setPayslipModalData] = useState(null);
   const [payslipModalContent, setPayslipModalContent] = useState(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [employeeInfo, setEmployeeInfo] = useState(null);
+  const [leaveBalance, setLeaveBalance] = useState({
+    totalAllocated: 12,
+    used: 3,
+    remaining: 9,
+  });
   const [profileData, setProfileData] = useState({
     phone: "+91 98765 43210",
     address: "123, Green Park, Bangalore, Karnataka 560001, India",
@@ -87,6 +113,9 @@ const EmployeeDashboard = () => {
           address: dashData.data.employee.address || prev.address,
         }));
       }
+      if (dashData?.data?.leaveBalance) {
+        setLeaveBalance(dashData.data.leaveBalance);
+      }
     } catch (err) {
       console.warn("Could not load employee status:", err);
     }
@@ -101,9 +130,13 @@ const EmployeeDashboard = () => {
     navigate(`/employee?tab=${tab}`, { replace: true });
   };
 
-  const handleToggleCheckIn = async () => {
+  const handleToggleCheckIn = async (customPayload) => {
     try {
-      const res = await punchAttendance();
+      const payload =
+        customPayload && typeof customPayload === "object" && customPayload.action
+          ? { action: customPayload.action }
+          : {};
+      const res = await punchAttendance(payload);
       if (res?.data?.checkedIn !== undefined) {
         setCheckedIn(res.data.checkedIn);
       }
@@ -115,12 +148,22 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const handleSaveLeaveRequest = async (e) => {
-    e.preventDefault();
+  const handleSaveLeaveRequest = async (e, forceProceed = false) => {
+    if (e) e.preventDefault();
+
+    const requestedDays = Number(leaveForm.days) || 1;
+    const remaining = Number(leaveBalance.remaining) || 0;
+
+    if (requestedDays > remaining && !forceProceed) {
+      setExcessWarningOpen(true);
+      return;
+    }
+
     try {
       await submitLeaveRequest(leaveForm);
       alert("Leave request submitted successfully for approval!");
       setLeaveModalOpen(false);
+      setExcessWarningOpen(false);
       setRefreshKey((k) => k + 1);
     } catch (err) {
       console.error("Leave request error:", err);
@@ -160,6 +203,23 @@ const EmployeeDashboard = () => {
     await logout();
     navigate("/login");
   };
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".odoo-sidebar-user-container")) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isProfileMenuOpen]);
+
+  const displayName = cleanName(employeeInfo?.fullName || user?.name || "Rahul Sharma");
+  const displayInitials = employeeInfo?.initials && employeeInfo.initials.length <= 2 && employeeInfo.initials[0].toLowerCase() !== employeeInfo.initials[1]?.toLowerCase()
+    ? employeeInfo.initials
+    : getInitials(displayName);
 
   return (
     <div className="odoo-shell">
@@ -240,6 +300,63 @@ const EmployeeDashboard = () => {
             </button>
           </li>
         </ul>
+
+        {/* User Profile Pill at Bottom-Left */}
+        <div className="odoo-sidebar-footer">
+          <div className="odoo-sidebar-user-container">
+            <div
+              className="odoo-user-dropdown odoo-sidebar-user-pill"
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              title={displayName}
+            >
+              <div className="odoo-avatar-circle">
+                {displayInitials}
+              </div>
+              <div className="odoo-user-meta">
+                <span className="odoo-user-fullname">
+                  {displayName}
+                </span>
+                <span className="odoo-user-role-label">Employee</span>
+              </div>
+              <span className="odoo-caret">▼</span>
+            </div>
+
+            {isProfileMenuOpen && (
+              <div className="odoo-sidebar-profile-dropdown">
+                <div className="odoo-profile-dropdown-header">
+                  <div className="odoo-profile-dropdown-name">
+                    {displayName}
+                  </div>
+                  <div className="odoo-profile-dropdown-email">
+                    {employeeInfo?.email || user?.email || "employee@company.com"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="odoo-profile-dropdown-item"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    handleTabChange("profile");
+                  }}
+                >
+                  My Profile
+                </button>
+                <button
+                  type="button"
+                  className="odoo-profile-dropdown-item logout"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (window.confirm("Do you want to sign out?")) {
+                      handleLogout();
+                    }
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </aside>
 
       {/* Main Canvas */}
@@ -251,35 +368,6 @@ const EmployeeDashboard = () => {
           </div>
 
           <div className="odoo-topbar-right">
-            <button
-              type="button"
-              className="odoo-bell-btn"
-              title="Notifications"
-              onClick={() => alert("No unread notifications.")}
-            >
-              🔔
-            </button>
-
-            <div
-              className="odoo-user-dropdown"
-              onClick={() => {
-                if (window.confirm("Do you want to sign out?")) {
-                  handleLogout();
-                }
-              }}
-              title="Click to sign out"
-            >
-              <div className="odoo-avatar-circle">
-                {employeeInfo?.initials || (user?.name ? user.name.charAt(0).toUpperCase() : "R")}
-              </div>
-              <div className="odoo-user-meta">
-                <span className="odoo-user-fullname">
-                  {employeeInfo?.fullName || user?.name || "Rahul Sharma"}
-                </span>
-                <span className="odoo-user-role-label">Employee</span>
-              </div>
-              <span className="odoo-caret">▼</span>
-            </div>
           </div>
         </header>
 
@@ -359,6 +447,37 @@ const EmployeeDashboard = () => {
 
             <form onSubmit={handleSaveLeaveRequest}>
               <div className="odoo-modal-body" style={{ padding: "24px", gap: "16px" }}>
+                {/* Policy Leave Balance Breakdown (4 Required Metrics) */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "8px",
+                    backgroundColor: "#f9fafb",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--odoo-border)",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--odoo-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Policy Allocated</div>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "#111827", marginTop: "2px" }}>{leaveBalance.totalAllocated} Days</div>
+                  </div>
+                  <div style={{ textAlign: "center", borderLeft: "1px solid #e5e7eb" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--odoo-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Leaves Taken</div>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "#dc2626", marginTop: "2px" }}>{leaveBalance.used} Days</div>
+                  </div>
+                  <div style={{ textAlign: "center", borderLeft: "1px solid #e5e7eb" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--odoo-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Remaining</div>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "#16a34a", marginTop: "2px" }}>{leaveBalance.remaining} Days</div>
+                  </div>
+                  <div style={{ textAlign: "center", borderLeft: "1px solid #e5e7eb" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--odoo-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Max Requestable</div>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--odoo-plum-primary)", marginTop: "2px" }}>{leaveBalance.remaining} Days</div>
+                  </div>
+                </div>
+
                 <div className="odoo-form-group">
                   <label className="odoo-form-label">
                     Leave Type <span style={{ color: "#ef4444" }}>*</span>
@@ -433,8 +552,8 @@ const EmployeeDashboard = () => {
                 <div className="odoo-leave-info-banner">
                   <span style={{ fontSize: "1.1rem" }}>ℹ</span>
                   <span>
-                    Your leave balance for {leaveForm.type} is{" "}
-                    <strong>{leaveForm.type === "Annual Leave" ? "9 days" : leaveForm.type === "Sick Leave" ? "10 days" : "6 days"}</strong>.
+                    Your available remaining leave balance is{" "}
+                    <strong>{leaveBalance.remaining} days</strong>. Requests exceeding this amount will result in Loss of Pay (LOP).
                   </span>
                 </div>
               </div>
@@ -452,6 +571,50 @@ const EmployeeDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Salary Deduction / Excess Leave Warning Modal */}
+      {excessWarningOpen && (
+        <div className="odoo-modal-backdrop" style={{ zIndex: 1100 }} onClick={() => setExcessWarningOpen(false)}>
+          <div className="odoo-modal-card" style={{ maxWidth: "480px", borderTop: "4px solid #dc2626" }} onClick={(e) => e.stopPropagation()}>
+            <div className="odoo-modal-header" style={{ borderBottom: "1px solid var(--odoo-border)", padding: "16px 20px" }}>
+              <h3 className="odoo-modal-title" style={{ color: "#dc2626", display: "flex", alignItems: "center", gap: "8px", fontSize: "1.1rem" }}>
+                ⚠️ Salary Deduction Warning
+              </h3>
+              <button type="button" className="odoo-modal-close" onClick={() => setExcessWarningOpen(false)}>✕</button>
+            </div>
+
+            <div className="odoo-modal-body" style={{ padding: "20px", fontSize: "0.875rem", lineHeight: 1.5 }}>
+              <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "12px 14px", borderRadius: "8px", color: "#991b1b", marginBottom: "14px" }}>
+                <strong>Attention: Leave Balance Exceeded</strong>
+              </div>
+              <p style={{ margin: "0 0 12px 0", color: "#374151" }}>
+                You are requesting <strong>{leaveForm.days} days</strong> of leave, which exceeds your remaining available balance of <strong>{leaveBalance.remaining} day(s)</strong> by <strong>{leaveForm.days - leaveBalance.remaining} day(s)</strong>.
+              </p>
+              <p style={{ margin: 0, color: "#4b5563" }}>
+                Submitting this request will mark the excess <strong>{leaveForm.days - leaveBalance.remaining} day(s)</strong> as Loss of Pay (LOP) and will result in a <strong>salary deduction</strong> on your next payslip.
+              </p>
+            </div>
+
+            <div className="odoo-modal-footer" style={{ padding: "16px 20px" }}>
+              <button
+                type="button"
+                className="odoo-btn-secondary"
+                onClick={() => setExcessWarningOpen(false)}
+              >
+                Cancel & Adjust Dates
+              </button>
+              <button
+                type="button"
+                className="odoo-btn-primary"
+                style={{ backgroundColor: "#dc2626", borderColor: "#dc2626" }}
+                onClick={(e) => handleSaveLeaveRequest(e, true)}
+              >
+                Proceed with Request (Salary Deduction)
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -474,7 +637,7 @@ const EmployeeDashboard = () => {
             <div className="odoo-modal-body" style={{ fontSize: "0.85rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--odoo-border)", paddingBottom: "10px" }}>
                 <div>
-                  <strong>{payslipModalContent?.employeeName || employeeInfo?.fullName || "Rahul Sharma"}</strong> ({payslipModalContent?.employeeCode || employeeInfo?.employeeCode || "EMP001"})
+                  <strong>{cleanName(payslipModalContent?.employeeName || employeeInfo?.fullName || "Rahul Sharma")}</strong> ({payslipModalContent?.employeeCode || employeeInfo?.employeeCode || "EMP001"})
                   <div style={{ color: "var(--odoo-text-muted)", fontSize: "0.75rem" }}>
                     {payslipModalContent?.designation || employeeInfo?.jobPosition || "Software Developer"} • {payslipModalContent?.department || employeeInfo?.department || "Engineering"}
                   </div>

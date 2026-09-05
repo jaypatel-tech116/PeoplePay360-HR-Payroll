@@ -105,13 +105,26 @@
   transition: all 0.15s ease-in-out;
 }
 
+.pay-nav-icon {
+  display: none !important;
+}
+
 .pay-sidebar.collapsed .pay-nav-item {
   justify-content: center;
   padding: 10px;
 }
 
+.pay-sidebar.collapsed .pay-nav-item .pay-nav-text,
 .pay-sidebar.collapsed .pay-nav-item span:not(.pay-nav-icon) {
-  display: none;
+  display: none !important;
+}
+
+.pay-sidebar.collapsed .pay-nav-item .pay-nav-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .pay-nav-item:hover {
@@ -124,10 +137,6 @@
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-.pay-nav-icon {
-  display: none !important;
 }
 
 .pay-sidebar-footer {

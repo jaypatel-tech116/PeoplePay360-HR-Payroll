@@ -186,21 +186,43 @@ const createEmployee = async (data) => {
 
   const employeeId = result.insertId;
 
-  // If wage and salary_structure_id provided, create initial active contract
-  if (wage && salary_structure_id) {
-    const contractNum = `CON-${employee_code}-${new Date().getFullYear()}`;
+  // Always create initial active contract for payroll readiness
+  const baseWage = parseFloat(wage) || 50000.00;
+  const structId = parseInt(salary_structure_id) || 1;
+  const contractNum = `CNT-${employee_code}`;
+  await pool.query(`
+    INSERT INTO contracts (
+      employee_id, contract_number, start_date, contract_type,
+      wage, currency, pay_frequency, salary_structure_id, status
+    ) VALUES (?, ?, ?, 'Permanent', ?, 'INR', 'MONTHLY', ?, 'ACTIVE');
+  `, [
+    employeeId,
+    contractNum,
+    joining_date || new Date(),
+    baseWage,
+    structId,
+  ]);
+
+  // Allocate default leaves for current calendar year
+  const currentYear = new Date(joining_date || Date.now()).getFullYear();
+  await pool.query(`
+    INSERT INTO leave_allocations (employee_id, leave_type_id, start_date, end_date, total_days, used_days, status, created_at, updated_at)
+    VALUES 
+    (?, 1, '${currentYear}-01-01', '${currentYear}-12-31', 15.00, 0.00, 'APPROVED', NOW(), NOW()),
+    (?, 2, '${currentYear}-01-01', '${currentYear}-12-31', 12.00, 0.00, 'APPROVED', NOW(), NOW()),
+    (?, 3, '${currentYear}-01-01', '${currentYear}-12-31', 12.00, 0.00, 'APPROVED', NOW(), NOW())
+  `, [employeeId, employeeId, employeeId]);
+
+  // Ensure user login account exists in users table
+  const [existingUser] = await pool.query(`SELECT id FROM users WHERE email = ?`, [email]);
+  if (!existingUser.length) {
+    const bcrypt = require("bcryptjs");
+    const pwdHash = await bcrypt.hash("123456", 10);
+    const userId = `usr-emp-${Date.now()}`;
     await pool.query(`
-      INSERT INTO contracts (
-        employee_id, contract_number, start_date, contract_type,
-        wage, currency, pay_frequency, salary_structure_id, status
-      ) VALUES (?, ?, ?, 'Permanent', ?, 'INR', 'MONTHLY', ?, 'ACTIVE');
-    `, [
-      employeeId,
-      contractNum,
-      joining_date || new Date(),
-      wage,
-      salary_structure_id,
-    ]);
+      INSERT INTO users (id, role_id, employee_id, email, password_hash, full_name, is_active, created_at)
+      VALUES (?, 5, ?, ?, ?, ?, true, NOW())
+    `, [userId, employeeId, email, pwdHash, `${first_name} ${last_name}`.trim()]);
   }
 
   return getEmployeeById(employeeId);

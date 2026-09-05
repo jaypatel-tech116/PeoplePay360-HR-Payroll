@@ -1,9 +1,9 @@
 const accounts = [
-  { email: "admin@gmail.com", pass: "admin", role: "ADMIN" },
-  { email: "hr@gmail.com", pass: "hrhr", role: "HR_MANAGER" },
-  { email: "payroll@gmail.com", pass: "payroll", role: "HR_PAYROLL_MANAGER" },
-  { email: "payuser@gmail.com", pass: "payuser", role: "HR_PAYROLL_USER" },
+  { email: "admin@gmail.com", pass: "123456", role: "ADMIN" },
+  { email: "hr@gmail.com", pass: "123456", role: "HR_MANAGER" },
+  { email: "payroll@gmail.com", pass: "123456", role: "HR_PAYROLL_MANAGER" },
   { email: "employee@gmail.com", pass: "123456", role: "EMPLOYEE" },
+  { email: "employee1@gmail.com", pass: "123456", role: "EMPLOYEE" },
 ];
 
 async function test5Logins() {

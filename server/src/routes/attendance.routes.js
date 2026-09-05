@@ -8,7 +8,9 @@ const { requireRole } = require("../middleware/role.middleware");
 
 const router = express.Router();
 
-router.get("/", authenticateToken, requireRole(["ADMIN", "HR_MANAGER"]), getAttendance);
+const ATTENDANCE_READ_ROLES = ["ADMIN", "HR_MANAGER", "HR_PAYROLL_MANAGER", "HR_PAYROLL_USER"];
+
+router.get("/", authenticateToken, requireRole(ATTENDANCE_READ_ROLES), getAttendance);
 router.post("/punch", authenticateToken, punch);
 
 module.exports = router;

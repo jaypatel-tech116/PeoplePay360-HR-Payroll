@@ -415,7 +415,7 @@ const createEmployee = async (req, res, next) => {
     // Split Name
     const nameParts = full_name.trim().split(" ");
     const firstName = nameParts[0] || "Employee";
-    const lastName = nameParts.slice(1).join(" ") || firstName;
+    const lastName = nameParts.slice(1).join(" ") || "";
 
     // STEP 6: Hash Password
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -474,7 +474,31 @@ const createEmployee = async (req, res, next) => {
       [newEmployeeId, createdUserId]
     );
 
-    // 11. Create Audit Log
+    // 11. Automatically initialize Active Contract for payroll readiness
+    const baseWage = parseFloat(req.body.wage) || 50000.00;
+    const contractNum = `CNT-${employee_code.trim()}`;
+    await connection.query(
+      `INSERT INTO contracts (
+        employee_id, contract_number, salary_structure_id, wage,
+        contract_type, pay_frequency, start_date, status, created_at, updated_at
+      ) VALUES (?, ?, 1, ?, 'Permanent', 'MONTHLY', ?, 'ACTIVE', NOW(), NOW())`,
+      [newEmployeeId, contractNum, baseWage, joining_date]
+    );
+
+    // 12. Automatically allocate standard leave balances for current calendar year
+    const currentYear = new Date(joining_date || Date.now()).getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    const yearEnd = `${currentYear}-12-31`;
+    await connection.query(
+      `INSERT INTO leave_allocations (employee_id, leave_type_id, start_date, end_date, total_days, used_days, status, created_at, updated_at)
+       VALUES 
+       (?, 1, ?, ?, 15.00, 0.00, 'APPROVED', NOW(), NOW()),
+       (?, 2, ?, ?, 12.00, 0.00, 'APPROVED', NOW(), NOW()),
+       (?, 3, ?, ?, 12.00, 0.00, 'APPROVED', NOW(), NOW())`,
+      [newEmployeeId, yearStart, yearEnd, newEmployeeId, yearStart, yearEnd, newEmployeeId, yearStart, yearEnd]
+    );
+
+    // 13. Create Audit Log
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_data, created_at)
        VALUES (?, 'CREATE_EMPLOYEE', 'EMPLOYEE', ?, ?, NOW())`,
@@ -488,6 +512,8 @@ const createEmployee = async (req, res, next) => {
           department_id,
           job_position: job_position.trim(),
           pipeline_stage: validStage,
+          contract_number: contractNum,
+          wage: baseWage,
         }),
       ]
     );
@@ -1244,6 +1270,7 @@ const getAttendance = async (req, res, next) => {
       end_date,
       month,
       year,
+      search,
     } = req.query;
 
     let whereClause = "WHERE 1=1";
@@ -1265,8 +1292,12 @@ const getAttendance = async (req, res, next) => {
     }
 
     if (date) {
-      whereClause += " AND a.attendance_date = ?";
-      params.push(date);
+      if (date === "today") {
+        whereClause += " AND a.attendance_date = CURDATE()";
+      } else {
+        whereClause += " AND a.attendance_date = ?";
+        params.push(date);
+      }
     }
 
     if (start_date && end_date) {
@@ -1279,12 +1310,21 @@ const getAttendance = async (req, res, next) => {
       params.push(month, year);
     }
 
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      whereClause += " AND (e.first_name LIKE ? OR e.last_name LIKE ? OR e.employee_code LIKE ? OR d.name LIKE ? OR a.notes LIKE ?)";
+      params.push(q, q, q, q, q);
+    }
+
     const [rows] = await pool.query(
       `SELECT 
         a.id,
         a.employee_id,
         e.employee_code,
-        CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
+        CASE 
+          WHEN e.last_name IS NULL OR TRIM(e.last_name) = '' OR LOWER(TRIM(e.last_name)) = LOWER(TRIM(e.first_name)) THEN e.first_name
+          ELSE CONCAT(e.first_name, ' ', e.last_name)
+        END AS employee_name,
         d.name AS department,
         a.attendance_date AS date,
         DATE_FORMAT(a.attendance_date, '%d %b %Y') AS formattedDate,
@@ -1292,7 +1332,7 @@ const getAttendance = async (req, res, next) => {
         DATE_FORMAT(a.check_out, '%h:%i %p') AS checkOut,
         a.worked_hours AS hours,
         a.status,
-        e.work_location AS location,
+        COALESCE(e.work_location, a.notes, 'Bangalore Office') AS location,
         COALESCE(a.notes, '-') AS remarks
        FROM attendance a
        JOIN employees e ON a.employee_id = e.id
@@ -1314,7 +1354,7 @@ const getAttendance = async (req, res, next) => {
 
 /**
  * GET /api/hr/attendance/summary
- * Real calculations from database for Present, On Leave, Absent, Average Hours
+ * Real calculations from database for Present, On Leave, Absent, Average Hours & Today Activity
  */
 const getAttendanceSummary = async (req, res, next) => {
   try {
@@ -1324,20 +1364,20 @@ const getAttendanceSummary = async (req, res, next) => {
     );
     const totalEmployees = Number(empRows[0]?.total || 0);
 
-    // 2. Attendance Status Breakdown
-    const [attRows] = await pool.query(`
+    // 2. Today's Attendance Status Breakdown
+    const [todayRows] = await pool.query(`
       SELECT status, COUNT(*) AS count, AVG(worked_hours) AS avg_hours
       FROM attendance
+      WHERE attendance_date = CURDATE()
       GROUP BY status
     `);
 
     let presentCount = 0;
-    let absentCount = 0;
     let onLeaveCount = 0;
     let totalWorkedHours = 0;
     let workedRecordsCount = 0;
 
-    attRows.forEach((r) => {
+    todayRows.forEach((r) => {
       const c = Number(r.count);
       if (r.status === "Present") {
         presentCount += c;
@@ -1345,17 +1385,61 @@ const getAttendanceSummary = async (req, res, next) => {
           totalWorkedHours += parseFloat(r.avg_hours) * c;
           workedRecordsCount += c;
         }
-      } else if (r.status === "Absent") {
-        absentCount += c;
       } else if (r.status === "On Leave") {
         onLeaveCount += c;
       }
     });
 
+    // Also check approved leaves for today
+    const [leaveRows] = await pool.query(`
+      SELECT COUNT(DISTINCT employee_id) AS on_leave
+      FROM leave_requests
+      WHERE status = 'APPROVED'
+        AND CURDATE() BETWEEN start_date AND end_date
+    `);
+    const approvedLeavesToday = Number(leaveRows[0]?.on_leave || 0);
+    const finalOnLeave = Math.max(onLeaveCount, approvedLeavesToday);
+
+    const absentCount = Math.max(0, totalEmployees - (presentCount + finalOnLeave));
+
     const averageHours =
       workedRecordsCount > 0
         ? (totalWorkedHours / workedRecordsCount).toFixed(1)
         : "8.0";
+
+    // 3. Live Today's Activity Feed
+    const [todayActivity] = await pool.query(`
+      SELECT 
+        a.id,
+        a.employee_id,
+        e.employee_code,
+        CASE 
+          WHEN e.last_name IS NULL OR TRIM(e.last_name) = '' OR LOWER(TRIM(e.last_name)) = LOWER(TRIM(e.first_name)) THEN e.first_name
+          ELSE CONCAT(e.first_name, ' ', e.last_name)
+        END AS employee_name,
+        d.name AS department,
+        DATE_FORMAT(a.check_in, '%h:%i %p') AS checkIn,
+        DATE_FORMAT(a.check_out, '%h:%i %p') AS checkOut,
+        a.worked_hours AS hours,
+        a.status,
+        COALESCE(e.work_location, a.notes, 'Bangalore Office') AS location
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE a.attendance_date = CURDATE()
+      ORDER BY COALESCE(a.check_out, a.check_in) DESC, a.id DESC
+      LIMIT 10
+    `);
+
+    // 4. Month days with attendance
+    const [monthDays] = await pool.query(`
+      SELECT 
+        DAY(attendance_date) AS day,
+        COUNT(DISTINCT employee_id) AS present_count
+      FROM attendance
+      WHERE MONTH(attendance_date) = MONTH(CURDATE()) AND YEAR(attendance_date) = YEAR(CURDATE())
+      GROUP BY DAY(attendance_date)
+    `);
 
     return successResponse(res, {
       statusCode: 200,
@@ -1363,9 +1447,11 @@ const getAttendanceSummary = async (req, res, next) => {
       data: {
         total_employees: totalEmployees,
         present_today: presentCount,
-        on_leave: onLeaveCount,
+        on_leave: finalOnLeave,
         absent_today: absentCount,
         average_hours: `${averageHours} hrs`,
+        today_activity: todayActivity,
+        month_days: monthDays,
       },
     });
   } catch (error) {
@@ -1375,7 +1461,7 @@ const getAttendanceSummary = async (req, res, next) => {
 
 /**
  * POST /api/hr/attendance
- * Create or check-in attendance
+ * Create or update daily attendance record
  */
 const createAttendance = async (req, res, next) => {
   try {
@@ -1395,14 +1481,25 @@ const createAttendance = async (req, res, next) => {
       });
     }
 
-    let workedHours = null;
-    let overtimeHours = 0;
+    let workedHours = 0.00;
+    let overtimeHours = 0.00;
 
-    if (check_in && check_out) {
-      const inTime = new Date(check_in).getTime();
-      const outTime = new Date(check_out).getTime();
-      if (outTime > inTime) {
-        workedHours = ((outTime - inTime) / (1000 * 60 * 60)).toFixed(2);
+    let inTimeMs = check_in ? new Date(check_in).getTime() : null;
+
+    if (!inTimeMs && check_out) {
+      const [cur] = await pool.query(
+        `SELECT check_in FROM attendance WHERE employee_id = ? AND attendance_date = ? LIMIT 1`,
+        [employee_id, attendance_date]
+      );
+      if (cur.length > 0 && cur[0].check_in) {
+        inTimeMs = new Date(cur[0].check_in).getTime();
+      }
+    }
+
+    if (inTimeMs && check_out) {
+      const outTimeMs = new Date(check_out).getTime();
+      if (outTimeMs > inTimeMs) {
+        workedHours = ((outTimeMs - inTimeMs) / (1000 * 60 * 60)).toFixed(2);
         overtimeHours = Math.max(0, parseFloat(workedHours) - 8).toFixed(2);
       }
     }
