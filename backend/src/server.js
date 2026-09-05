@@ -16,15 +16,26 @@ const payslipRoutes = require('./routes/payslipRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const departmentJobRoutes = require('./routes/departmentJobRoutes');
 
+const cookieParser = require('cookie-parser');
+const errorHandler = require('./middleware/errorHandler');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,12 +60,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', departmentJobRoutes);
 
 // Global Error Handler
-app.use((err, req, res, next) => {
-  console.error('Unhandled Server Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error occurred.'
-  });
-});
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`=========================================`);

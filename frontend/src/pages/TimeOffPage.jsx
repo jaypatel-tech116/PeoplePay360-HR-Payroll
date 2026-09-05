@@ -5,15 +5,9 @@ import Modal from '../components/Modal';
 import AlertBanner from '../components/AlertBanner';
 import { useAuth } from '../context/AuthContext';
 import {
-  Calendar,
-  Clock,
   Plus,
   Check,
-  X,
-  ShieldCheck,
-  Layers,
-  FileCheck2,
-  AlertCircle
+  X
 } from 'lucide-react';
 import './TimeOffPage.css';
 
@@ -26,7 +20,7 @@ export default function TimeOffPage() {
   const [types, setTypes] = useState([]);
   const [employees, setEmployees] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -268,7 +262,11 @@ export default function TimeOffPage() {
             {
               header: 'Dates',
               accessor: 'date_from',
-              render: (r) => <span>{r.date_from} → {r.date_to}</span>
+              render: (r) => (
+                <span>
+                  {r.date_from ? String(r.date_from).split('T')[0] : '—'} → {r.date_to ? String(r.date_to).split('T')[0] : '—'}
+                </span>
+              )
             },
             {
               header: 'Duration',
@@ -361,7 +359,7 @@ export default function TimeOffPage() {
             {
               header: 'Validity Period',
               accessor: 'valid_from',
-              render: (r) => `${r.valid_from} to ${r.valid_to}`
+              render: (r) => `${r.valid_from ? String(r.valid_from).split('T')[0] : '—'} to ${r.valid_to ? String(r.valid_to).split('T')[0] : '—'}`
             },
             {
               header: 'Status',

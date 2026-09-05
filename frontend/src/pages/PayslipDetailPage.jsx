@@ -4,15 +4,7 @@ import { api } from '../services/api';
 import AlertBanner from '../components/AlertBanner';
 import {
   Printer,
-  Download,
-  ArrowLeft,
-  Calendar,
-  Building2,
-  DollarSign,
-  AlertTriangle,
-  FileText,
-  CreditCard,
-  Briefcase
+  ArrowLeft
 } from 'lucide-react';
 import './PayslipDetailPage.css';
 
@@ -58,8 +50,6 @@ export default function PayslipDetailPage() {
   }
 
   const lines = payslip.lines || [];
-  const earnings = lines.filter((l) => l.category === 'basic' || l.category === 'allowance');
-  const deductions = lines.filter((l) => l.category === 'deduction');
 
   return (
     <div className="payslip-detail-container">

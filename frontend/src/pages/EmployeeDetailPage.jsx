@@ -9,13 +9,7 @@ import {
   Clock,
   Calendar,
   Save,
-  ArrowLeft,
-  DollarSign,
-  ShieldAlert,
-  CheckCircle2,
-  Building2,
-  Briefcase,
-  Layers
+  ArrowLeft
 } from 'lucide-react';
 import './EmployeeDetailPage.css';
 
@@ -38,13 +32,6 @@ export default function EmployeeDetailPage() {
   const [schedules, setSchedules] = useState([]);
   const [managers, setManagers] = useState([]);
 
-  useEffect(() => {
-    fetchEmployeeDetails();
-    api.getDepartments().then(setDepartments);
-    api.getSchedules().then(setSchedules);
-    api.getEmployees().then((res) => setManagers(res.filter((e) => e.id !== parseInt(id, 10))));
-  }, [id]);
-
   const fetchEmployeeDetails = async () => {
     try {
       setLoading(true);
@@ -63,6 +50,13 @@ export default function EmployeeDetailPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEmployeeDetails();
+    api.getDepartments().then(setDepartments);
+    api.getSchedules().then(setSchedules);
+    api.getEmployees().then((res) => setManagers(res.filter((e) => e.id !== parseInt(id, 10))));
+  }, [id]);
 
   const handleSmartButtonClick = async (tabName) => {
     setActiveTab(tabName);

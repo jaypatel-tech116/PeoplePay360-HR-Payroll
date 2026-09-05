@@ -3,14 +3,14 @@ import { api } from '../services/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import AlertBanner from '../components/AlertBanner';
-import { Layers, Plus, Edit, Trash2, ArrowUp, ArrowDown, Code2, Calculator } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import './SalaryStructuresPage.css';
 
 export default function SalaryStructuresPage() {
   const [structures, setStructures] = useState([]);
   const [selectedStructure, setSelectedStructure] = useState(null);
   const [rules, setRules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 

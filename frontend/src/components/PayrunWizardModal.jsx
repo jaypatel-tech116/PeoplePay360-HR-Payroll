@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import Modal from './Modal';
 import AlertBanner from './AlertBanner';
-import { Layers, Calendar, CheckSquare, Square, Users, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { Calendar, CheckSquare, Square, Users, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
 import './PayrunWizardModal.css';
 
 export default function PayrunWizardModal({ isOpen, onClose, onPayrunCreated }) {

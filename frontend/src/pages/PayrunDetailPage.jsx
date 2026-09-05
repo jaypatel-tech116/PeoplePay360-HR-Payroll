@@ -12,10 +12,7 @@ import {
   FileText,
   ArrowLeft,
   Mail,
-  ShieldCheck,
-  Lock,
-  Calendar,
-  Layers
+  Lock
 } from 'lucide-react';
 import './PayrunDetailPage.css';
 
@@ -119,7 +116,6 @@ export default function PayrunDetailPage() {
   const isLocked = payrun.status === 'paid';
   const isComputed = payrun.status === 'computed';
   const isValidated = payrun.status === 'validated';
-  const isDraft = payrun.status === 'draft';
 
   const payslipsColumns = [
     {

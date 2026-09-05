@@ -1,5 +1,24 @@
 const { query } = require('../config/db');
 
+exports.getAllRules = async (req, res) => {
+  try {
+    const { salary_structure_id } = req.query;
+    let text = 'SELECT * FROM salary_rules';
+    const params = [];
+    if (salary_structure_id) {
+      text += ' WHERE salary_structure_id = $1';
+      params.push(salary_structure_id);
+    }
+    text += ' ORDER BY sequence ASC';
+    const result = await query(text, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching all rules:', err);
+    res.status(500).json({ error: 'Failed to fetch salary rules.' });
+  }
+};
+
+
 exports.getRulesByStructure = async (req, res) => {
   try {
     const { structureId } = req.params;

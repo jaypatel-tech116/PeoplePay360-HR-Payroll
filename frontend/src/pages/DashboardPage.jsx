@@ -4,17 +4,14 @@ import MetricCard from '../components/MetricCard';
 import AlertBanner from '../components/AlertBanner';
 import {
   DollarSign,
-  FileCheck2,
   Calendar,
   Activity,
-  AlertCircle,
   Building2,
   TrendingUp,
   Clock,
   Filter,
   CheckCircle2,
-  ShieldAlert,
-  Users
+  ShieldAlert
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -25,7 +22,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 import './DashboardPage.css';
@@ -38,7 +36,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 export default function DashboardPage() {
@@ -47,7 +46,7 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
 
   // Filters (User Correction #1: Employee Type filter included!)
-  const [period, setPeriod] = useState('all');
+  const [period] = useState('all');
   const [department, setDepartment] = useState('all');
   const [employeeType, setEmployeeType] = useState('all');
 

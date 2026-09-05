@@ -132,7 +132,7 @@ export default function ContractsPage() {
       accessor: 'start_date',
       render: (r) => (
         <span>
-          {r.start_date} → {r.end_date || 'Open-Ended'}
+          {r.start_date ? String(r.start_date).split('T')[0] : '—'} → {r.end_date ? String(r.end_date).split('T')[0] : 'Open-Ended'}
         </span>
       )
     },

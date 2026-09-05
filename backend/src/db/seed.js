@@ -7,12 +7,13 @@ async function seed() {
     await client.query('BEGIN');
     console.log('Clearing existing data and starting seed...');
 
-    // Clear tables
+    // Clear tables (including v2 security tables)
     await client.query(`
-      TRUNCATE TABLE payslip_warnings, payslip_lines, payslips, payrun_employees, payruns,
+      TRUNCATE TABLE audit_logs, role_permissions, user_sessions, otp_verifications, registration_requests,
+      payslip_warnings, payslip_lines, payslips, payrun_employees, payruns,
       salary_rules, salary_structures, attendances, time_off_requests, time_off_allocations,
       time_off_types, contracts, users, employees, working_schedule_lines, working_schedules,
-      job_positions, departments, roles RESTART IDENTITY CASCADE;
+      job_positions, departments, roles, companies RESTART IDENTITY CASCADE;
     `);
 
     // 1. Roles
@@ -33,15 +34,24 @@ async function seed() {
       roleMap[res.rows[0].name] = res.rows[0].id;
     }
 
+    // 1b. Default Company
+    console.log('Seeding default company...');
+    const companyRes = await client.query(
+      `INSERT INTO companies (name, domain, is_active)
+       VALUES ('PeoplePay360 Demo Corp', 'peoplepay360.com', true)
+       RETURNING id`
+    );
+    const defaultCompanyId = companyRes.rows[0].id;
+
     // 2. Departments
     console.log('Seeding departments...');
     const deptRes = await client.query(`
-      INSERT INTO departments (name, parent_department_id) VALUES
-      ('Executive Management', NULL),
-      ('Engineering', NULL),
-      ('Sales & Marketing', NULL),
-      ('Human Resources', NULL),
-      ('Finance & Operations', NULL)
+      INSERT INTO departments (name, parent_department_id, company_id) VALUES
+      ('Executive Management', NULL, ${defaultCompanyId}),
+      ('Engineering', NULL, ${defaultCompanyId}),
+      ('Sales & Marketing', NULL, ${defaultCompanyId}),
+      ('Human Resources', NULL, ${defaultCompanyId}),
+      ('Finance & Operations', NULL, ${defaultCompanyId})
       RETURNING id, name;
     `);
     const deptMap = {};
@@ -77,13 +87,13 @@ async function seed() {
     // 4. Working Schedules & Schedule Lines
     console.log('Seeding working schedules...');
     const sched1 = await client.query(
-      "INSERT INTO working_schedules (name, schedule_type, total_weekly_hours) VALUES ('Standard Full-Time (40h)', 'full_time', 40.00) RETURNING id"
+      `INSERT INTO working_schedules (name, schedule_type, total_weekly_hours, company_id) VALUES ('Standard Full-Time (40h)', 'full_time', 40.00, ${defaultCompanyId}) RETURNING id`
     );
     const sched2 = await client.query(
-      "INSERT INTO working_schedules (name, schedule_type, total_weekly_hours) VALUES ('Operations Shift (45h)', 'shift', 45.00) RETURNING id"
+      `INSERT INTO working_schedules (name, schedule_type, total_weekly_hours, company_id) VALUES ('Operations Shift (45h)', 'shift', 45.00, ${defaultCompanyId}) RETURNING id`
     );
     const sched3 = await client.query(
-      "INSERT INTO working_schedules (name, schedule_type, total_weekly_hours) VALUES ('Part-Time Flexible (20h)', 'part_time', 20.00) RETURNING id"
+      `INSERT INTO working_schedules (name, schedule_type, total_weekly_hours, company_id) VALUES ('Part-Time Flexible (20h)', 'part_time', 20.00, ${defaultCompanyId}) RETURNING id`
     );
 
     const s1Id = sched1.rows[0].id;
@@ -115,10 +125,10 @@ async function seed() {
     // 5. Salary Structures
     console.log('Seeding salary structures...');
     const structRes1 = await client.query(
-      "INSERT INTO salary_structures (name, description, active) VALUES ('Standard Corporate Salary Structure', 'Standard Indian/Global Corporate payroll rules with HRA, PF, PT, TDS', true) RETURNING id"
+      `INSERT INTO salary_structures (name, description, active, company_id) VALUES ('Standard Corporate Salary Structure', 'Standard Indian/Global Corporate payroll rules with HRA, PF, PT, TDS', true, ${defaultCompanyId}) RETURNING id`
     );
     const structRes2 = await client.query(
-      "INSERT INTO salary_structures (name, description, active) VALUES ('Executive Tech Structure', 'High allowance tech package with tech allowance and executive tax bracket', true) RETURNING id"
+      `INSERT INTO salary_structures (name, description, active, company_id) VALUES ('Executive Tech Structure', 'High allowance tech package with tech allowance and executive tax bracket', true, ${defaultCompanyId}) RETURNING id`
     );
     const struct1Id = structRes1.rows[0].id;
     const struct2Id = structRes2.rows[0].id;
@@ -166,16 +176,16 @@ async function seed() {
     // 7. Time Off Types
     console.log('Seeding time off types...');
     const totPaid = await client.query(
-      "INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll) VALUES ('Paid Annual Leave', 'days', true, true, false) RETURNING id"
+      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll, company_id) VALUES ('Paid Annual Leave', 'days', true, true, false, ${defaultCompanyId}) RETURNING id`
     );
     const totSick = await client.query(
-      "INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll) VALUES ('Sick Leave', 'days', true, true, false) RETURNING id"
+      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll, company_id) VALUES ('Sick Leave', 'days', true, true, false, ${defaultCompanyId}) RETURNING id`
     );
     const totCasual = await client.query(
-      "INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll) VALUES ('Casual Leave', 'days', true, true, false) RETURNING id"
+      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll, company_id) VALUES ('Casual Leave', 'days', true, true, false, ${defaultCompanyId}) RETURNING id`
     );
     const totUnpaid = await client.query(
-      "INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll) VALUES ('Unpaid Leave / LOP', 'days', false, true, true) RETURNING id"
+      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll, company_id) VALUES ('Unpaid Leave / LOP', 'days', false, true, true, ${defaultCompanyId}) RETURNING id`
     );
 
     const paidLeaveId = totPaid.rows[0].id;
@@ -467,10 +477,10 @@ async function seed() {
       const jobId = jobMap[e.pos];
       const res = await client.query(
         `INSERT INTO employees
-         (full_name, email, phone, department_id, manager_id, job_position_id, working_schedule_id, status, employee_type, bank_account_number, ifsc_code, bank_verified, hire_date, photo_url)
-         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         (full_name, email, phone, department_id, manager_id, job_position_id, working_schedule_id, status, employee_type, bank_account_number, ifsc_code, bank_verified, hire_date, photo_url, company_id)
+         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING id, full_name, email, department_id, job_position_id, working_schedule_id`,
-        [e.full_name, e.email, e.phone, deptId, jobId, e.schedId, e.status, e.type, e.bank_acc, e.ifsc, e.bank_verified, e.hire_date, e.photo_url]
+        [e.full_name, e.email, e.phone, deptId, jobId, e.schedId, e.status, e.type, e.bank_acc, e.ifsc, e.bank_verified, e.hire_date, e.photo_url, defaultCompanyId]
       );
       insertedEmps.push(res.rows[0]);
     }
@@ -497,9 +507,9 @@ async function seed() {
 
     for (const u of usersData) {
       const uRes = await client.query(
-        `INSERT INTO users (name, email, password_hash, role_id, employee_id, is_active)
-         VALUES ($1, $2, $3, $4, $5, true) RETURNING id`,
-        [u.name, u.email, pwdHash, roleMap[u.role], u.empId]
+        `INSERT INTO users (name, email, password_hash, role_id, employee_id, is_active, company_id, email_verified)
+         VALUES ($1, $2, $3, $4, $5, true, $6, true) RETURNING id`,
+        [u.name, u.email, pwdHash, roleMap[u.role], u.empId, defaultCompanyId]
       );
       // Link back employee.user_id
       await client.query('UPDATE employees SET user_id = $1 WHERE id = $2', [uRes.rows[0].id, u.empId]);
@@ -634,9 +644,9 @@ async function seed() {
     console.log('Seeding historical payrun...');
     // Payrun 1: July 2026 (Paid & Finalized)
     const pr1Res = await client.query(
-      `INSERT INTO payruns (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net)
-       VALUES ('Payrun - July 2026', $1, '2026-07-01', '2026-07-31', 'paid', 3, 0.00, 0.00) RETURNING id`,
-      [struct1Id]
+      `INSERT INTO payruns (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net, company_id)
+       VALUES ('Payrun - July 2026', $1, '2026-07-01', '2026-07-31', 'paid', 3, 0.00, 0.00, $2) RETURNING id`,
+      [struct1Id, defaultCompanyId]
     );
     const pr1Id = pr1Res.rows[0].id;
 
@@ -701,9 +711,9 @@ async function seed() {
     // Payrun 2: August 2026 (Draft Payrun ready for live computation / demo)
     console.log('Seeding draft payrun for live demo...');
     const pr2Res = await client.query(
-      `INSERT INTO payruns (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net)
-       VALUES ('Payrun - August 2026 (Live Demo)', $1, '2026-08-01', '2026-08-31', 'draft', 3, 0.00, 0.00) RETURNING id`,
-      [struct1Id]
+      `INSERT INTO payruns (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net, company_id)
+       VALUES ('Payrun - August 2026 (Live Demo)', $1, '2026-08-01', '2026-08-31', 'draft', 3, 0.00, 0.00, $2) RETURNING id`,
+      [struct1Id, defaultCompanyId]
     );
     const pr2Id = pr2Res.rows[0].id;
 
@@ -715,8 +725,78 @@ async function seed() {
       );
     }
 
+    // 15. Seed Role Permissions
+    console.log('Seeding role permissions...');
+    const PERMISSION_MATRIX = {
+      'Employee': [
+        ['employees', 'read_own'], ['attendance', 'read_own'], ['attendance', 'create_own'],
+        ['time_off', 'read_own'], ['time_off', 'create_own'],
+        ['payslips', 'read_own'], ['payslips', 'download_own'],
+      ],
+      'HR Manager': [
+        ['employees', 'read_own'], ['employees', 'read_all'], ['employees', 'create'], ['employees', 'update'],
+        ['attendance', 'read_own'], ['attendance', 'read_all'], ['attendance', 'create_own'], ['attendance', 'correct'],
+        ['time_off', 'read_own'], ['time_off', 'read_all'], ['time_off', 'create_own'], ['time_off', 'approve'],
+        ['time_off', 'manage_types'], ['time_off', 'manage_allocations'],
+        ['contracts', 'read'], ['contracts', 'create'], ['contracts', 'update'],
+        ['schedules', 'read'], ['schedules', 'manage'], ['dashboard', 'read'],
+      ],
+      'HR Payroll User': [
+        ['employees', 'read_own'], ['employees', 'read_all'], ['employees', 'create'], ['employees', 'update'],
+        ['attendance', 'read_own'], ['attendance', 'read_all'], ['attendance', 'create_own'], ['attendance', 'correct'],
+        ['time_off', 'read_own'], ['time_off', 'read_all'], ['time_off', 'create_own'], ['time_off', 'approve'],
+        ['time_off', 'manage_types'], ['time_off', 'manage_allocations'],
+        ['contracts', 'read'], ['contracts', 'create'], ['contracts', 'update'],
+        ['schedules', 'read'], ['schedules', 'manage'],
+        ['payslips', 'read_own'], ['payslips', 'read_all'], ['payslips', 'download_own'],
+        ['payruns', 'read'], ['payruns', 'create'], ['payruns', 'compute'], ['payruns', 'validate'],
+        ['salary_structures', 'read'], ['salary_rules', 'read'], ['dashboard', 'read'],
+      ],
+      'HR Payroll Manager': [
+        ['employees', 'read_own'], ['employees', 'read_all'], ['employees', 'create'], ['employees', 'update'],
+        ['attendance', 'read_own'], ['attendance', 'read_all'], ['attendance', 'create_own'], ['attendance', 'correct'],
+        ['time_off', 'read_own'], ['time_off', 'read_all'], ['time_off', 'create_own'], ['time_off', 'approve'],
+        ['time_off', 'manage_types'], ['time_off', 'manage_allocations'],
+        ['contracts', 'read'], ['contracts', 'create'], ['contracts', 'update'],
+        ['schedules', 'read'], ['schedules', 'manage'],
+        ['payslips', 'read_own'], ['payslips', 'read_all'], ['payslips', 'download_own'],
+        ['payruns', 'read'], ['payruns', 'create'], ['payruns', 'compute'], ['payruns', 'validate'],
+        ['payruns', 'mark_paid'], ['payruns', 'delete'],
+        ['salary_structures', 'read'], ['salary_structures', 'manage'],
+        ['salary_rules', 'read'], ['salary_rules', 'manage'], ['dashboard', 'read'],
+      ],
+      'Admin': [
+        ['employees', 'read_own'], ['employees', 'read_all'], ['employees', 'create'], ['employees', 'update'], ['employees', 'delete'],
+        ['attendance', 'read_own'], ['attendance', 'read_all'], ['attendance', 'create_own'], ['attendance', 'correct'],
+        ['time_off', 'read_own'], ['time_off', 'read_all'], ['time_off', 'create_own'], ['time_off', 'approve'],
+        ['time_off', 'manage_types'], ['time_off', 'manage_allocations'],
+        ['contracts', 'read'], ['contracts', 'create'], ['contracts', 'update'], ['contracts', 'delete'],
+        ['schedules', 'read'], ['schedules', 'manage'],
+        ['payslips', 'read_own'], ['payslips', 'read_all'], ['payslips', 'download_own'],
+        ['payruns', 'read'], ['payruns', 'create'], ['payruns', 'compute'], ['payruns', 'validate'],
+        ['payruns', 'mark_paid'], ['payruns', 'delete'],
+        ['salary_structures', 'read'], ['salary_structures', 'manage'],
+        ['salary_rules', 'read'], ['salary_rules', 'manage'],
+        ['users', 'read'], ['users', 'manage'],
+        ['companies', 'manage'], ['audit_logs', 'read'], ['dashboard', 'read'],
+      ]
+    };
+
+    for (const [roleName, permissions] of Object.entries(PERMISSION_MATRIX)) {
+      const roleId = roleMap[roleName];
+      if (!roleId) continue;
+      for (const [module, action] of permissions) {
+        await client.query(
+          `INSERT INTO role_permissions (role_id, module, action) VALUES ($1, $2, $3)
+           ON CONFLICT (role_id, module, action) DO NOTHING`,
+          [roleId, module, action]
+        );
+      }
+    }
+
     await client.query('COMMIT');
-    console.log('Seed completed successfully!');
+    console.log('\n✅ Seed completed successfully!');
+    console.log(`Company: PeoplePay360 Demo Corp (ID: ${defaultCompanyId})`);
     console.log('Summary of demo accounts (Password for all: password123):');
     console.log('  Admin:               admin@peoplepay360.com');
     console.log('  HR Manager:          hrmanager@peoplepay360.com');

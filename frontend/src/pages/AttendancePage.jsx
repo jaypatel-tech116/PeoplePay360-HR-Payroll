@@ -4,14 +4,14 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import AlertBanner from '../components/AlertBanner';
 import { useAuth } from '../context/AuthContext';
-import { Clock, LogIn, LogOut, Edit, CheckCircle2, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { LogIn, LogOut, Edit } from 'lucide-react';
 import './AttendancePage.css';
 
 export default function AttendancePage() {
   const { user } = useAuth();
   const [attendances, setAttendances] = useState([]);
   const [todayStatus, setTodayStatus] = useState({ checkedIn: false, record: null });
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 

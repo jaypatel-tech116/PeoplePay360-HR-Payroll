@@ -5,13 +5,13 @@ import DataTable from '../components/DataTable';
 import KanbanBoard from '../components/KanbanBoard';
 import Modal from '../components/Modal';
 import AlertBanner from '../components/AlertBanner';
-import { LayoutGrid, List, Plus, Search, CheckCircle2, ShieldAlert, Users } from 'lucide-react';
+import { LayoutGrid, List, Plus, CheckCircle2, ShieldAlert } from 'lucide-react';
 import './EmployeesPage.css';
 
 export default function EmployeesPage() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');

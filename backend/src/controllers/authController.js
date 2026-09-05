@@ -2,6 +2,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { uploadToCloudinary } = require('../middleware/upload');
+const sessionService = require('../services/sessionService');
+const { createAuditLog } = require('../services/auditService');
+const { COOKIE_NAME } = require('../middleware/authenticateSession');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'peoplepay360_secure_jwt_token_secret_2026_odoo';
 
@@ -34,6 +37,30 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    // Create session
+    const session = await sessionService.createSession(
+      user.id,
+      req.ip,
+      req.headers['user-agent']
+    );
+
+    // Set secure HttpOnly cookie
+    res.cookie(COOKIE_NAME, session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    // Audit log
+    await createAuditLog({
+      userId: user.id,
+      companyId: user.company_id,
+      action: 'login',
+      tableName: 'user_sessions',
+      ipAddress: req.ip
+    });
+
     // Get linked employee info if exists
     let employee = null;
     if (user.employee_id) {
@@ -43,20 +70,32 @@ exports.login = async (req, res) => {
       }
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '7d' }
+    // Get permissions
+    const permsRes = await query(
+      `SELECT module, action FROM role_permissions WHERE role_id = $1`,
+      [user.role_id]
     );
+    const permissions = permsRes.rows.map(r => `${r.module}:${r.action}`);
+
+    // Get company info
+    let company = null;
+    if (user.company_id) {
+      const compRes = await query('SELECT id, name, code, currency FROM companies WHERE id = $1', [user.company_id]);
+      if (compRes.rows.length > 0) company = compRes.rows[0];
+    }
 
     res.json({
-      token,
+      token: session.token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         avatar_url: user.avatar_url,
         role: user.role,
+        role_id: user.role_id,
+        company_id: user.company_id,
+        company,
+        permissions,
         employee_id: user.employee_id,
         employee
       }
@@ -64,6 +103,31 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during authentication.' });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const sessionToken = req.cookies?.[COOKIE_NAME] || req.sessionToken;
+    if (sessionToken) {
+      await sessionService.revokeSession(sessionToken);
+    }
+
+    if (req.user) {
+      await createAuditLog({
+        userId: req.user.id,
+        companyId: req.user.company_id,
+        action: 'logout',
+        tableName: 'user_sessions',
+        ipAddress: req.ip
+      });
+    }
+
+    res.clearCookie(COOKIE_NAME, { httpOnly: true, path: '/' });
+    res.json({ message: 'Logged out successfully.' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ error: 'Server error during logout.' });
   }
 };
 
@@ -136,6 +200,28 @@ exports.getCurrentUser = async (req, res) => {
       }
     }
 
+    // Fetch permissions
+    const roleIdRes = await query(
+      `SELECT r.id FROM roles r WHERE r.name = $1`,
+      [req.user.role]
+    );
+    const roleId = roleIdRes.rows[0]?.id;
+    let permissions = [];
+    if (roleId) {
+      const permsRes = await query(
+        `SELECT module, action FROM role_permissions WHERE role_id = $1`,
+        [roleId]
+      );
+      permissions = permsRes.rows.map(r => `${r.module}:${r.action}`);
+    }
+
+    // Fetch company
+    let company = null;
+    if (req.user.company_id) {
+      const compRes = await query('SELECT id, name, code, currency FROM companies WHERE id = $1', [req.user.company_id]);
+      if (compRes.rows.length > 0) company = compRes.rows[0];
+    }
+
     res.json({
       user: {
         id: req.user.id,
@@ -143,6 +229,10 @@ exports.getCurrentUser = async (req, res) => {
         email: req.user.email,
         avatar_url: req.user.avatar_url,
         role: req.user.role,
+        role_id: roleId,
+        company_id: req.user.company_id,
+        company,
+        permissions,
         employee_id: req.user.employee_id,
         employee
       }
