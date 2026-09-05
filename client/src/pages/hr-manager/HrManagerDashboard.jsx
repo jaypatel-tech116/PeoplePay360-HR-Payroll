@@ -68,6 +68,18 @@ const HrManagerDashboard = () => {
     }
   }, [location.search]);
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".hr-sidebar-user-container")) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isProfileMenuOpen]);
+
   // Fetch all live data on mount
   useEffect(() => {
     fetchAllData();
@@ -220,8 +232,10 @@ const HrManagerDashboard = () => {
               type="button"
               className={`hr-nav-item ${activeTab === "employees" ? "active" : ""}`}
               onClick={() => handleTabChange("employees")}
+              title="Employees"
             >
-              <span>Employees</span>
+              <span className="hr-nav-icon">👥</span>
+              <span className="hr-nav-text">Employees</span>
             </button>
           </li>
 
@@ -230,8 +244,10 @@ const HrManagerDashboard = () => {
               type="button"
               className={`hr-nav-item ${activeTab === "leaves" ? "active" : ""}`}
               onClick={() => handleTabChange("leaves")}
+              title="Leaves"
             >
-              <span>Leaves</span>
+              <span className="hr-nav-icon">🌴</span>
+              <span className="hr-nav-text">Leaves</span>
             </button>
           </li>
 
@@ -240,8 +256,10 @@ const HrManagerDashboard = () => {
               type="button"
               className={`hr-nav-item ${activeTab === "attendance" ? "active" : ""}`}
               onClick={() => handleTabChange("attendance")}
+              title="Attendance"
             >
-              <span>Attendance</span>
+              <span className="hr-nav-icon">⏱️</span>
+              <span className="hr-nav-text">Attendance</span>
             </button>
           </li>
 
@@ -250,13 +268,61 @@ const HrManagerDashboard = () => {
               type="button"
               className={`hr-nav-item ${activeTab === "reports" ? "active" : ""}`}
               onClick={() => handleTabChange("reports")}
+              title="Reports"
             >
-              <span>Reports</span>
+              <span className="hr-nav-icon">📈</span>
+              <span className="hr-nav-text">Reports</span>
             </button>
           </li>
         </ul>
 
         <div className="hr-sidebar-footer">
+          <div className="hr-sidebar-user-container">
+            <div
+              className="hr-user-pill hr-sidebar-user-pill"
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              title={user?.name || "HR Manager"}
+            >
+              <div className="hr-user-avatar">{userInitials}</div>
+              {!isSidebarCollapsed && (
+                <>
+                  <span className="hr-user-name">{user?.name || "HR Manager"}</span>
+                  <span className="hr-user-caret">⌵</span>
+                </>
+              )}
+            </div>
+
+            {isProfileMenuOpen && (
+              <div className="hr-sidebar-profile-dropdown">
+                <div className="hr-profile-dropdown-header">
+                  <div className="hr-profile-dropdown-name">
+                    {user?.name || "HR Manager"}
+                  </div>
+                  <div className="hr-profile-dropdown-email">
+                    {user?.email || "hr@gmail.com"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="hr-profile-dropdown-item"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    handleTabChange("employees");
+                  }}
+                >
+                  <span>👥</span> Employees Directory
+                </button>
+                <button
+                  type="button"
+                  className="hr-profile-dropdown-item logout"
+                  onClick={handleLogout}
+                >
+                  <span>↪</span> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             className="hr-collapse-btn"
@@ -292,100 +358,6 @@ const HrManagerDashboard = () => {
           </div>
 
           <div className="hr-topbar-right">
-            {/* Messages badge (3) */}
-            <button
-              type="button"
-              className="hr-icon-badge-btn"
-              title="3 Unread Messages"
-              onClick={() => alert("3 new messages from team members")}
-            >
-              💬
-              <span className="hr-badge-count">3</span>
-            </button>
-
-            {/* Notifications badge (12) */}
-            <button
-              type="button"
-              className="hr-icon-badge-btn"
-              title="12 System Notifications"
-              onClick={() => alert("12 notifications: 3 pending leave requests, 1 upcoming joiner")}
-            >
-              🔔
-              <span className="hr-badge-count">12</span>
-            </button>
-
-            {/* User Pill */}
-            <div style={{ position: "relative" }}>
-              <div
-                className="hr-user-pill"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              >
-                <div className="hr-user-avatar">{userInitials}</div>
-                <span className="hr-user-name">{user?.name || "HR Manager"}</span>
-                <span className="hr-user-caret">⌵</span>
-              </div>
-
-              {isProfileMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "44px",
-                    right: 0,
-                    width: "200px",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    border: "1px solid #e2e8f0",
-                    padding: "8px 0",
-                    zIndex: 100,
-                  }}
-                >
-                  <div style={{ padding: "8px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>
-                      {user?.name || "HR Manager"}
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>
-                      {user?.email || "hr@gmail.com"}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "8px 16px",
-                      background: "none",
-                      border: "none",
-                      fontSize: "0.82rem",
-                      color: "#374151",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      setIsProfileMenuOpen(false);
-                      handleTabChange("employees");
-                    }}
-                  >
-                    👥 Employees Directory
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "8px 16px",
-                      background: "none",
-                      border: "none",
-                      fontSize: "0.82rem",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                    }}
-                    onClick={handleLogout}
-                  >
-                    ↪ Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </header>
 
@@ -395,6 +367,7 @@ const HrManagerDashboard = () => {
             employees={employees}
             pipelineData={pipelineData}
             dashboardStats={dashboardStats}
+            isLoading={isLoading}
             onOpenNewEmployee={() => setIsNewEmployeeOpen(true)}
             onViewEmployee={(emp) => setSelectedEmployeeView(emp)}
             onAddEmployeeToColumn={handleOpenAddEmployeeForColumn}
@@ -408,6 +381,7 @@ const HrManagerDashboard = () => {
             leaveRequests={leaveRequests}
             leavePipeline={leavePipeline}
             leaveSummary={leaveSummary}
+            isLoading={isLoading}
             onOpenRequestModal={() => setIsRequestLeaveOpen(true)}
             onViewLeave={(leave) => setSelectedLeaveView(leave)}
             onApprove={handleApproveLeave}

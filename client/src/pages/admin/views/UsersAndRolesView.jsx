@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getUsers, getRoles, createUser } from "../../../api/admin.api";
 import { MOCK_USERS_LIST, MOCK_ROLES_LIST } from "../adminMockData";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 export default function UsersAndRolesView() {
+  const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState("users");
   const [users, setUsers] = useState(MOCK_USERS_LIST);
   const [roles, setRoles] = useState(MOCK_ROLES_LIST);
@@ -38,6 +40,8 @@ export default function UsersAndRolesView() {
       }
     } catch (err) {
       console.error("Error loading users and roles:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,6 +79,8 @@ export default function UsersAndRolesView() {
     const q = searchQuery.toLowerCase();
     return r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q);
   });
+
+  if (loading) return <SkeletonListPage rows={8} cols={6} />;
 
   return (
     <div className="adm-content-body">

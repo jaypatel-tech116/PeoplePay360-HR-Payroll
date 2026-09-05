@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getDepartments, createDepartment } from "../../../api/admin.api";
 import { MOCK_DEPARTMENTS } from "../adminMockData";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 export default function DepartmentsView() {
+  const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState(MOCK_DEPARTMENTS);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +24,8 @@ export default function DepartmentsView() {
       }
     } catch (err) {
       console.error("Error loading departments:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,6 +57,8 @@ export default function DepartmentsView() {
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) return <SkeletonListPage rows={6} cols={5} />;
 
   return (
     <div className="adm-content-body">

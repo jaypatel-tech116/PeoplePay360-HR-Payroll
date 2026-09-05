@@ -98,7 +98,8 @@ const PayrollManagerDashboard = () => {
                   onClick={() => setActiveTab(item.id)}
                   title={item.label}
                 >
-                  <span>{item.label}</span>
+                  <span className="mgr-nav-icon">{item.icon}</span>
+                  <span className="mgr-nav-text">{item.label}</span>
                 </button>
               </li>
             );
@@ -160,17 +161,6 @@ const PayrollManagerDashboard = () => {
                 ))}
               </select>
             </div>
-
-            {/* Notification Bell */}
-            <button type="button" className="mgr-icon-badge-btn" title="Notifications">
-              <span>🔔</span>
-              <span className="mgr-badge-count">3</span>
-            </button>
-
-            {/* Quick Settings Icon */}
-            <button type="button" className="mgr-icon-badge-btn" title="Settings">
-              <span>⚙️</span>
-            </button>
 
             {/* User Profile Pill */}
             <div style={{ position: "relative" }}>

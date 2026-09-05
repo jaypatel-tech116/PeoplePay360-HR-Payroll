@@ -168,7 +168,7 @@ const NewEmployeeModal = ({ isOpen, onClose, onSuccess, onAdd }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="hr-modal-form">
+        <form onSubmit={handleSubmit} className="hr-modal-form" noValidate>
           <div className="hr-form-row-2">
             <div className="hr-form-group">
               <label className="hr-form-label">
@@ -343,7 +343,8 @@ const NewEmployeeModal = ({ isOpen, onClose, onSuccess, onAdd }) => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                required
+                minLength={6}
+                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                 disabled={isSubmitting}
               />
             </div>
@@ -358,7 +359,8 @@ const NewEmployeeModal = ({ isOpen, onClose, onSuccess, onAdd }) => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                required
+                minLength={6}
+                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                 disabled={isSubmitting}
               />
             </div>

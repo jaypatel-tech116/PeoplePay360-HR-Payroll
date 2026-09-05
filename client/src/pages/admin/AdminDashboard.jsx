@@ -166,17 +166,6 @@ const AdminDashboard = () => {
               </select>
             </div>
 
-            {/* Notification Bell */}
-            <button type="button" className="adm-icon-badge-btn" title="Notifications">
-              <span>🔔</span>
-              <span className="adm-badge-count">12</span>
-            </button>
-
-            {/* Quick Messages */}
-            <button type="button" className="adm-icon-badge-btn" title="Messages">
-              <span>✉️</span>
-            </button>
-
             {/* Admin User Profile Pill */}
             <div style={{ position: "relative" }}>
               <div

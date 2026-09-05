@@ -1,38 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { getEmployeeContract } from "../../../api/employee.api";
+import { SkeletonCard } from "../../../components/ui/SkeletonLoader";
 
 const ContractView = ({ refreshKey }) => {
+  const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeContract, setActiveContract] = useState({
-    contractReference: "CNT-EMP001",
-    contractType: "Permanent",
-    startDate: "01 Sep 2023",
-    endDate: "31 Dec 2026",
-    payFrequency: "Monthly",
-    workingSchedule: "General (Mon - Fri)",
-    salaryStructure: "Regular Monthly Salary",
-    status: "Active",
-    wage: "₹ 56,000.00",
-    probationEndDate: "28 Feb 2024",
-    currency: "INR",
-    noticePeriod: "30 Days",
-    department: "Engineering",
-    jobPosition: "Software Developer",
-    manager: "Priya Mehta",
-    employeeType: "Full Time",
-    createdOn: "28 Aug 2023",
-    createdBy: "HR Manager",
-    workingDays: "5 Days",
-    dailyHours: "8 Hours",
-    weeklyHours: "40 Hours",
-    breakTime: "1 Hour",
-  });
+  const [activeContract, setActiveContract] = useState({});
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchContract = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeContract();
         if (isMounted && res?.data) {
           if (res.data.activeContract) setActiveContract(res.data.activeContract);
@@ -40,19 +20,27 @@ const ContractView = ({ refreshKey }) => {
         }
       } catch (err) {
         console.warn("Could not load contract details:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchContract();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [refreshKey]);
 
-  // State 2: Contract History (Image 2 Bottom Right)
+  if (loading) return (
+    <div className="sk-dashboard-wrap">
+      <SkeletonCard lines={6} titleWidth="40%" />
+      <div className="sk-two-col" style={{ marginTop: "16px" }}>
+        <SkeletonCard lines={5} /><SkeletonCard lines={5} />
+      </div>
+    </div>
+  );
+
+  // Contract History View
   if (showHistory) {
     return (
       <div className="employee-contract-history-view">
-        {/* Header */}
         <div className="odoo-page-header">
           <div>
             <div className="odoo-breadcrumb">
@@ -62,16 +50,9 @@ const ContractView = ({ refreshKey }) => {
             </div>
             <p className="odoo-page-subtitle">View the history of your contracts</p>
           </div>
-          <button
-            type="button"
-            className="odoo-btn-secondary"
-            onClick={() => setShowHistory(false)}
-          >
-            ← Back
-          </button>
+          <button type="button" className="odoo-btn-secondary" onClick={() => setShowHistory(false)}>← Back</button>
         </div>
 
-        {/* Timeline List */}
         <div className="odoo-contract-timeline">
           {history.map((c) => (
             <div className="odoo-timeline-item" key={c.id}>
@@ -80,51 +61,20 @@ const ContractView = ({ refreshKey }) => {
                 <div className="odoo-timeline-card-header">
                   <div className="odoo-timeline-header-left">
                     <span className="odoo-timeline-code">{c.code}</span>
-                    {c.isCurrent && <span className="odoo-timeline-tag">(Current Contract)</span>}
-                    <span
-                      className={`odoo-badge ${
-                        c.status === "Active" ? "odoo-badge-green" : ""
-                      }`}
-                      style={
-                        c.status !== "Active"
-                          ? { backgroundColor: "#f3f4f6", color: "#6b7280" }
-                          : {}
-                      }
-                    >
+                    {c.isCurrent && <span className="odoo-timeline-tag">(Current)</span>}
+                    <span className={`odoo-badge ${c.status === "Active" ? "odoo-badge-green" : ""}`}
+                      style={c.status !== "Active" ? { backgroundColor: "#f3f4f6", color: "#6b7280" } : {}}>
                       {c.status}
                     </span>
                     <span className="odoo-timeline-dates">{c.dateRange}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="odoo-table-action-btn"
-                    onClick={() => setShowHistory(false)}
-                  >
-                    👁 View
-                  </button>
                 </div>
-
                 <div className="odoo-timeline-grid">
-                  <div className="odoo-timeline-grid-item">
-                    <span>Contract Type</span>
-                    <span>{c.contractType}</span>
-                  </div>
-                  <div className="odoo-timeline-grid-item">
-                    <span>Salary Structure</span>
-                    <span>{c.salaryStructure}</span>
-                  </div>
-                  <div className="odoo-timeline-grid-item">
-                    <span>Wage</span>
-                    <span>{c.wage}</span>
-                  </div>
-                  <div className="odoo-timeline-grid-item">
-                    <span>Pay Frequency</span>
-                    <span>{c.payFrequency}</span>
-                  </div>
-                  <div className="odoo-timeline-grid-item">
-                    <span>Working Schedule</span>
-                    <span>{c.workingSchedule}</span>
-                  </div>
+                  <div className="odoo-timeline-grid-item"><span>Type</span><span>{c.contractType}</span></div>
+                  <div className="odoo-timeline-grid-item"><span>Structure</span><span>{c.salaryStructure}</span></div>
+                  <div className="odoo-timeline-grid-item"><span>Wage</span><span>{c.wage}</span></div>
+                  <div className="odoo-timeline-grid-item"><span>Frequency</span><span>{c.payFrequency}</span></div>
+                  <div className="odoo-timeline-grid-item"><span>Schedule</span><span>{c.workingSchedule}</span></div>
                 </div>
               </div>
             </div>
@@ -134,172 +84,122 @@ const ContractView = ({ refreshKey }) => {
     );
   }
 
-  // State 1: View Contract (Image 2 Bottom Left)
+  // Main Contract View - Modern Design
   return (
     <div className="employee-contract-view">
       {/* Header */}
       <div className="odoo-page-header">
         <div>
-          <div className="odoo-breadcrumb">
-            <span>My Contract</span>
-            <span className="odoo-breadcrumb-sep">›</span>
-            <span className="odoo-breadcrumb-current">View Contract</span>
-          </div>
+          <h1 className="odoo-page-title">My Contract</h1>
           <p className="odoo-page-subtitle">View your employment contract details</p>
         </div>
-        <button
-          type="button"
-          className="odoo-btn-primary"
-          onClick={() => setShowHistory(true)}
-        >
-          ⏱️ View History
-        </button>
+        <button type="button" className="odoo-btn-primary" onClick={() => setShowHistory(true)}>📋 View History</button>
       </div>
 
-      {/* Grid: Contract Details (Left) + Additional Info & Schedule Summary (Right) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.8fr 1fr",
-          gap: "20px",
-          alignItems: "start",
-        }}
-      >
-        {/* Left Card: Contract Details */}
-        <div className="odoo-card">
-          <h3 className="odoo-card-title" style={{ marginBottom: "18px" }}>
-            <span>💼</span> Contract Details
-          </h3>
+      {/* Status Header */}
+      <div className="contract-status-header">
+        <div className="contract-status-icon">📄</div>
+        <div className="contract-status-text">
+          <h3>{activeContract.contractReference || "Contract"}</h3>
+          <p>{activeContract.contractType || "Permanent"} • {activeContract.startDate} — {activeContract.endDate}</p>
+        </div>
+        <span className="odoo-badge odoo-badge-green" style={{ marginLeft: "auto" }}>{activeContract.status || "Active"}</span>
+      </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "14px 18px",
-              fontSize: "0.8rem",
-            }}
-          >
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Contract Reference</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.contractReference}</span>
+      {/* Grid: Contract Details + Side Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "16px", alignItems: "start" }}>
+        {/* Left: Contract Details */}
+        <div className="profile-section-card">
+          <h3 className="profile-section-title"><span>💼</span> Contract Details</h3>
+          <div className="profile-field-grid">
+            <div className="profile-field">
+              <span className="profile-field-label">Contract Reference</span>
+              <span className="profile-field-value">{activeContract.contractReference}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Contract Type</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.contractType}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Contract Type</span>
+              <span className="profile-field-value">{activeContract.contractType}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Start Date</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.startDate}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Start Date</span>
+              <span className="profile-field-value">{activeContract.startDate}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Pay Frequency</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.payFrequency}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">End Date</span>
+              <span className="profile-field-value">{activeContract.endDate}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>End Date</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.endDate}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Salary Structure</span>
+              <span className="profile-field-value">{activeContract.salaryStructure}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Working Schedule</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.workingSchedule}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Pay Frequency</span>
+              <span className="profile-field-value">{activeContract.payFrequency}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Salary Structure</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.salaryStructure}</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Working Schedule</span>
+              <span className="profile-field-value">{activeContract.workingSchedule}</span>
             </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Status</span>
+            <div className="profile-field">
+              <span className="profile-field-label">Wage (Monthly)</span>
+              <span className="profile-field-value" style={{ fontSize: "1rem", color: "var(--odoo-plum-primary)" }}>{activeContract.wage}</span>
+            </div>
+            <div className="profile-field">
+              <span className="profile-field-label">Probation End Date</span>
+              <span className="profile-field-value">{activeContract.probationEndDate}</span>
+            </div>
+            <div className="profile-field">
+              <span className="profile-field-label">Currency</span>
+              <span className="profile-field-value">{activeContract.currency}</span>
+            </div>
+            <div className="profile-field">
+              <span className="profile-field-label">Notice Period</span>
+              <span className="profile-field-value">{activeContract.noticePeriod}</span>
+            </div>
+            <div className="profile-field">
+              <span className="profile-field-label">Status</span>
               <span className="odoo-badge odoo-badge-green">{activeContract.status}</span>
-            </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Wage (Monthly)</span>
-              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111827" }}>{activeContract.wage}</span>
-            </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Probation End Date</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.probationEndDate}</span>
-            </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Currency</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.currency}</span>
-            </div>
-
-            <div>
-              <span style={{ color: "var(--odoo-text-muted)", display: "block", marginBottom: "2px" }}>Notice Period</span>
-              <span style={{ fontWeight: 600 }}>{activeContract.noticePeriod}</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Additional Information & Schedule Summary */}
+        {/* Right Column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Card 1: Additional Information */}
-          <div className="odoo-card">
-            <h3 className="odoo-card-title" style={{ marginBottom: "14px" }}>
-              <span>ℹ️</span> Additional Information
-            </h3>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Department</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.department}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Job Position</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.jobPosition}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Manager</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.manager}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Employee Type</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.employeeType}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Created On</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.createdOn}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Created By</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.createdBy}</span>
-              </div>
+          {/* Additional Info */}
+          <div className="profile-section-card">
+            <h3 className="profile-section-title"><span>ℹ️</span> Additional Information</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[
+                ["Department", activeContract.department],
+                ["Job Position", activeContract.jobPosition],
+                ["Manager", activeContract.manager],
+                ["Employee Type", activeContract.employeeType],
+                ["Created On", activeContract.createdOn],
+                ["Created By", activeContract.createdBy],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+                  <span style={{ color: "var(--odoo-text-muted)" }}>{label}</span>
+                  <span style={{ fontWeight: 600 }}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Card 2: Schedule Summary */}
-          <div className="odoo-card">
-            <h3 className="odoo-card-title" style={{ marginBottom: "14px" }}>
-              <span>📅</span> Schedule Summary
-            </h3>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Working Days</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.workingDays}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Daily Hours</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.dailyHours}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Weekly Hours</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.weeklyHours}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--odoo-text-muted)" }}>Break Time</span>
-                <span style={{ fontWeight: 600 }}>{activeContract.breakTime}</span>
-              </div>
+          {/* Schedule Summary */}
+          <div className="profile-section-card">
+            <h3 className="profile-section-title"><span>📅</span> Schedule Summary</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[
+                ["Working Days", activeContract.workingDays],
+                ["Daily Hours", activeContract.dailyHours],
+                ["Weekly Hours", activeContract.weeklyHours],
+                ["Break Time", activeContract.breakTime],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+                  <span style={{ color: "var(--odoo-text-muted)" }}>{label}</span>
+                  <span style={{ fontWeight: 600 }}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

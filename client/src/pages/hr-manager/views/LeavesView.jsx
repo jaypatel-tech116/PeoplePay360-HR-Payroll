@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
+const cleanName = (n) => { if (!n) return ''; const p = n.trim().split(/\s+/); return p.length === 2 && p[0].toLowerCase() === p[1].toLowerCase() ? p[0] : n.trim(); };
 import hrApi from "../../../api/hr.api";
+import { SkeletonKanban, SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 const LeavesView = ({
   leaveRequests = [],
   leavePipeline = { draft: [], toApprove: [], approved: [], rejected: [] },
   leaveSummary = {},
+  isLoading = false,
   onOpenRequestModal,
   onViewLeave,
   onApprove,
@@ -86,6 +89,8 @@ const LeavesView = ({
     const status = (r.status || "").toLowerCase();
     return emp.includes(q) || type.includes(q) || status.includes(q);
   });
+
+  if (isLoading) return viewMode === "kanban" ? <SkeletonKanban cols={4} cardsPerCol={3} /> : <SkeletonListPage rows={7} cols={6} />;
 
   return (
     <div className="hr-content-body">
@@ -189,7 +194,7 @@ const LeavesView = ({
                   <div className="hr-card-top-row">
                     <div className="hr-card-avatar">{card.initials || "LV"}</div>
                     <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{card.employee}</h4>
+                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
                       <p className="hr-card-role">{card.leaveType}</p>
                     </div>
                   </div>
@@ -223,7 +228,7 @@ const LeavesView = ({
                   <div className="hr-card-top-row">
                     <div className="hr-card-avatar">{card.initials || "LV"}</div>
                     <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{card.employee}</h4>
+                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
                       <p className="hr-card-role">{card.leaveType}</p>
                     </div>
                   </div>
@@ -304,7 +309,7 @@ const LeavesView = ({
                   <div className="hr-card-top-row">
                     <div className="hr-card-avatar">{card.initials || "LV"}</div>
                     <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{card.employee}</h4>
+                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
                       <p className="hr-card-role">{card.leaveType}</p>
                     </div>
                   </div>
@@ -338,7 +343,7 @@ const LeavesView = ({
                   <div className="hr-card-top-row">
                     <div className="hr-card-avatar">{card.initials || "LV"}</div>
                     <div className="hr-card-emp-info">
-                      <h4 className="hr-card-name">{card.employee}</h4>
+                      <h4 className="hr-card-name">{cleanName(card.employee)}</h4>
                       <p className="hr-card-role">{card.leaveType}</p>
                     </div>
                   </div>
@@ -439,7 +444,7 @@ const LeavesView = ({
                         onChange={() => toggleSelectRow(req.id)}
                       />
                     </td>
-                    <td className="hr-emp-name-cell">{req.employee}</td>
+                    <td className="hr-emp-name-cell">{cleanName(req.employee)}</td>
                     <td>{req.leaveType}</td>
                     <td>{req.formattedFromDate || req.fromDate}</td>
                     <td>{req.formattedToDate || req.toDate}</td>

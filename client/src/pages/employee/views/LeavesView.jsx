@@ -1,262 +1,293 @@
 import React, { useState, useEffect } from "react";
-import { getEmployeeLeaves } from "../../../api/employee.api";
+import { getEmployeeLeaves, submitLeaveRequest } from "../../../api/employee.api";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
-const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
+const LeavesView = ({ refreshKey }) => {
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [data, setData] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [balance, setBalance] = useState({ totalAllocated: 0, used: 0, remaining: 0 });
+  const [typesBreakdown, setTypesBreakdown] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [modal, setModal] = useState(null);
+
+  // Form state
+  const [form, setForm] = useState({
+    type: "Annual Leave",
+    fromDate: "",
+    toDate: "",
+    days: 1,
+    reason: "",
+  });
+
+  // Over-balance warning
+  const [overBalanceWarning, setOverBalanceWarning] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     const fetchLeaves = async () => {
       try {
+        setLoading(true);
         const res = await getEmployeeLeaves({ status: statusFilter });
         if (isMounted && res?.data) {
-          setData(res.data);
+          setBalance(res.data.balance || { totalAllocated: 0, used: 0, remaining: 0 });
+          setTypesBreakdown(res.data.typesBreakdown || []);
+          setRequests(res.data.requests || []);
         }
       } catch (err) {
-        console.warn("Could not load employee leaves:", err);
+        console.warn("Failed to load leaves:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchLeaves();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [statusFilter, refreshKey]);
 
-  const balance = data?.balance || {
-    totalAllocated: 12,
-    used: 3,
-    remaining: 9,
+  // Calculate days between dates
+  const calcDays = (from, to) => {
+    if (!from || !to) return 0;
+    const d1 = new Date(from);
+    const d2 = new Date(to);
+    if (isNaN(d1) || isNaN(d2) || d2 < d1) return 0;
+    return Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  const types = data?.types || {
-    "Annual Leave": "12 Days",
-    "Sick Leave": "10 Days",
-    "Casual Leave": "6 Days",
-    "Unpaid Leave": "-",
+  const handleDateChange = (field, value) => {
+    const updated = { ...form, [field]: value };
+    if (updated.fromDate && updated.toDate) {
+      const days = calcDays(updated.fromDate, updated.toDate);
+      updated.days = days;
+
+      // Check over-balance
+      setOverBalanceWarning(days > balance.remaining);
+    }
+    setForm(updated);
   };
 
-  const requests = data?.requests || [
-    { id: 1, from: "15 Sep 2025", to: "16 Sep 2025", type: "Annual Leave", days: 2, reason: "Family function", status: "Pending", appliedOn: "10 Sep 2025" },
-    { id: 2, from: "10 Jul 2025", to: "10 Jul 2025", type: "Sick Leave", days: 1, reason: "Not feeling well", status: "Approved", appliedOn: "08 Jul 2025" },
-    { id: 3, from: "12 Jun 2025", to: "13 Jun 2025", type: "Annual Leave", days: 2, reason: "Personal work", status: "Approved", appliedOn: "05 Jun 2025" },
-    { id: 4, from: "05 Mar 2025", to: "05 Mar 2025", type: "Sick Leave", days: 1, reason: "Fever", status: "Rejected", appliedOn: "03 Mar 2025" },
-  ];
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.fromDate || !form.toDate) {
+      setModal({ type: "error", title: "Missing Dates", message: "Please select both From and To dates." });
+      return;
+    }
 
-  const ratio = balance.totalAllocated > 0 ? balance.remaining / balance.totalAllocated : 0.75;
-  const strokeDashoffset = Math.round(238.76 * (1 - Math.min(1, Math.max(0, ratio))));
+    // Confirm over-balance submission
+    if (overBalanceWarning) {
+      setModal({
+        type: "warning",
+        title: "Over-Balance Warning",
+        message: `You are requesting ${form.days} days but only have ${balance.remaining} days remaining. The extra ${form.days - balance.remaining} day(s) may result in a salary deduction. Do you want to proceed?`,
+        confirmAction: submitRequest,
+      });
+      return;
+    }
+
+    await submitRequest();
+  };
+
+  const submitRequest = async () => {
+    setModal(null);
+    try {
+      await submitLeaveRequest({
+        type: form.type,
+        fromDate: form.fromDate,
+        toDate: form.toDate,
+        days: form.days,
+        reason: form.reason,
+      });
+      setModal({ type: "success", title: "Leave Submitted!", message: "Your leave request has been submitted for approval." });
+      setShowForm(false);
+      setForm({ type: "Annual Leave", fromDate: "", toDate: "", days: 1, reason: "" });
+      setOverBalanceWarning(false);
+
+      // Refresh data
+      const res = await getEmployeeLeaves({ status: statusFilter });
+      if (res?.data) {
+        setBalance(res.data.balance || balance);
+        setTypesBreakdown(res.data.typesBreakdown || typesBreakdown);
+        setRequests(res.data.requests || requests);
+      }
+    } catch (err) {
+      console.error("Submit leave error:", err);
+      setModal({ type: "error", title: "Failed", message: "Could not submit leave request. Please try again." });
+    }
+  };
+
+  // Themed Modal Component
+  const ThemedModal = () => {
+    if (!modal) return null;
+    return (
+      <div className="themed-modal-backdrop" onClick={() => setModal(null)}>
+        <div className="themed-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="themed-modal-body">
+            <div className={`themed-modal-icon ${modal.type}`}>
+              {modal.type === "success" ? "✓" : modal.type === "warning" ? "⚠" : "✕"}
+            </div>
+            <div className="themed-modal-title">{modal.title}</div>
+            <div className="themed-modal-message">{modal.message}</div>
+          </div>
+          <div className="themed-modal-actions">
+            {modal.confirmAction ? (
+              <>
+                <button className="odoo-btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+                <button className="odoo-btn-primary" onClick={modal.confirmAction}>Yes, Proceed</button>
+              </>
+            ) : (
+              <button className="odoo-btn-primary" onClick={() => setModal(null)}>OK</button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) return <SkeletonListPage rows={6} cols={5} />;
 
   return (
     <div className="employee-leaves-view">
+      <ThemedModal />
+
       {/* Header */}
       <div className="odoo-page-header">
         <div>
           <h1 className="odoo-page-title">My Leaves</h1>
-          <p className="odoo-page-subtitle">View your leave balance and manage leave requests</p>
+          <p className="odoo-page-subtitle">Manage your leave balance and requests</p>
         </div>
         <button
           type="button"
           className="odoo-btn-primary"
-          onClick={onOpenLeaveModal}
+          onClick={() => setShowForm(!showForm)}
         >
-          + Request Leave
+          {showForm ? "✕ Cancel" : "✈ Request Leave"}
         </button>
       </div>
 
-      {/* Top 3 Cards Row */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.2fr 1.3fr",
-          gap: "16px",
-          marginBottom: "20px",
-        }}
-        className="odoo-leaves-top-grid"
-      >
-        {/* Card 1: Leave Balance Donut */}
-        <div className="odoo-card">
-          <h3 className="odoo-card-title" style={{ marginBottom: "12px" }}>
-            <span>🌴</span> Leave Balance
-          </h3>
-
-          <div className="donut-container">
-            <svg className="donut-svg" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="38" className="donut-circle-bg" />
-              <circle
-                cx="50"
-                cy="50"
-                r="38"
-                className="donut-circle-val"
-                strokeDasharray="238.76"
-                strokeDashoffset={strokeDashoffset}
-              />
-            </svg>
-            <div className="donut-center-text">
-              <span className="donut-big-num">{balance.remaining}</span>
-              <span className="donut-sub-text">Days Remaining</span>
-            </div>
-          </div>
-
-          <div className="donut-legend">
-            <div className="donut-legend-item">
-              <div className="donut-legend-left">
-                <span className="donut-dot allocated" />
-                <span>Total Allocated</span>
-              </div>
-              <strong>{balance.totalAllocated}</strong>
-            </div>
-            <div className="donut-legend-item">
-              <div className="donut-legend-left">
-                <span className="donut-dot used" />
-                <span>Used</span>
-              </div>
-              <strong>{balance.used}</strong>
-            </div>
-            <div className="donut-legend-item">
-              <div className="donut-legend-left">
-                <span className="donut-dot remaining" />
-                <span>Remaining</span>
-              </div>
-              <strong>{balance.remaining}</strong>
-            </div>
-          </div>
+      {/* Leave Balance Stats */}
+      <div className="leave-balance-stats">
+        <div className="leave-stat-card total">
+          <span className="leave-stat-value">{balance.totalAllocated}</span>
+          <span className="leave-stat-label">Total Available</span>
         </div>
-
-        {/* Card 2: Leave Types */}
-        <div className="odoo-card">
-          <h3 className="odoo-card-title" style={{ marginBottom: "16px" }}>
-            <span>🗂️</span> Leave Types
-          </h3>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "0.825rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#f3ebf1", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Annual Leave</span>
-              </div>
-              <strong>{types["Annual Leave"] || "12 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#e6f7ef", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Sick Leave</span>
-              </div>
-              <strong>{types["Sick Leave"] || "10 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#fef3c7", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Casual Leave</span>
-              </div>
-              <strong>{types["Casual Leave"] || "6 Days"}</strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ backgroundColor: "#fee2e2", padding: "6px 8px", borderRadius: "6px" }}>📅</span>
-                <span>Unpaid Leave</span>
-              </div>
-              <strong>{types["Unpaid Leave"] || "-"}</strong>
-            </div>
-          </div>
+        <div className="leave-stat-card taken">
+          <span className="leave-stat-value">{balance.used}</span>
+          <span className="leave-stat-label">Taken</span>
         </div>
-
-        {/* Card 3: Quick Actions */}
-        <div className="odoo-card">
-          <h3 className="odoo-card-title" style={{ marginBottom: "16px" }}>
-            <span>⚡</span> Quick Actions
-          </h3>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 14px",
-                backgroundColor: "#f9fafb",
-                border: "1px solid var(--odoo-border)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onClick={onOpenLeaveModal}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#f3ebf1", color: "var(--odoo-plum-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>✈</span>
-                <div>
-                  <div style={{ fontSize: "0.825rem", fontWeight: 600 }}>Request Leave</div>
-                  <div style={{ fontSize: "0.725rem", color: "var(--odoo-text-muted)" }}>Submit a new leave request</div>
-                </div>
-              </div>
-              <span style={{ color: "var(--odoo-text-muted)" }}>›</span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 14px",
-                backgroundColor: "#f9fafb",
-                border: "1px solid var(--odoo-border)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onClick={() => alert(`You have ${requests.length} leave requests on record.`)}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>⏱</span>
-                <div>
-                  <div style={{ fontSize: "0.825rem", fontWeight: 600 }}>View Leave History</div>
-                  <div style={{ fontSize: "0.725rem", color: "var(--odoo-text-muted)" }}>Check your past leave requests</div>
-                </div>
-              </div>
-              <span style={{ color: "var(--odoo-text-muted)" }}>›</span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 14px",
-                backgroundColor: "#f9fafb",
-                border: "1px solid var(--odoo-border)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onClick={() => alert("Company Leave Policy: 12 days annual leave, 10 days sick leave, 6 days casual leave.")}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>📑</span>
-                <div>
-                  <div style={{ fontSize: "0.825rem", fontWeight: 600 }}>Check Leave Policy</div>
-                  <div style={{ fontSize: "0.725rem", color: "var(--odoo-text-muted)" }}>View company leave policies</div>
-                </div>
-              </div>
-              <span style={{ color: "var(--odoo-text-muted)" }}>›</span>
-            </div>
-          </div>
+        <div className="leave-stat-card remaining">
+          <span className="leave-stat-value">{balance.remaining}</span>
+          <span className="leave-stat-label">Remaining</span>
+        </div>
+        <div className="leave-stat-card requestable">
+          <span className="leave-stat-value">{Math.max(0, balance.remaining)}</span>
+          <span className="leave-stat-label">Can Request</span>
         </div>
       </div>
 
-      {/* Bottom Table: My Leave Requests */}
+      {/* Per-Type Breakdown */}
+      {typesBreakdown.length > 0 && (
+        <div className="odoo-card" style={{ marginBottom: "16px" }}>
+          <div className="odoo-card-header">
+            <h3 className="odoo-card-title"><span>📊</span> Leave Type Breakdown</h3>
+          </div>
+          <div className="odoo-table-wrapper">
+            <table className="odoo-table">
+              <thead>
+                <tr>
+                  <th>Leave Type</th>
+                  <th>Allocated</th>
+                  <th>Used</th>
+                  <th>Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {typesBreakdown.map((t, i) => (
+                  <tr key={i}>
+                    <td><strong>{t.name}</strong></td>
+                    <td>{t.allocated}</td>
+                    <td>{t.used}</td>
+                    <td>
+                      <span className={`odoo-badge ${t.remaining > 0 ? "odoo-badge-green" : "odoo-badge-red"}`}>
+                        {t.remaining}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Leave Request Form */}
+      {showForm && (
+        <div className="inline-leave-form">
+          <div className="inline-leave-form-header">
+            <div className="inline-leave-form-title">
+              <span className="odoo-leave-icon-box">✈</span>
+              <h3>New Leave Request</h3>
+            </div>
+          </div>
+
+          {/* Over-balance Warning Banner */}
+          {overBalanceWarning && (
+            <div className="leave-overbalance-warning">
+              <span className="warning-icon">⚠️</span>
+              <div className="warning-text">
+                <strong>Over-Balance Warning:</strong> You are requesting <strong>{form.days}</strong> days but only have <strong>{balance.remaining}</strong> remaining.
+                The extra <strong>{form.days - balance.remaining}</strong> day(s) may result in a <strong>salary deduction</strong>.
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="odoo-form-group">
+                <label className="odoo-form-label">Leave Type</label>
+                <select className="odoo-form-select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  {typesBreakdown.length > 0 ? typesBreakdown.map((t) => (
+                    <option key={t.name} value={t.name}>{t.name} ({t.remaining} remaining)</option>
+                  )) : (
+                    <>
+                      <option value="Annual Leave">Annual Leave</option>
+                      <option value="Sick Leave">Sick Leave</option>
+                      <option value="Casual Leave">Casual Leave</option>
+                      <option value="Unpaid Leave">Unpaid Leave</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div className="odoo-form-group">
+                <label className="odoo-form-label">Number of Days</label>
+                <input type="number" className="odoo-form-input" value={form.days} readOnly style={{ backgroundColor: "#f9fafb" }} />
+              </div>
+              <div className="odoo-form-group">
+                <label className="odoo-form-label">From Date</label>
+                <input type="date" className="odoo-form-input" value={form.fromDate} onChange={(e) => handleDateChange("fromDate", e.target.value)} required />
+              </div>
+              <div className="odoo-form-group">
+                <label className="odoo-form-label">To Date</label>
+                <input type="date" className="odoo-form-input" value={form.toDate} onChange={(e) => handleDateChange("toDate", e.target.value)} required />
+              </div>
+              <div className="odoo-form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="odoo-form-label">Reason</label>
+                <textarea className="odoo-form-textarea" rows="3" placeholder="Provide a reason for your leave request..." value={form.reason}
+                  onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+                <div className="odoo-char-count">{form.reason.length} / 500</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "16px" }}>
+              <button type="button" className="odoo-btn-secondary" onClick={() => { setShowForm(false); setOverBalanceWarning(false); }}>Cancel</button>
+              <button type="submit" className="odoo-btn-primary">📤 Submit Request</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Leave Request History */}
       <div className="odoo-card">
         <div className="odoo-card-header">
-          <h3 className="odoo-card-title">
-            <span>📅</span> My Leave Requests
-          </h3>
-
-          <select
-            className="odoo-filter-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
+          <h3 className="odoo-card-title"><span>📋</span> Leave Request History</h3>
+          <select className="odoo-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="All Status">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
@@ -268,49 +299,38 @@ const LeavesView = ({ onOpenLeaveModal, refreshKey }) => {
           <table className="odoo-table">
             <thead>
               <tr>
-                <th style={{ width: "40px" }}>#</th>
                 <th>From</th>
                 <th>To</th>
-                <th>Leave Type</th>
+                <th>Type</th>
                 <th>Days</th>
                 <th>Reason</th>
                 <th>Status</th>
                 <th>Applied On</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map((r, index) => (
-                <tr key={r.id || index}>
-                  <td>{index + 1}</td>
+              {requests.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", color: "var(--odoo-text-muted)", padding: "24px" }}>
+                    No leave requests found
+                  </td>
+                </tr>
+              )}
+              {requests.map((r, i) => (
+                <tr key={r.id || i}>
                   <td>{r.from}</td>
                   <td>{r.to}</td>
                   <td>{r.type}</td>
                   <td>{r.days}</td>
-                  <td>{r.reason}</td>
+                  <td style={{ maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.reason}</td>
                   <td>
-                    <span
-                      className={`odoo-badge ${
-                        r.status === "Approved"
-                          ? "odoo-badge-green"
-                          : r.status === "Pending"
-                          ? "odoo-badge-orange"
-                          : "odoo-badge-red"
-                      }`}
-                    >
-                      {r.status}
-                    </span>
+                    <span className={`odoo-badge ${
+                      r.status === "Approved" ? "odoo-badge-green" :
+                      r.status === "Pending" ? "odoo-badge-orange" :
+                      "odoo-badge-red"
+                    }`}>{r.status}</span>
                   </td>
                   <td>{r.appliedOn}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="odoo-table-action-btn"
-                      onClick={() => alert(`Leave Details:\nFrom: ${r.from}\nTo: ${r.to}\nType: ${r.type}\nReason: ${r.reason}\nStatus: ${r.status}`)}
-                    >
-                      👁 View
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>

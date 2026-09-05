@@ -114,6 +114,7 @@ CREATE TABLE public.employees (
     designation text,
     employee_type text NOT NULL DEFAULT 'FULL_TIME',
     status text NOT NULL DEFAULT 'ACTIVE',
+    pipeline_stage text NOT NULL DEFAULT 'NEW_JOINER',
     address text,
     city text,
     state text,

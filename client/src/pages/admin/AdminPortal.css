@@ -106,13 +106,26 @@
   transition: all 0.15s ease-in-out;
 }
 
+.adm-nav-icon {
+  display: none !important;
+}
+
 .adm-sidebar.collapsed .adm-nav-item {
   justify-content: center;
   padding: 10px;
 }
 
+.adm-sidebar.collapsed .adm-nav-item .adm-nav-text,
 .adm-sidebar.collapsed .adm-nav-item span:not(.adm-nav-icon) {
-  display: none;
+  display: none !important;
+}
+
+.adm-sidebar.collapsed .adm-nav-item .adm-nav-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .adm-nav-item:hover {
@@ -125,10 +138,6 @@
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-.adm-nav-icon {
-  display: none !important;
 }
 
 .adm-sidebar-footer {

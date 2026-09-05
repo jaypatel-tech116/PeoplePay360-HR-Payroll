@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import hrApi from "../../../api/hr.api";
+import { SkeletonReports } from "../../../components/ui/SkeletonLoader";
 
 const ReportsView = () => {
   const [activeSubtab, setActiveSubtab] = useState("attendance");
@@ -90,6 +91,8 @@ const ReportsView = () => {
       (r.department || "").toLowerCase().includes(q)
     );
   });
+
+  if (isLoading) return <SkeletonReports />;
 
   return (
     <div className="hr-content-body">

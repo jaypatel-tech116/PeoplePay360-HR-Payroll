@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getAttendance } from "../../../api/admin.api";
 import { MOCK_ATTENDANCE } from "../adminMockData";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 export default function AttendanceView() {
+  const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("August 2025");
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("All Departments");
@@ -41,6 +43,8 @@ export default function AttendanceView() {
       }
     } catch (err) {
       console.error("Error loading attendance:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +58,8 @@ export default function AttendanceView() {
     const q = searchQuery.toLowerCase();
     return r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q);
   });
+
+  if (loading) return <SkeletonListPage rows={7} cols={6} />;
 
   return (
     <div className="adm-content-body">

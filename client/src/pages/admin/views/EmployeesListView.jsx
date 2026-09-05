@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getEmployees, createEmployee, getDepartments } from "../../../api/admin.api";
 import { MOCK_EMPLOYEES } from "../adminMockData";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 export default function EmployeesListView({ onSelectEmployee }) {
+  const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
   const [departments, setDepartments] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -48,6 +50,8 @@ export default function EmployeesListView({ onSelectEmployee }) {
       }
     } catch (err) {
       console.error("Error loading employees:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,6 +126,8 @@ export default function EmployeesListView({ onSelectEmployee }) {
       (emp.email && emp.email.toLowerCase().includes(q))
     );
   });
+
+  if (loading) return <SkeletonListPage rows={8} cols={7} />;
 
   return (
     <div className="adm-content-body">

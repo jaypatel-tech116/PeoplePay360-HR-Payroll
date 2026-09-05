@@ -41,6 +41,25 @@ function formatINR(val) {
 }
 
 /**
+ * Clean duplicate first/last names (e.g. "tester1 tester1" -> "tester1")
+ */
+function formatFullName(first, last) {
+  const f = (first || "").trim();
+  const l = (last || "").trim();
+  if (!l || l.toLowerCase() === f.toLowerCase()) return f || "Employee";
+  return `${f} ${l}`.trim();
+}
+
+function formatInitials(first, last) {
+  const f = (first || "").trim();
+  const l = (last || "").trim();
+  if (!l || l.toLowerCase() === f.toLowerCase()) {
+    return f ? f.slice(0, 2).toUpperCase() : "EM";
+  }
+  return `${f[0] || ""}${l[0] || ""}`.toUpperCase();
+}
+
+/**
  * 1. GET /api/employee/me/dashboard
  * Aggregates all dashboard data for the authenticated employee:
  * - Profile header & mini cards (code, dept, position, type, leave balance)
@@ -103,6 +122,46 @@ const getDashboard = async (req, res, next) => {
       location: r.notes || "Bangalore Office",
     }));
 
+    // 3b. Monthly attendance calendar data (current month)
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+
+    const [calendarRows] = await pool.query(
+      `SELECT attendance_date, check_in, check_out, worked_hours, status, notes
+       FROM attendance
+       WHERE employee_id = ? AND attendance_date >= ? AND attendance_date < ?
+       ORDER BY attendance_date ASC`,
+      [employeeId, monthStart, monthEnd]
+    );
+
+    // Also get approved leaves for this month for the calendar
+    const [calendarLeaveRows] = await pool.query(
+      `SELECT lr.start_date, lr.end_date, lr.days, lt.name AS leave_type_name
+       FROM leave_requests lr
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
+       WHERE lr.employee_id = ? AND lr.status = 'Approved'
+         AND lr.start_date < ? AND lr.end_date >= ?
+       ORDER BY lr.start_date ASC`,
+      [employeeId, monthEnd, monthStart]
+    );
+
+    const calendarAttendance = calendarRows.map((r) => ({
+      date: r.attendance_date ? new Date(r.attendance_date).toISOString().split("T")[0] : null,
+      checkIn: formatTime(r.check_in),
+      checkOut: r.check_out ? formatTime(r.check_out) : "-",
+      workedHours: r.worked_hours ? parseFloat(r.worked_hours).toFixed(2) : "-",
+      status: r.status || "Present",
+    }));
+
+    const calendarLeaves = calendarLeaveRows.map((lr) => ({
+      startDate: lr.start_date ? new Date(lr.start_date).toISOString().split("T")[0] : null,
+      endDate: lr.end_date ? new Date(lr.end_date).toISOString().split("T")[0] : null,
+      type: lr.leave_type_name,
+      days: parseFloat(lr.days) || 1,
+    }));
+
     // 4. Leave Balance & Donut Metrics
     const [leaveAllocRows] = await pool.query(
       `SELECT la.*, lt.name AS leave_type_name 
@@ -150,30 +209,6 @@ const getDashboard = async (req, res, next) => {
       appliedOn: formatDate(lr.created_at),
     }));
 
-    // 6. Recent Payslips (3 latest)
-    const [recentPayslipRows] = await pool.query(
-      `SELECT p.*, pr.month, pr.year, c.contract_type
-       FROM payslips p
-       JOIN payruns pr ON p.payrun_id = pr.id
-       LEFT JOIN contracts c ON p.contract_id = c.id
-       WHERE p.employee_id = ?
-       ORDER BY pr.period_end DESC
-       LIMIT 3`,
-      [employeeId]
-    );
-
-    const recentPayslips = recentPayslipRows.map((p) => ({
-      id: p.id,
-      payslipNumber: p.payslip_number,
-      period: `${p.month ? p.month.slice(0, 3) : "Aug"} ${p.year || "2025"}`,
-      contract: p.contract_type ? `${p.contract_type} Contract` : "Regular Contract",
-      grossAmount: formatINR(p.gross_amount),
-      deductionAmount: formatINR(p.deduction_amount),
-      netAmount: formatINR(p.net_amount),
-      status: p.status || "Generated",
-      paymentStatus: p.payment_status === "PAID" ? "Paid" : "Unpaid",
-    }));
-
     // Construct response
     return successResponse(res, {
       statusCode: 200,
@@ -184,8 +219,8 @@ const getDashboard = async (req, res, next) => {
           employeeCode: emp.employee_code || "EMP001",
           firstName: emp.first_name || "Rahul",
           lastName: emp.last_name || "Sharma",
-          fullName: `${emp.first_name || "Rahul"} ${emp.last_name || "Sharma"}`,
-          initials: `${(emp.first_name || "R")[0]}${(emp.last_name || "S")[0]}`,
+          fullName: formatFullName(emp.first_name || "Rahul", emp.last_name || "Sharma"),
+          initials: formatInitials(emp.first_name || "R", emp.last_name || "S"),
           email: emp.email || "rahul@company.com",
           phone: emp.phone || "+91 9876543210",
           department: emp.department_name || "Engineering",
@@ -211,9 +246,12 @@ const getDashboard = async (req, res, next) => {
           used: totalUsed,
           remaining: remainingDays,
         },
+        calendarAttendance,
+        calendarLeaves,
+        calendarMonth: now.getMonth() + 1,
+        calendarYear: now.getFullYear(),
         recentAttendance,
         recentLeaves,
-        recentPayslips,
       },
     });
   } catch (error) {
@@ -259,8 +297,8 @@ const getProfile = async (req, res, next) => {
           department: emp.department_name || "Engineering",
           firstName: emp.first_name,
           lastName: emp.last_name,
-          fullName: `${emp.first_name} ${emp.last_name}`,
-          initials: `${emp.first_name[0]}${emp.last_name[0]}`,
+          fullName: formatFullName(emp.first_name, emp.last_name),
+          initials: formatInitials(emp.first_name, emp.last_name),
           jobPosition: emp.designation || "Software Developer",
           manager: emp.manager_name || "Priya Mehta",
           email: emp.email,
@@ -590,7 +628,8 @@ const punchAttendance = async (req, res, next) => {
       [employeeId, today]
     );
 
-    const action = req.body.action ? req.body.action.toUpperCase() : null;
+    const body = req.body || {};
+    const action = body.action ? String(body.action).toUpperCase() : null;
 
     if (action === "IN") {
       if (existing.length > 0 && !existing[0].check_out) {
@@ -625,8 +664,8 @@ const punchAttendance = async (req, res, next) => {
     if (existing.length === 0) {
       // 1. PUNCH IN
       const [insertRes] = await pool.query(
-        `INSERT INTO attendance (employee_id, attendance_date, check_in, status, notes)
-         VALUES (?, ?, NOW(), 'Present', 'Bangalore Office')`,
+        `INSERT INTO attendance (employee_id, attendance_date, check_in, worked_hours, overtime_hours, status, notes)
+         VALUES (?, ?, NOW(), 0.00, 0.00, 'Present', 'Bangalore Office')`,
         [employeeId, today]
       );
 
@@ -702,12 +741,20 @@ const getLeaves = async (req, res, next) => {
     let totalUsed = 0;
 
     const typesMap = {};
+    const typesBreakdown = [];
     allocations.forEach((a) => {
       const tot = parseFloat(a.total_days) || 0;
       const usd = parseFloat(a.used_days) || 0;
       totalAllocated += tot;
       totalUsed += usd;
       typesMap[a.leave_type_name] = `${tot} Days`;
+      typesBreakdown.push({
+        name: a.leave_type_name,
+        code: a.leave_type_code,
+        allocated: tot,
+        used: usd,
+        remaining: Math.max(0, tot - usd),
+      });
     });
 
     if (allocations.length === 0) {
@@ -717,6 +764,12 @@ const getLeaves = async (req, res, next) => {
       typesMap["Sick Leave"] = "10 Days";
       typesMap["Casual Leave"] = "6 Days";
       typesMap["Unpaid Leave"] = "-";
+      typesBreakdown.push(
+        { name: "Annual Leave", code: "AL", allocated: 12, used: 2, remaining: 10 },
+        { name: "Sick Leave", code: "SL", allocated: 10, used: 1, remaining: 9 },
+        { name: "Casual Leave", code: "CL", allocated: 6, used: 0, remaining: 6 },
+        { name: "Unpaid Leave", code: "UL", allocated: 0, used: 0, remaining: 0 }
+      );
     }
 
     const remaining = Math.max(0, totalAllocated - totalUsed);
@@ -760,6 +813,7 @@ const getLeaves = async (req, res, next) => {
           remaining,
         },
         types: typesMap,
+        typesBreakdown,
         requests,
       },
     });

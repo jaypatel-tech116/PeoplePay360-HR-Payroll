@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { getAdminOverview } from "../../../api/admin.api";
 import { MOCK_DASHBOARD_DATA } from "../adminMockData";
+import { SkeletonDashboard } from "../../../components/ui/SkeletonLoader";
 
 export default function AdminOverviewView({ onNavigateTab }) {
   const [selectedPeriod, setSelectedPeriod] = useState("August 2025");
   const [trendYear, setTrendYear] = useState("This Year");
   const [liveData, setLiveData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getAdminOverview()
       .then((data) => {
         if (data) setLiveData(data);
       })
-      .catch((err) => console.error("Error loading admin overview:", err));
+      .catch((err) => console.error("Error loading admin overview:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   const kpis = {
@@ -51,6 +54,8 @@ export default function AdminOverviewView({ onNavigateTab }) {
 
   const monthlyEmployeeTrend = MOCK_DASHBOARD_DATA.monthlyEmployeeTrend;
 
+
+  if (loading) return <SkeletonDashboard />;
 
   return (
     <div className="adm-content-body">

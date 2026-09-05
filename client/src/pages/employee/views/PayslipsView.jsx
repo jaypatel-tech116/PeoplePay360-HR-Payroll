@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { getEmployeePayslips } from "../../../api/employee.api";
+import React, { useState, useEffect, useRef } from "react";
+import { getEmployeePayslips, getPayslipDetails } from "../../../api/employee.api";
+import { SkeletonListPage } from "../../../components/ui/SkeletonLoader";
 
 const PayslipsView = ({ onViewPayslip, refreshKey }) => {
   const [selectedYear, setSelectedYear] = useState("2025");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [data, setData] = useState(null);
+  const [printData, setPrintData] = useState(null);
+  const printRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -28,23 +31,32 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
   }, [selectedYear, statusFilter, refreshKey]);
 
   const stats = data?.stats || {
-    totalPayslips: 12,
-    totalGross: "₹ 8,40,000",
-    totalDeductions: "₹ 1,68,000",
-    totalNet: "₹ 6,72,000",
+    totalPayslips: 0,
+    totalGross: "₹ 0.00",
+    totalDeductions: "₹ 0.00",
+    totalNet: "₹ 0.00",
   };
 
-  const payslips = data?.payslips || [
-    { id: 1, period: "Aug 2025", contract: "Regular Contract", gross: "₹ 67,000.00", deduction: "₹ 12,500.00", net: "₹ 54,500.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 2, period: "Jul 2025", contract: "Regular Contract", gross: "₹ 67,000.00", deduction: "₹ 12,500.00", net: "₹ 54,500.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 3, period: "Jun 2025", contract: "Regular Contract", gross: "₹ 65,000.00", deduction: "₹ 12,000.00", net: "₹ 53,000.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 4, period: "May 2025", contract: "Regular Contract", gross: "₹ 65,000.00", deduction: "₹ 12,000.00", net: "₹ 53,000.00", status: "Generated", paymentStatus: "Paid" },
-    { id: 5, period: "Apr 2025", contract: "Regular Contract", gross: "₹ 60,000.00", deduction: "₹ 11,000.00", net: "₹ 49,000.00", status: "Generated", paymentStatus: "Paid" },
-  ];
+  const payslips = data?.payslips || [];
 
-  const handleDownload = (period, slipId) => {
-    alert(`Generating official PDF payslip for ${period}... Download started.`);
+  const handleDownload = async (period, slipId) => {
+    try {
+      // Fetch full payslip details for PDF
+      const res = await getPayslipDetails(slipId || period);
+      if (res?.data?.payslip) {
+        setPrintData(res.data.payslip);
+        // Wait for state to update, then trigger print
+        setTimeout(() => {
+          window.print();
+          setTimeout(() => setPrintData(null), 1000);
+        }, 200);
+      }
+    } catch (err) {
+      console.error("Failed to generate payslip PDF:", err);
+    }
   };
+
+  if (!data) return <SkeletonListPage rows={5} cols={5} />;
 
   return (
     <div className="employee-payslips-view">
@@ -141,6 +153,13 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
               </tr>
             </thead>
             <tbody>
+              {payslips.length === 0 && (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: "center", color: "var(--odoo-text-muted)", padding: "24px" }}>
+                    No payslips found for this period
+                  </td>
+                </tr>
+              )}
               {payslips.map((p, index) => (
                 <tr key={p.id || index}>
                   <td>{index + 1}</td>
@@ -169,7 +188,7 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
                         className="odoo-table-action-btn"
                         onClick={() => handleDownload(p.period, p.id)}
                       >
-                        ⬇ Download
+                        ⬇ PDF
                       </button>
                     </div>
                   </td>
@@ -179,6 +198,73 @@ const PayslipsView = ({ onViewPayslip, refreshKey }) => {
           </table>
         </div>
       </div>
+
+      {/* Print-only Payslip Layout (hidden on screen, visible when printing) */}
+      {printData && (
+        <div className="payslip-print-container" ref={printRef}>
+          <div className="payslip-print-header">
+            <div>
+              <div className="payslip-print-company">PeoplePay360</div>
+              <div style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: "4px" }}>Payslip Statement</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontWeight: 700, fontSize: "1rem" }}>{printData.period}</div>
+              <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>
+                {printData.paymentStatus === "Paid" ? "✅ Paid" : "⏳ Unpaid"}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginBottom: "2px" }}>Employee</div>
+              <div style={{ fontWeight: 700 }}>{printData.employeeName}</div>
+              <div style={{ fontSize: "0.82rem", color: "#6b7280" }}>{printData.employeeCode} • {printData.designation}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginBottom: "2px" }}>Department</div>
+              <div style={{ fontWeight: 700 }}>{printData.department}</div>
+            </div>
+          </div>
+
+          <h4 style={{ margin: "0 0 8px", fontSize: "0.85rem" }}>Earnings</h4>
+          <table className="payslip-print-table">
+            <thead><tr><th>Component</th><th style={{ textAlign: "right" }}>Amount</th></tr></thead>
+            <tbody>
+              {(printData.earnings || []).map((e, i) => (
+                <tr key={i}><td>{e.name}</td><td style={{ textAlign: "right" }}>{e.amount}</td></tr>
+              ))}
+              <tr style={{ fontWeight: 700, background: "#f9fafb" }}>
+                <td>Gross Earnings</td>
+                <td style={{ textAlign: "right" }}>{printData.grossAmount}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4 style={{ margin: "16px 0 8px", fontSize: "0.85rem" }}>Deductions</h4>
+          <table className="payslip-print-table">
+            <thead><tr><th>Component</th><th style={{ textAlign: "right" }}>Amount</th></tr></thead>
+            <tbody>
+              {(printData.deductions || []).map((d, i) => (
+                <tr key={i}><td>{d.name}</td><td style={{ textAlign: "right" }}>{d.amount}</td></tr>
+              ))}
+              <tr style={{ fontWeight: 700, background: "#f9fafb" }}>
+                <td>Total Deductions</td>
+                <td style={{ textAlign: "right" }}>{printData.deductionAmount}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="payslip-print-total" style={{ marginTop: "20px", padding: "16px", background: "#f3ebf1", borderRadius: "8px", textAlign: "right" }}>
+            <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>Net Pay: </span>
+            <span style={{ fontSize: "1.3rem", fontWeight: 800, color: "#714B67" }}>{printData.netAmount}</span>
+          </div>
+
+          <div style={{ marginTop: "32px", fontSize: "0.72rem", color: "#9ca3af", textAlign: "center", borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
+            This is a computer-generated payslip from PeoplePay360. No signature required.
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,10 +1,23 @@
 import React, { useState } from "react";
 import hrApi from "../../../api/hr.api";
+import { SkeletonKanban, SkeletonListPage } from "../../../components/ui/SkeletonLoader";
+
+/** Remove duplicate word if first and last name are the same (legacy data bug fix) */
+const cleanName = (name) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+  return name.trim();
+};
+
 
 const EmployeesView = ({
   employees = [],
   pipelineData = {},
   dashboardStats = {},
+  isLoading = false,
   onOpenNewEmployee,
   onViewEmployee,
   onAddEmployeeToColumn,
@@ -70,6 +83,8 @@ const EmployeesView = ({
       alert("Failed to move employee stage: " + (err.response?.data?.message || err.message));
     }
   };
+
+  if (isLoading) return viewMode === "kanban" ? <SkeletonKanban cols={4} cardsPerCol={3} /> : <SkeletonListPage rows={8} cols={6} />;
 
   return (
     <div className="hr-content-body">
@@ -253,7 +268,7 @@ const EmployeesView = ({
                     <div className="hr-card-top-row">
                       <div className="hr-card-avatar">{card.initials}</div>
                       <div className="hr-card-emp-info">
-                        <h4 className="hr-card-name">{card.name}</h4>
+                        <h4 className="hr-card-name">{cleanName(card.name)}</h4>
                         <p className="hr-card-role">{card.role}</p>
                         <p className="hr-card-dept">{card.dept}</p>
                       </div>
@@ -365,7 +380,7 @@ const EmployeesView = ({
                     <div className="hr-card-top-row">
                       <div className="hr-card-avatar">{card.initials}</div>
                       <div className="hr-card-emp-info">
-                        <h4 className="hr-card-name">{card.name}</h4>
+                        <h4 className="hr-card-name">{cleanName(card.name)}</h4>
                         <p className="hr-card-role">{card.role}</p>
                         <p className="hr-card-dept">{card.dept}</p>
                       </div>
@@ -468,7 +483,7 @@ const EmployeesView = ({
                     <div className="hr-card-top-row">
                       <div className="hr-card-avatar">{card.initials}</div>
                       <div className="hr-card-emp-info">
-                        <h4 className="hr-card-name">{card.name}</h4>
+                        <h4 className="hr-card-name">{cleanName(card.name)}</h4>
                         <p className="hr-card-role">{card.role}</p>
                         <p className="hr-card-dept">{card.dept}</p>
                       </div>
@@ -569,7 +584,7 @@ const EmployeesView = ({
                     <div className="hr-card-top-row">
                       <div className="hr-card-avatar">{card.initials}</div>
                       <div className="hr-card-emp-info">
-                        <h4 className="hr-card-name">{card.name}</h4>
+                        <h4 className="hr-card-name">{cleanName(card.name)}</h4>
                         <p className="hr-card-role">{card.role}</p>
                         <p className="hr-card-dept">{card.dept}</p>
                       </div>
@@ -671,7 +686,7 @@ const EmployeesView = ({
                       />
                     </td>
                     <td>{emp.code || emp.employee_code}</td>
-                    <td className="hr-emp-name-cell">{emp.name || `${emp.first_name} ${emp.last_name}`}</td>
+                    <td className="hr-emp-name-cell">{cleanName(emp.name || `${emp.first_name || ""} ${emp.last_name || ""}`)}</td>
                     <td>{emp.department || emp.department_name || "-"}</td>
                     <td>{emp.jobPosition || emp.designation || "-"}</td>
                     <td>{emp.employeeType || emp.employee_type || "Full Time"}</td>
