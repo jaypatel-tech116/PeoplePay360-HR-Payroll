@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { createAuditLog } = require('../services/auditService');
 
 exports.getContracts = async (req, res) => {
   try {
@@ -8,16 +9,20 @@ exports.getContracts = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Company scoping
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
     if (employee_id) {
-      where.push(`c.employee_id = $${pIdx}`);
+      where.push(`c.employee_id = $${pIdx++}`);
       params.push(employee_id);
-      pIdx++;
     }
 
     if (status && status !== 'all') {
-      where.push(`c.status = $${pIdx}`);
+      where.push(`c.status = $${pIdx++}`);
       params.push(status);
-      pIdx++;
     }
 
     const sql = `

@@ -1,10 +1,18 @@
 const { query } = require('../config/db');
 const { approveTimeOffRequest, refuseTimeOffRequest } = require('../services/timeOffService');
+const { createAuditLog } = require('../services/auditService');
 
 // --- 1. Time Off Types ---
 exports.getTypes = async (req, res) => {
   try {
-    const result = await query('SELECT * FROM time_off_types ORDER BY id ASC');
+    let sql = 'SELECT * FROM time_off_types WHERE 1=1';
+    const params = [];
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      sql += ' AND (company_id = $1 OR company_id IS NULL)';
+      params.push(req.user.company_id);
+    }
+    sql += ' ORDER BY id ASC';
+    const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching time off types:', err);
@@ -19,11 +27,13 @@ exports.createType = async (req, res) => {
       return res.status(400).json({ error: 'Name is required.' });
     }
 
+    const companyId = req.user?.company_id || null;
+
     const result = await query(
-      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO time_off_types (name, unit, requires_allocation, approval_required, affects_payroll, company_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [name, unit, requires_allocation, approval_required, affects_payroll]
+      [name, unit, requires_allocation, approval_required, affects_payroll, companyId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -40,15 +50,19 @@ exports.getAllocations = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Company scoping
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
     // Standard employee only sees own allocations
     if (req.user.role === 'Employee' && req.user.employee_id) {
-      where.push(`a.employee_id = $${pIdx}`);
+      where.push(`a.employee_id = $${pIdx++}`);
       params.push(req.user.employee_id);
-      pIdx++;
     } else if (employee_id) {
-      where.push(`a.employee_id = $${pIdx}`);
+      where.push(`a.employee_id = $${pIdx++}`);
       params.push(employee_id);
-      pIdx++;
     }
 
     const sql = `
@@ -100,21 +114,24 @@ exports.getRequests = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Company scoping
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
     // Standard employee only sees own requests
     if (req.user.role === 'Employee' && req.user.employee_id) {
-      where.push(`r.employee_id = $${pIdx}`);
+      where.push(`r.employee_id = $${pIdx++}`);
       params.push(req.user.employee_id);
-      pIdx++;
     } else if (employee_id) {
-      where.push(`r.employee_id = $${pIdx}`);
+      where.push(`r.employee_id = $${pIdx++}`);
       params.push(employee_id);
-      pIdx++;
     }
 
     if (status && status !== 'all') {
-      where.push(`r.status = $${pIdx}`);
+      where.push(`r.status = $${pIdx++}`);
       params.push(status);
-      pIdx++;
     }
 
     const sql = `

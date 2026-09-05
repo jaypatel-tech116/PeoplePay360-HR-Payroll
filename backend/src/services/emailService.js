@@ -116,7 +116,128 @@ async function sendPayrunPayslips(payrunId) {
   return results;
 }
 
+/**
+ * Send an OTP code to user's email
+ */
+async function sendOTPEmail(email, otp, purpose = 'Email Verification', recipientName = '') {
+  const mailer = await getTransporter();
+
+  const purposeTitles = {
+    'email_verification': 'Verify Your Email Address',
+    'registration_approval': 'Complete Your Registration Verification',
+    'login': 'Your Secure Login Verification Code',
+    'password_reset': 'Reset Your Password'
+  };
+
+  const title = purposeTitles[purpose] || 'Security Verification Code';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #4338ca; margin: 0; font-size: 24px; font-weight: 800;">PeoplePay360</h2>
+        <p style="color: #64748b; margin: 4px 0 0 0; font-size: 13px;">Enterprise HR & Payroll Security</p>
+      </div>
+      <div style="padding: 20px 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;">
+        <h3 style="color: #1e293b; margin-top: 0;">${title}</h3>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+          Hello ${recipientName || 'there'},<br><br>
+          Use the following verification code to complete your action. This code will expire in <strong>5 minutes</strong>.
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <div style="display: inline-block; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #4338ca; background-color: #eef2ff; padding: 12px 28px; border-radius: 8px; border: 1px dashed #6366f1;">
+            ${otp}
+          </div>
+        </div>
+        <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">
+          If you did not request this verification code, please ignore this email or contact your administrator immediately.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <p style="color: #94a3b8; font-size: 11px; margin: 0;">&copy; 2026 PeoplePay360 Inc. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const info = await mailer.sendMail({
+      from: process.env.SMTP_FROM || '"PeoplePay360 Security" <security@peoplepay360.com>',
+      to: email,
+      subject: `[PeoplePay360] ${title}: ${otp}`,
+      text: `Your PeoplePay360 verification code is: ${otp}. It expires in 5 minutes.`,
+      html
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`[OTP Email Preview]: ${previewUrl}`);
+    }
+    return { success: true, previewUrl: previewUrl || null };
+  } catch (err) {
+    console.error('Failed to send OTP email:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Send notification email when registration request is approved or refused
+ */
+async function sendRegistrationStatusEmail(email, status, reason = '', recipientName = '') {
+  const mailer = await getTransporter();
+
+  const isApproved = status === 'approved';
+  const subject = isApproved 
+    ? '🎉 Welcome to PeoplePay360 — Your Registration is Approved'
+    : 'Notice regarding your PeoplePay360 Registration Request';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #4338ca; margin: 0; font-size: 24px; font-weight: 800;">PeoplePay360</h2>
+      </div>
+      <div style="padding: 20px 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;">
+        <h3 style="color: ${isApproved ? '#16a34a' : '#dc2626'}; margin-top: 0;">
+          ${isApproved ? 'Registration Approved!' : 'Registration Request Declined'}
+        </h3>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+          Hello ${recipientName || 'there'},<br><br>
+          ${isApproved 
+            ? 'Your registration request has been reviewed and approved by your organization HR team. Your account is now active and you may log in to the portal.'
+            : `Your registration request has been reviewed and was not approved at this time.<br><strong>Reason:</strong> ${reason || 'Not specified'}`
+          }
+        </p>
+        ${isApproved ? `
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="http://localhost:5173/login" style="background-color: #4f46e5; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+              Sign In to Your Account
+            </a>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  try {
+    const info = await mailer.sendMail({
+      from: process.env.SMTP_FROM || '"PeoplePay360 Admin" <noreply@peoplepay360.com>',
+      to: email,
+      subject,
+      text: isApproved 
+        ? `Your registration is approved! You can now log in.` 
+        : `Your registration request was declined: ${reason}`,
+      html
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    return { success: true, previewUrl: previewUrl || null };
+  } catch (err) {
+    console.error('Failed to send registration status email:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   getTransporter,
-  sendPayrunPayslips
+  sendPayrunPayslips,
+  sendOTPEmail,
+  sendRegistrationStatusEmail
 };

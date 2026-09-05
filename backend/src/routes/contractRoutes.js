@@ -1,16 +1,45 @@
 const express = require('express');
 const router = express.Router();
 const contractController = require('../controllers/contractController');
-const { authenticateJWT } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/roleAuth');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const { authorizePermission } = require('../middleware/authorizePermission');
+const { checkCompanyAccess } = require('../middleware/checkCompanyAccess');
+const { validatePositiveIntParam } = require('../middleware/validateRequest');
 
-router.use(authenticateJWT);
+router.use(authenticateSession);
+router.use(checkCompanyAccess);
 
-router.get('/', contractController.getContracts);
-router.get('/:id', contractController.getContractById);
+router.get(
+  '/',
+  authorizePermission('contracts', 'read'),
+  contractController.getContracts
+);
 
-router.post('/', requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'), contractController.createContract);
-router.put('/:id', requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'), contractController.updateContract);
-router.delete('/:id', requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'), contractController.deleteContract);
+router.get(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('contracts', 'read'),
+  contractController.getContractById
+);
+
+router.post(
+  '/',
+  authorizePermission('contracts', 'create'),
+  contractController.createContract
+);
+
+router.put(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('contracts', 'update'),
+  contractController.updateContract
+);
+
+router.delete(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('contracts', 'delete'),
+  contractController.deleteContract
+);
 
 module.exports = router;

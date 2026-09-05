@@ -44,10 +44,45 @@ async function loadPermissions() {
  * @returns {boolean}
  */
 async function hasPermission(role, module, action) {
+  if (role === 'Admin') return true;
+
   const perms = await loadPermissions();
   const rolePerms = perms[role];
   if (!rolePerms) return false;
-  return rolePerms.has(`${module}:${action}`);
+
+  // Direct match
+  if (rolePerms.has(`${module}:${action}`)) return true;
+
+  const moduleAliases = {
+    'working_schedules': ['schedules', 'working_schedules'],
+    'schedules': ['schedules', 'working_schedules'],
+    'registrations': ['registrations', 'users']
+  };
+  const modulesToCheck = moduleAliases[module] || [module];
+
+  for (const m of modulesToCheck) {
+    if (rolePerms.has(`${m}:${action}`)) return true;
+
+    // Action hierarchies
+    if (action === 'read') {
+      if (
+        rolePerms.has(`${m}:read_all`) ||
+        rolePerms.has(`${m}:read_own`) ||
+        rolePerms.has(`${m}:read`) ||
+        rolePerms.has(`${m}:manage`)
+      ) return true;
+    }
+
+    if (action === 'create' && (rolePerms.has(`${m}:create_own`) || rolePerms.has(`${m}:manage`))) {
+      return true;
+    }
+
+    if ((action === 'update' || action === 'delete') && rolePerms.has(`${m}:manage`)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

@@ -19,31 +19,30 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      // Validate session with /api/auth/me
-      fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
+    // Validate session with /api/auth/me using credentials
+    fetch('/api/auth/me', {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Session expired');
+        return res.json();
       })
-        .then(res => {
-          if (!res.ok) throw new Error('Session expired');
-          return res.json();
-        })
-        .then(data => {
-          setUser(data.user);
-          localStorage.setItem('peoplepay360_user', JSON.stringify(data.user));
-        })
-        .catch(() => {
-          logout();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+      .then(data => {
+        setUser(data.user);
+        localStorage.setItem('peoplepay360_user', JSON.stringify(data.user));
+      })
+      .catch(() => {
+        if (token) logout();
+        else setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, [token]);
 
   const login = async (email, password) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
@@ -55,7 +54,9 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUser(data.user);
-    localStorage.setItem('peoplepay360_token', data.token);
+    if (data.token) {
+      localStorage.setItem('peoplepay360_token', data.token);
+    }
     localStorage.setItem('peoplepay360_user', JSON.stringify(data.user));
     return data.user;
   };
@@ -63,6 +64,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password, role) => {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, role })
     });
@@ -74,12 +76,23 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUser(data.user);
-    localStorage.setItem('peoplepay360_token', data.token);
+    if (data.token) {
+      localStorage.setItem('peoplepay360_token', data.token);
+    }
     localStorage.setItem('peoplepay360_user', JSON.stringify(data.user));
     return data.user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+    } catch (e) {
+      // Ignore network errors on logout
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem('peoplepay360_token');
@@ -90,16 +103,24 @@ export const AuthProvider = ({ children }) => {
     return await login(email, 'password123');
   };
 
+  const hasPermission = (module, action) => {
+    if (!user) return false;
+    if (user.role === 'Admin') return true;
+    if (!user.permissions) return false;
+    return user.permissions.includes(`${module}:${action}`);
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       token,
       loading,
-      isAuthenticated: !!user && !!token,
+      isAuthenticated: !!user,
       login,
       register,
       logout,
       switchDemoAccount,
+      hasPermission,
       DEMO_ACCOUNTS
     }}>
       {children}

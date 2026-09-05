@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { createAuditLog } = require('../services/auditService');
 
 exports.getEmployees = async (req, res) => {
   try {
@@ -8,22 +9,31 @@ exports.getEmployees = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Multi-company isolation
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
+    // Role-based scope: regular Employee only sees themselves
+    if (req.user?.role === 'Employee') {
+      where.push(`e.id = $${pIdx++}`);
+      params.push(req.user.employee_id);
+    }
+
     if (department_id && department_id !== 'all') {
-      where.push(`e.department_id = $${pIdx}`);
+      where.push(`e.department_id = $${pIdx++}`);
       params.push(department_id);
-      pIdx++;
     }
 
     if (status && status !== 'all') {
-      where.push(`e.status = $${pIdx}`);
+      where.push(`e.status = $${pIdx++}`);
       params.push(status);
-      pIdx++;
     }
 
     if (employee_type && employee_type !== 'all') {
-      where.push(`e.employee_type = $${pIdx}`);
+      where.push(`e.employee_type = $${pIdx++}`);
       params.push(employee_type);
-      pIdx++;
     }
 
     if (search) {
@@ -57,6 +67,12 @@ exports.getEmployees = async (req, res) => {
 exports.getEmployeeById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // IDOR protection: employee can only view their own record
+    if (req.user?.role === 'Employee' && parseInt(id, 10) !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied. You may only view your own employee profile.' });
+    }
+
     const result = await query(
       `SELECT e.*, d.name AS department_name, j.title AS job_title,
               m.full_name AS manager_name, ws.name AS schedule_name,
@@ -138,20 +154,34 @@ exports.createEmployee = async (req, res) => {
       return res.status(400).json({ error: 'An employee with this email already exists.' });
     }
 
+    const companyId = req.user?.company_id || req.body.company_id || 1;
+
     const result = await query(
       `INSERT INTO employees
        (full_name, email, phone, department_id, manager_id, job_position_id, working_schedule_id,
-        status, employee_type, bank_account_number, ifsc_code, bank_verified, hire_date, photo_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        status, employee_type, bank_account_number, ifsc_code, bank_verified, hire_date, photo_url, company_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         full_name, email, phone, department_id, manager_id || null, job_position_id,
         working_schedule_id, status, employee_type, bank_account_number || null,
-        ifsc_code || null, bank_verified, hire_date, photo_url || null
+        ifsc_code || null, bank_verified, hire_date, photo_url || null, companyId
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newEmp = result.rows[0];
+
+    await createAuditLog({
+      userId: req.user?.id,
+      companyId,
+      action: 'employee_created',
+      tableName: 'employees',
+      recordId: newEmp.id,
+      newValues: newEmp,
+      ipAddress: req.ip
+    });
+
+    res.status(201).json(newEmp);
   } catch (err) {
     console.error('Error creating employee:', err);
     res.status(500).json({ error: 'Failed to create employee.' });
@@ -167,6 +197,12 @@ exports.updateEmployee = async (req, res) => {
       employee_type, bank_account_number, ifsc_code,
       bank_verified, hire_date, photo_url
     } = req.body;
+
+    const existingRes = await query('SELECT * FROM employees WHERE id = $1', [id]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found.' });
+    }
+    const existing = existingRes.rows[0];
 
     const result = await query(
       `UPDATE employees
@@ -195,11 +231,20 @@ exports.updateEmployee = async (req, res) => {
       ]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Employee not found.' });
-    }
+    const updated = result.rows[0];
 
-    res.json(result.rows[0]);
+    await createAuditLog({
+      userId: req.user?.id,
+      companyId: existing.company_id,
+      action: 'employee_updated',
+      tableName: 'employees',
+      recordId: updated.id,
+      oldValues: existing,
+      newValues: updated,
+      ipAddress: req.ip
+    });
+
+    res.json(updated);
   } catch (err) {
     console.error('Error updating employee:', err);
     res.status(500).json({ error: 'Failed to update employee.' });

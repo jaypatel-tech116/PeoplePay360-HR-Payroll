@@ -15,6 +15,9 @@ const payrunRoutes = require('./routes/payrunRoutes');
 const payslipRoutes = require('./routes/payslipRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const departmentJobRoutes = require('./routes/departmentJobRoutes');
+const registrationRoutes = require('./routes/registrationRoutes');
+const companyRoutes = require('./routes/companyRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/errorHandler');
@@ -58,6 +61,9 @@ app.use('/api/payruns', payrunRoutes);
 app.use('/api/payslips', payslipRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', departmentJobRoutes);
+app.use('/api/registrations', registrationRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
@@ -66,6 +72,6 @@ app.listen(PORT, () => {
   console.log(`=========================================`);
   console.log(` PeoplePay360 Backend API Server Running `);
   console.log(` Port: ${PORT}                           `);
-  console.log(` Database: PostgreSQL 18 (Port 5433)    `);
+  console.log(` Database: PostgreSQL 18 (Port ${process.env.PGPORT || 5432}) `);
   console.log(`=========================================`);
 });

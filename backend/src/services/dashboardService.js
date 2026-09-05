@@ -8,23 +8,26 @@ const { query } = require('../config/db');
  * - employeeType (User Correction #1)
  */
 async function getDashboardData(filters = {}) {
-  const { period, departmentId, employeeType } = filters;
+  const { period, departmentId, employeeType, companyId, userRole } = filters;
 
   // Build employee filter clauses
   let empWhere = ['1=1'];
   let empParams = [];
   let paramIdx = 1;
 
+  if (companyId) {
+    empWhere.push(`e.company_id = $${paramIdx++}`);
+    empParams.push(companyId);
+  }
+
   if (departmentId && departmentId !== 'all') {
-    empWhere.push(`e.department_id = $${paramIdx}`);
+    empWhere.push(`e.department_id = $${paramIdx++}`);
     empParams.push(parseInt(departmentId, 10));
-    paramIdx++;
   }
 
   if (employeeType && employeeType !== 'all') {
-    empWhere.push(`e.employee_type = $${paramIdx}`);
+    empWhere.push(`e.employee_type = $${paramIdx++}`);
     empParams.push(employeeType);
-    paramIdx++;
   }
 
   const empFilterSql = empWhere.join(' AND ');
@@ -155,27 +158,35 @@ async function getDashboardData(filters = {}) {
      LIMIT 10`
   );
 
+  const canAccessPayroll = userRole !== 'HR Manager';
+
   return {
+    canAccessPayroll,
     kpis: {
-      totalNetPaid: parseFloat(netPaidRes.rows[0].total_net_paid || 0),
-      totalPayslips: parseInt(netPaidRes.rows[0].total_payslips || 0, 10),
-      avgSalary: parseFloat(netPaidRes.rows[0].avg_salary || 0),
+      totalNetPaid: canAccessPayroll ? parseFloat(netPaidRes.rows[0].total_net_paid || 0) : null,
+      totalPayslips: canAccessPayroll ? parseInt(netPaidRes.rows[0].total_payslips || 0, 10) : null,
+      avgSalary: canAccessPayroll ? parseFloat(netPaidRes.rows[0].avg_salary || 0) : null,
       approvedLeaveDays: parseFloat(timeOffKpiRes.rows[0].approved_leave_days || 0),
       pendingLeaveRequests: parseInt(timeOffKpiRes.rows[0].pending_leave_requests || 0, 10),
       attendanceHealthPct: attHealthPct,
       attendanceStats: attKpiRes.rows[0]
     },
     charts: {
-      deptCosts: deptCostRes.rows,
-      monthlyTrend: trendRes.rows
+      deptCosts: canAccessPayroll ? deptCostRes.rows : deptCostRes.rows.map(d => ({
+        department: d.department,
+        headcount: d.headcount,
+        total_wage: null,
+        total_net_expenditure: null
+      })),
+      monthlyTrend: canAccessPayroll ? trendRes.rows : []
     },
     alerts: {
       missingBankCount: missingBankEmps.rows.length,
       missingBankEmployees: missingBankEmps.rows,
-      pendingPayruns: pendingPayrunsRes.rows,
+      pendingPayruns: canAccessPayroll ? pendingPayrunsRes.rows : [],
       expiringContracts: expiringContractsRes.rows,
       missingContracts: missingContractsRes.rows,
-      activeWarnings: payrunWarningsRes.rows
+      activeWarnings: canAccessPayroll ? payrunWarningsRes.rows : []
     }
   };
 }

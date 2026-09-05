@@ -1,6 +1,7 @@
 const { query, pool } = require('../config/db');
 const { computeEmployeePayslip } = require('../services/salaryEngineService');
 const { sendPayrunPayslips } = require('../services/emailService');
+const { createAuditLog } = require('../services/auditService');
 
 /**
  * Step 1 Wizard: Preview eligible employees without persisting anything to DB
@@ -11,6 +12,13 @@ exports.previewEligibleEmployees = async (req, res) => {
 
     if (!salary_structure_id || !period_start || !period_end) {
       return res.status(400).json({ error: 'Salary structure, period start, and period end are required.' });
+    }
+
+    let companyFilter = '';
+    const params = [salary_structure_id, period_start, period_end];
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      companyFilter = ' AND e.company_id = $4';
+      params.push(req.user.company_id);
     }
 
     // Find employees with an active contract covering the period
@@ -35,6 +43,7 @@ exports.previewEligibleEmployees = async (req, res) => {
       WHERE e.status = 'active'
         AND c.start_date <= $3::date
         AND (c.end_date IS NULL OR c.end_date >= $2::date)
+        ${companyFilter}
       ORDER BY structure_matches DESC, e.full_name ASC
     `;
 
@@ -66,13 +75,15 @@ exports.createPayrun = async (req, res) => {
       return res.status(400).json({ error: 'Please select at least one employee for the payrun.' });
     }
 
+    const companyId = req.user?.company_id || 1;
+
     // Insert payrun
     const prRes = await client.query(
       `INSERT INTO payruns
-       (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net)
-       VALUES ($1, $2, $3, $4, 'draft', $5, 0.00, 0.00)
+       (name, salary_structure_id, period_start, period_end, status, created_by, total_gross, total_net, company_id)
+       VALUES ($1, $2, $3, $4, 'draft', $5, 0.00, 0.00, $6)
        RETURNING *`,
-      [name, salary_structure_id, period_start, period_end, req.user.id]
+      [name, salary_structure_id, period_start, period_end, req.user.id, companyId]
     );
     const newPayrun = prRes.rows[0];
 
@@ -85,6 +96,17 @@ exports.createPayrun = async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    await createAuditLog({
+      userId: req.user.id,
+      companyId,
+      action: 'payrun_created',
+      tableName: 'payruns',
+      recordId: newPayrun.id,
+      newValues: newPayrun,
+      ipAddress: req.ip
+    });
+
     res.status(201).json({
       message: 'Payrun created successfully in draft status.',
       payrun: newPayrun,
@@ -104,9 +126,15 @@ exports.getPayruns = async (req, res) => {
     const { status } = req.query;
     let where = ['1=1'];
     let params = [];
+    let pIdx = 1;
+
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`pr.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
 
     if (status && status !== 'all') {
-      where.push('pr.status = $1');
+      where.push(`pr.status = $${pIdx++}`);
       params.push(status);
     }
 

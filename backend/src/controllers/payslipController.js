@@ -8,15 +8,19 @@ exports.getPayslips = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Company scoping
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
     // Regular employee only sees their own payslips
     if (req.user.role === 'Employee' && req.user.employee_id) {
-      where.push(`p.employee_id = $${pIdx}`);
+      where.push(`p.employee_id = $${pIdx++}`);
       params.push(req.user.employee_id);
-      pIdx++;
     } else if (employee_id) {
-      where.push(`p.employee_id = $${pIdx}`);
+      where.push(`p.employee_id = $${pIdx++}`);
       params.push(employee_id);
-      pIdx++;
     }
 
     if (payrun_id) {

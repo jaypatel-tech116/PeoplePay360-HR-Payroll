@@ -107,6 +107,10 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
+
+        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          Don't have an account yet? <a href="/register" style={{ color: 'var(--primary-color)', fontWeight: 600, textDecoration: 'none' }}>Register here</a>
+        </div>
       </div>
     </div>
   );

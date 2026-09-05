@@ -14,7 +14,8 @@ import {
   UserCheck,
   Sparkles,
   Layers,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -138,11 +139,37 @@ export default function Navbar() {
             </Link>
           )}
 
-          {canAccessAdmin && (
-            <Link to="/admin/users" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
-              <Settings size={17} />
-              <span>User Admin</span>
+          {/* Registration Approvals for HR Manager & Admin */}
+          {(user.role === 'Admin' || user.role === 'HR Manager') && (
+            <Link to="/admin/registrations" className={`nav-link ${isActive('/admin/registrations') ? 'active' : ''}`}>
+              <UserCheck size={17} />
+              <span>Approvals</span>
             </Link>
+          )}
+
+          {/* Admin Suite */}
+          {canAccessAdmin && (
+            <div className="nav-dropdown-wrapper">
+              <Link to="/admin/users" className={`nav-link ${location.pathname.startsWith('/admin') && !location.pathname.includes('registrations') ? 'active' : ''}`}>
+                <Settings size={17} />
+                <span>Administration</span>
+                <ChevronDown size={13} className="chevron" />
+              </Link>
+              <div className="nav-dropdown-menu">
+                <Link to="/admin/users" className="dropdown-item">
+                  <Users size={15} />
+                  <span>User Roles & Status</span>
+                </Link>
+                <Link to="/admin/companies" className="dropdown-item">
+                  <Building2 size={15} />
+                  <span>Organizations</span>
+                </Link>
+                <Link to="/admin/audit-logs" className="dropdown-item">
+                  <ShieldCheck size={15} />
+                  <span>Audit Trail</span>
+                </Link>
+              </div>
+            </div>
           )}
         </nav>
 

@@ -44,20 +44,37 @@ const OWNERSHIP_MAP = {
 };
 
 const checkRecordOwnership = (resourceType, readAllModule = null) => {
+  let type = resourceType;
+  let bypassModule = readAllModule;
+  let paramName = 'id';
+
+  if (typeof resourceType === 'object' && resourceType !== null) {
+    type = resourceType.targetTable || resourceType.resourceType || resourceType.module;
+    bypassModule = resourceType.readAllModule || resourceType.readAllPermission;
+    if (typeof bypassModule === 'string' && bypassModule.includes(':')) {
+      bypassModule = bypassModule.split(':')[0];
+    }
+    paramName = resourceType.paramName || 'id';
+  }
+
   return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
 
-    const recordId = parseInt(req.params.id, 10);
+    if (req.user.role === 'Admin') {
+      return next();
+    }
+
+    const recordId = parseInt(req.params[paramName], 10);
     if (isNaN(recordId) || recordId <= 0) {
       return res.status(400).json({ error: 'Invalid record ID.' });
     }
 
     // If the user has read_all permission for this module, skip ownership check
-    if (readAllModule) {
+    if (bypassModule) {
       try {
-        const canReadAll = await hasPermission(req.user.role, readAllModule, 'read_all');
+        const canReadAll = await hasPermission(req.user.role, bypassModule, 'read_all');
         if (canReadAll) {
           return next();
         }
@@ -74,7 +91,7 @@ const checkRecordOwnership = (resourceType, readAllModule = null) => {
       });
     }
 
-    const ownershipConfig = OWNERSHIP_MAP[resourceType];
+    const ownershipConfig = OWNERSHIP_MAP[type];
     if (!ownershipConfig) {
       // Unknown resource type, deny by default
       return res.status(403).json({ error: 'Access denied. Unknown resource type.' });

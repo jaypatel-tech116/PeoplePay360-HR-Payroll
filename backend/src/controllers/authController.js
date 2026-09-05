@@ -80,7 +80,7 @@ exports.login = async (req, res) => {
     // Get company info
     let company = null;
     if (user.company_id) {
-      const compRes = await query('SELECT id, name, code, currency FROM companies WHERE id = $1', [user.company_id]);
+      const compRes = await query('SELECT id, name, domain, logo_url FROM companies WHERE id = $1', [user.company_id]);
       if (compRes.rows.length > 0) company = compRes.rows[0];
     }
 
@@ -218,7 +218,7 @@ exports.getCurrentUser = async (req, res) => {
     // Fetch company
     let company = null;
     if (req.user.company_id) {
-      const compRes = await query('SELECT id, name, code, currency FROM companies WHERE id = $1', [req.user.company_id]);
+      const compRes = await query('SELECT id, name, domain, logo_url FROM companies WHERE id = $1', [req.user.company_id]);
       if (compRes.rows.length > 0) company = compRes.rows[0];
     }
 

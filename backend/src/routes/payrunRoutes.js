@@ -1,27 +1,73 @@
 const express = require('express');
 const router = express.Router();
 const payrunController = require('../controllers/payrunController');
-const { authenticateJWT } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/roleAuth');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const { authorizePermission } = require('../middleware/authorizePermission');
+const { checkCompanyAccess } = require('../middleware/checkCompanyAccess');
+const { validatePositiveIntParam } = require('../middleware/validateRequest');
 
-router.use(authenticateJWT);
-
-// Only Payroll roles can access payrun routes
-router.use(requireRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'));
+router.use(authenticateSession);
+router.use(checkCompanyAccess);
 
 // Two-step wizard endpoints
-router.post('/preview-eligible-employees', payrunController.previewEligibleEmployees);
-router.post('/', payrunController.createPayrun);
+router.post(
+  '/preview-eligible-employees',
+  authorizePermission('payruns', 'create'),
+  payrunController.previewEligibleEmployees
+);
 
-router.get('/', payrunController.getPayruns);
-router.get('/:id', payrunController.getPayrunById);
+router.post(
+  '/',
+  authorizePermission('payruns', 'create'),
+  payrunController.createPayrun
+);
 
-router.post('/:id/compute', payrunController.computePayrun);
-router.post('/:id/validate', payrunController.validatePayrun);
-router.post('/:id/mark-paid', payrunController.markPaidPayrun);
-router.post('/:id/send-payslips', payrunController.sendPayslips);
+router.get(
+  '/',
+  authorizePermission('payruns', 'read'),
+  payrunController.getPayruns
+);
 
-// Deleting payruns is restricted to HR Payroll Manager and Admin
-router.delete('/:id', requireRoles('HR Payroll Manager', 'Admin'), payrunController.deletePayrun);
+router.get(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'read'),
+  payrunController.getPayrunById
+);
+
+router.post(
+  '/:id/compute',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'compute'),
+  payrunController.computePayrun
+);
+
+router.post(
+  '/:id/validate',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'validate'),
+  payrunController.validatePayrun
+);
+
+router.post(
+  '/:id/mark-paid',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'mark_paid'),
+  payrunController.markPaidPayrun
+);
+
+router.post(
+  '/:id/send-payslips',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'send_payslips'),
+  payrunController.sendPayslips
+);
+
+router.delete(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('payruns', 'delete'),
+  payrunController.deletePayrun
+);
 
 module.exports = router;

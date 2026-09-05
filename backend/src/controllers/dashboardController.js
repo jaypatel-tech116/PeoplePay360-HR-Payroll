@@ -5,10 +5,14 @@ exports.getDashboard = async (req, res) => {
   try {
     const { period, department, employeeType } = req.query;
 
+    const companyId = req.user.role === 'Admin' ? null : req.user.company_id;
+
     const data = await getDashboardData({
       period,
       departmentId: department,
-      employeeType
+      employeeType,
+      companyId,
+      userRole: req.user.role
     });
 
     // Also fetch department list for filter dropdown

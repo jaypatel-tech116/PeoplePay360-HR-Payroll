@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
-const { authenticateJWT } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/roleAuth');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const { authorizePermission } = require('../middleware/authorizePermission');
+const { checkCompanyAccess } = require('../middleware/checkCompanyAccess');
 
-router.use(authenticateJWT);
-router.use(requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'));
+router.use(authenticateSession);
+router.use(checkCompanyAccess);
 
-router.get('/', dashboardController.getDashboard);
+router.get(
+  '/',
+  authorizePermission('dashboard', 'read'),
+  dashboardController.getDashboard
+);
 
 module.exports = router;

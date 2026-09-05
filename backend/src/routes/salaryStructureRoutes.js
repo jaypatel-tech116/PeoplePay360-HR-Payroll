@@ -2,23 +2,61 @@ const express = require('express');
 const router = express.Router();
 const structCtrl = require('../controllers/salaryStructureController');
 const ruleCtrl = require('../controllers/salaryRuleController');
-const { authenticateJWT } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/roleAuth');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const { authorizePermission } = require('../middleware/authorizePermission');
+const { checkCompanyAccess } = require('../middleware/checkCompanyAccess');
+const { validatePositiveIntParam } = require('../middleware/validateRequest');
 
-router.use(authenticateJWT);
-
-// Only Payroll roles have access to the Payroll module
-router.use(requireRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'));
+router.use(authenticateSession);
+router.use(checkCompanyAccess);
 
 // Structures
-router.get('/', structCtrl.getStructures);
-router.get('/:id', structCtrl.getStructureById);
-router.post('/', requireRoles('HR Payroll Manager', 'Admin'), structCtrl.createStructure);
-router.put('/:id', requireRoles('HR Payroll Manager', 'Admin'), structCtrl.updateStructure);
-router.delete('/:id', requireRoles('HR Payroll Manager', 'Admin'), structCtrl.deleteStructure);
+router.get(
+  '/',
+  authorizePermission('salary_structures', 'read'),
+  structCtrl.getStructures
+);
+
+router.get(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('salary_structures', 'read'),
+  structCtrl.getStructureById
+);
+
+router.post(
+  '/',
+  authorizePermission('salary_structures', 'create'),
+  structCtrl.createStructure
+);
+
+router.put(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('salary_structures', 'update'),
+  structCtrl.updateStructure
+);
+
+router.delete(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('salary_structures', 'delete'),
+  structCtrl.deleteStructure
+);
 
 // Rules nested under structure
-router.get('/:structureId/rules', ruleCtrl.getRulesByStructure);
-router.post('/:structureId/rules', requireRoles('HR Payroll Manager', 'Admin'), ruleCtrl.createRule);
+router.get(
+  '/:structureId/rules',
+  validatePositiveIntParam('structureId'),
+  authorizePermission('salary_rules', 'read'),
+  ruleCtrl.getRulesByStructure
+);
+
+router.post(
+  '/:structureId/rules',
+  validatePositiveIntParam('structureId'),
+  authorizePermission('salary_rules', 'create'),
+  ruleCtrl.createRule
+);
 
 module.exports = router;

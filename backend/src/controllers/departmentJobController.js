@@ -2,14 +2,27 @@ const { query } = require('../config/db');
 
 exports.getDepartments = async (req, res) => {
   try {
+    const { company_id } = req.query;
+    let where = ['1=1'];
+    const params = [];
+    let pIdx = 1;
+
+    const effectiveCompanyId = req.user?.company_id || company_id;
+    if (effectiveCompanyId && req.user?.role !== 'Admin') {
+      where.push(`(d.company_id = $${pIdx++} OR d.company_id IS NULL)`);
+      params.push(effectiveCompanyId);
+    }
+
     const result = await query(
       `SELECT d.*, p.name AS parent_department_name,
               COUNT(DISTINCT e.id) AS employee_count
        FROM departments d
        LEFT JOIN departments p ON d.parent_department_id = p.id
        LEFT JOIN employees e ON e.department_id = d.id
+       WHERE ${where.join(' AND ')}
        GROUP BY d.id, p.name
-       ORDER BY d.name ASC`
+       ORDER BY d.name ASC`,
+      params
     );
     res.json(result.rows);
   } catch (err) {
@@ -20,12 +33,19 @@ exports.getDepartments = async (req, res) => {
 
 exports.getJobPositions = async (req, res) => {
   try {
-    const { department_id } = req.query;
+    const { department_id, company_id } = req.query;
     let where = ['1=1'];
     let params = [];
+    let pIdx = 1;
+
+    const effectiveCompanyId = req.user?.company_id || company_id;
+    if (effectiveCompanyId && req.user?.role !== 'Admin') {
+      where.push(`(j.company_id = $${pIdx++} OR j.company_id IS NULL)`);
+      params.push(effectiveCompanyId);
+    }
 
     if (department_id) {
-      where.push('j.department_id = $1');
+      where.push(`j.department_id = $${pIdx++}`);
       params.push(department_id);
     }
 

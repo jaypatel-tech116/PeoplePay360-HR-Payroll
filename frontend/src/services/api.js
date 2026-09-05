@@ -17,6 +17,7 @@ function getHeaders(isFormData = false) {
 async function request(url, options = {}) {
   const res = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       ...getHeaders(options.body instanceof FormData),
       ...options.headers
@@ -169,5 +170,32 @@ export const api = {
   getUsers: () => request('/api/users'),
   getRoles: () => request('/api/users/roles'),
   updateUserRole: (id, role_id) => request(`/api/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role_id }) }),
-  toggleUserStatus: (id, is_active) => request(`/api/users/${id}/status`, { method: 'PUT', body: JSON.stringify({ is_active }) })
+  toggleUserStatus: (id, is_active) => request(`/api/users/${id}/status`, { method: 'PUT', body: JSON.stringify({ is_active }) }),
+
+  // Logout
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+
+  // Registrations & OTP
+  submitRegistration: (data) => request('/api/registrations/register', { method: 'POST', body: JSON.stringify(data) }),
+  verifyRegistrationOTP: (email, otp) => request('/api/registrations/verify-email', { method: 'POST', body: JSON.stringify({ email, otp }) }),
+  resendRegistrationOTP: (email, purpose) => request('/api/registrations/resend-otp', { method: 'POST', body: JSON.stringify({ email, purpose }) }),
+  getRegistrationRequests: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/api/registrations${q ? '?' + q : ''}`);
+  },
+  approveRegistrationRequest: (id) => request(`/api/registrations/${id}/approve`, { method: 'PUT' }),
+  refuseRegistrationRequest: (id, reason) => request(`/api/registrations/${id}/refuse`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+
+  // Companies
+  getPublicCompanies: () => request('/api/companies/public'),
+  getCompanies: () => request('/api/companies'),
+  getCompanyById: (id) => request(`/api/companies/${id}`),
+  createCompany: (data) => request('/api/companies', { method: 'POST', body: JSON.stringify(data) }),
+  updateCompany: (id, data) => request(`/api/companies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Audit Logs
+  getAuditLogs: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/api/audit-logs${q ? '?' + q : ''}`);
+  }
 };

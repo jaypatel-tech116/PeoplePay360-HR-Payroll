@@ -61,4 +61,9 @@ const validateEmail = (fieldName = 'email') => {
   };
 };
 
-module.exports = { validateIdParam, validateRequiredFields, validateEmail };
+module.exports = {
+  validateIdParam,
+  validatePositiveIntParam: validateIdParam,
+  validateRequiredFields,
+  validateEmail
+};

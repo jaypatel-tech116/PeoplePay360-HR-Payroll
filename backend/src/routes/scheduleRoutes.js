@@ -1,15 +1,38 @@
 const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
-const { authenticateJWT } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/roleAuth');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const { authorizePermission } = require('../middleware/authorizePermission');
+const { checkCompanyAccess } = require('../middleware/checkCompanyAccess');
+const { validatePositiveIntParam } = require('../middleware/validateRequest');
 
-router.use(authenticateJWT);
+router.use(authenticateSession);
+router.use(checkCompanyAccess);
 
-router.get('/', scheduleController.getSchedules);
-router.get('/:id', scheduleController.getScheduleById);
+router.get(
+  '/',
+  authorizePermission('working_schedules', 'read'),
+  scheduleController.getSchedules
+);
 
-router.post('/', requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'), scheduleController.createSchedule);
-router.put('/:id', requireRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'), scheduleController.updateSchedule);
+router.get(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('working_schedules', 'read'),
+  scheduleController.getScheduleById
+);
+
+router.post(
+  '/',
+  authorizePermission('working_schedules', 'create'),
+  scheduleController.createSchedule
+);
+
+router.put(
+  '/:id',
+  validatePositiveIntParam('id'),
+  authorizePermission('working_schedules', 'update'),
+  scheduleController.updateSchedule
+);
 
 module.exports = router;

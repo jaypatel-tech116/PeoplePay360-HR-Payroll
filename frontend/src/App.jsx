@@ -16,6 +16,11 @@ import PayrunsPage from './pages/PayrunsPage';
 import PayrunDetailPage from './pages/PayrunDetailPage';
 import PayslipDetailPage from './pages/PayslipDetailPage';
 import UserManagementPage from './pages/UserManagementPage';
+import RegisterPage from './pages/RegisterPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
+import RegistrationApprovalPage from './pages/RegistrationApprovalPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import CompanyAdminPage from './pages/CompanyAdminPage';
 
 function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, loading } = useAuth();
@@ -50,6 +55,8 @@ export default function App() {
       <main className={user ? 'main-content animate-fade-in' : ''}>
         <Routes>
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" replace />} />
+          <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" replace />} />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
 
           <Route
             path="/"
@@ -169,12 +176,39 @@ export default function App() {
             }
           />
 
-          {/* Admin */}
+          {/* Admin & Approvals */}
           <Route
             path="/admin/users"
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/registrations"
+            element={
+              <ProtectedRoute allowedRoles={['HR Manager', 'Admin']}>
+                <RegistrationApprovalPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/companies"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <CompanyAdminPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <AuditLogsPage />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { createAuditLog } = require('../services/auditService');
 
 exports.getAttendances = async (req, res) => {
   try {
@@ -7,15 +8,19 @@ exports.getAttendances = async (req, res) => {
     let params = [];
     let pIdx = 1;
 
+    // Company scoping
+    if (req.user?.company_id && req.user.role !== 'Admin') {
+      where.push(`e.company_id = $${pIdx++}`);
+      params.push(req.user.company_id);
+    }
+
     // Regular employee only sees own attendance
     if (req.user.role === 'Employee' && req.user.employee_id) {
-      where.push(`a.employee_id = $${pIdx}`);
+      where.push(`a.employee_id = $${pIdx++}`);
       params.push(req.user.employee_id);
-      pIdx++;
     } else if (employee_id) {
-      where.push(`a.employee_id = $${pIdx}`);
+      where.push(`a.employee_id = $${pIdx++}`);
       params.push(employee_id);
-      pIdx++;
     }
 
     if (date) {

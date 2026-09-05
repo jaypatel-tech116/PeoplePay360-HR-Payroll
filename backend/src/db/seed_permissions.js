@@ -37,6 +37,9 @@ const PERMISSION_MATRIX = {
     ['schedules', 'read'],
     ['schedules', 'manage'],
     ['dashboard', 'read'],
+    ['registrations', 'manage'],
+    ['registrations', 'read'],
+    ['registrations', 'approve'],
   ],
   'HR Payroll User': [
     ['employees', 'read_own'],
@@ -192,7 +195,7 @@ async function seedPermissions() {
       SELECT r.name, COUNT(rp.id) as permission_count
       FROM roles r
       LEFT JOIN role_permissions rp ON r.id = rp.role_id
-      GROUP BY r.name
+      GROUP BY r.id, r.name
       ORDER BY r.id
     `);
     console.log('\nPermission counts per role:');

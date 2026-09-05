@@ -1,10 +1,11 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres@127.0.0.1:5433/peoplepay360',
+  connectionString: process.env.DATABASE_URL,
   host: process.env.PGHOST || '127.0.0.1',
-  port: parseInt(process.env.PGPORT || '5433', 10),
+  port: parseInt(process.env.PGPORT || '5432', 10),
   user: process.env.PGUSER || 'postgres',
   password: process.env.PGPASSWORD || '',
   database: process.env.PGDATABASE || 'peoplepay360',
