@@ -25,6 +25,10 @@ async function updateStages() {
     ON DUPLICATE KEY UPDATE designation = VALUES(designation)
   `);
 
+  await pool.query(
+    "SELECT setval(pg_get_serial_sequence('employees', 'id'), (SELECT MAX(id) FROM employees));"
+  );
+
   console.log("✅ Stages & demo employees updated!");
   process.exit(0);
 }

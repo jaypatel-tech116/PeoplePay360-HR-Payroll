@@ -2,7 +2,7 @@ const { pool } = require("../config/mysqlDb");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 
 /**
- * Controller to provide complete database analysis and metadata for MySQL 8.0
+ * Controller to provide complete database analysis and metadata for PostgreSQL 18
  */
 const getDatabaseAnalysis = async (req, res) => {
   try {
@@ -25,17 +25,15 @@ const getDatabaseAnalysis = async (req, res) => {
       "audit_logs",
     ];
 
-    const dbName = process.env.MYSQL_DATABASE || "peoplepay360";
-
-    // 1. Fetch tables present in database
+    // 1. Fetch tables present in public schema
     const tablesQuery = `
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema = ? AND table_type = 'BASE TABLE'
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
       ORDER BY table_name;
     `;
-    const [tablesResult] = await pool.query(tablesQuery, [dbName]);
-    const existingTableNames = tablesResult.map((r) => r.TABLE_NAME || r.table_name);
+    const [tablesResult] = await pool.query(tablesQuery);
+    const existingTableNames = tablesResult.map((r) => r.table_name || r.TABLE_NAME);
 
     // 2. Fetch column details for all existing tables
     const columnsQuery = `
@@ -46,22 +44,28 @@ const getDatabaseAnalysis = async (req, res) => {
         is_nullable,
         column_default
       FROM information_schema.columns
-      WHERE table_schema = ?
+      WHERE table_schema = 'public'
       ORDER BY table_name, ordinal_position;
     `;
-    const [columnsResult] = await pool.query(columnsQuery, [dbName]);
+    const [columnsResult] = await pool.query(columnsQuery);
 
     // 3. Fetch foreign key relationships
     const fkQuery = `
       SELECT
-        TABLE_NAME AS table_name, 
-        COLUMN_NAME AS column_name, 
-        REFERENCED_TABLE_NAME AS foreign_table_name,
-        REFERENCED_COLUMN_NAME AS foreign_column_name 
-      FROM information_schema.KEY_COLUMN_USAGE 
-      WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL;
+        tc.table_name, 
+        kcu.column_name, 
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name 
+      FROM information_schema.table_constraints AS tc 
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage AS ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
     `;
-    const [fkResult] = await pool.query(fkQuery, [dbName]);
+    const [fkResult] = await pool.query(fkQuery);
 
     // 4. Query row counts for each table
     const tableDetails = [];
@@ -73,7 +77,7 @@ const getDatabaseAnalysis = async (req, res) => {
 
       if (exists) {
         try {
-          const [countRes] = await pool.query(`SELECT COUNT(*) AS count FROM \`${tableName}\`;`);
+          const [countRes] = await pool.query(`SELECT COUNT(*)::int AS count FROM "${tableName}";`);
           count = countRes[0]?.count || 0;
           totalRowCount += count;
         } catch {
@@ -81,8 +85,8 @@ const getDatabaseAnalysis = async (req, res) => {
         }
       }
 
-      const columns = columnsResult.filter((c) => (c.TABLE_NAME || c.table_name) === tableName);
-      const foreignKeys = fkResult.filter((fk) => (fk.TABLE_NAME || fk.table_name) === tableName);
+      const columns = columnsResult.filter((c) => (c.table_name || c.TABLE_NAME) === tableName);
+      const foreignKeys = fkResult.filter((fk) => (fk.table_name || fk.TABLE_NAME) === tableName);
 
       tableDetails.push({
         name: tableName,
@@ -90,31 +94,31 @@ const getDatabaseAnalysis = async (req, res) => {
         rowCount: count,
         columnCount: columns.length,
         columns: columns.map((c) => ({
-          name: c.COLUMN_NAME || c.column_name,
-          type: c.DATA_TYPE || c.data_type,
-          nullable: (c.IS_NULLABLE || c.is_nullable) === "YES",
-          default: c.COLUMN_DEFAULT || c.column_default,
+          name: c.column_name || c.COLUMN_NAME,
+          type: c.data_type || c.DATA_TYPE,
+          nullable: (c.is_nullable || c.IS_NULLABLE) === "YES",
+          default: c.column_default || c.COLUMN_DEFAULT,
         })),
         foreignKeys: foreignKeys.map((fk) => ({
-          column: fk.COLUMN_NAME || fk.column_name,
-          referencesTable: fk.REFERENCED_TABLE_NAME || fk.foreign_table_name,
-          referencesColumn: fk.REFERENCED_COLUMN_NAME || fk.foreign_column_name,
+          column: fk.column_name || fk.COLUMN_NAME,
+          referencesTable: fk.foreign_table_name || fk.REFERENCED_TABLE_NAME,
+          referencesColumn: fk.foreign_column_name || fk.REFERENCED_COLUMN_NAME,
         })),
       });
     }
 
-    // 5. Query MySQL database info
-    const [versionRes] = await pool.query(`SELECT VERSION() AS version;`);
+    // 5. Query PostgreSQL database info
+    const [versionRes] = await pool.query(`SELECT version();`);
 
     return successResponse(res, {
       statusCode: 200,
       message: "Database analysis retrieved successfully.",
       data: {
-        databaseEngine: "MySQL 8.0 (Local)",
+        databaseEngine: "PostgreSQL 18 (Local)",
         version: versionRes[0]?.version,
-        schema: dbName,
+        schema: "public",
         totalExpectedTables: expectedTables.length,
-        totalExistingTables: existingTableNames.length,
+        totalExistingTables: existingTableNames.filter((t) => expectedTables.includes(t)).length,
         totalRecords: totalRowCount,
         isFullyCompliant: expectedTables.every((t) => existingTableNames.includes(t)),
         architectureFlow: [

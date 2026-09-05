@@ -3,11 +3,11 @@ const { pool } = require("./src/config/mysqlDb");
 
 const PORT = process.env.PORT || 5000;
 
-// Test MySQL database connection before listening for requests
+// Test PostgreSQL database connection before listening for requests
 async function startServer() {
   try {
     const connection = await pool.getConnection();
-    console.log("✅ MySQL Database pool connected and ready (peoplepay360).");
+    console.log("✅ PostgreSQL Database pool connected and ready (peoplepay360).");
     connection.release();
 
     const server = app.listen(PORT, "0.0.0.0", () => {
@@ -17,11 +17,11 @@ async function startServer() {
 
     // Graceful shutdown handlers
     const shutdown = async (signal) => {
-      console.log(`\n🛑 Received ${signal}. Closing HTTP server and MySQL pool...`);
+      console.log(`\n🛑 Received ${signal}. Closing HTTP server and PostgreSQL pool...`);
       server.close(async () => {
         try {
           await pool.end();
-          console.log("🔌 MySQL pool closed. Server terminated cleanly.");
+          console.log("🔌 PostgreSQL pool closed. Server terminated cleanly.");
           process.exit(0);
         } catch (err) {
           console.error("❌ Error during shutdown:", err.message);
@@ -33,7 +33,7 @@ async function startServer() {
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
   } catch (err) {
-    console.error("❌ Failed to connect to MySQL database on startup:", err.message);
+    console.error("❌ Failed to connect to PostgreSQL database on startup:", err.message);
     process.exit(1);
   }
 }

@@ -784,9 +784,10 @@ const createLeaveRequest = async (req, res, next) => {
     // Resolve leave_type_id from name or ID
     let leaveTypeId = 1;
     if (type) {
+      const typeIdVal = !isNaN(Number(type)) ? Number(type) : -1;
       const [tRows] = await pool.query(
         `SELECT id FROM leave_types WHERE name = ? OR code = ? OR id = ? LIMIT 1`,
-        [type, type, type]
+        [type, type, typeIdVal]
       );
       if (tRows[0]) leaveTypeId = tRows[0].id;
     }

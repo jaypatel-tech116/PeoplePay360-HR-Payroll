@@ -2194,7 +2194,7 @@ const getAttendanceReport = async (req, res, next) => {
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN attendance a ON a.employee_id = e.id
       WHERE e.status != 'TERMINATED'
-      GROUP BY e.id
+      GROUP BY e.id, d.name
       LIMIT 20
     `);
 
