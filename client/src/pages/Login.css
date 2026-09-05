@@ -24,6 +24,19 @@
   margin-bottom: var(--spacing-xl);
 }
 
+.auth-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #6366f1);
+  background-color: #ede9fe;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
 .auth-title {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
@@ -106,6 +119,54 @@
 
 .auth-btn-submit:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+}
+
+.demo-credentials-box {
+  margin-top: var(--spacing-md);
+  padding: 0.85rem;
+  background-color: #f8fafc;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.demo-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.demo-btn {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background-color: #ffffff;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demo-btn:hover {
+  background-color: #f1f5f9;
+  border-color: var(--color-primary);
+}
+
+.demo-btn-emp {
+  border-left: 3px solid #10b981;
+}
+
+.demo-btn-hr {
+  border-left: 3px solid #6366f1;
 }
 
 .auth-footer {

@@ -57,6 +57,30 @@
   border-radius: var(--radius-full);
 }
 
+.navbar-role-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-emp {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.badge-hr {
+  background-color: #ede9fe;
+  color: #6366f1;
+}
+
+.badge-default {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
 .navbar-avatar {
   width: 28px;
   height: 28px;

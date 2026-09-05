@@ -1,16 +1,12 @@
 import api from "./axios";
 
 /**
- * Register a new user with name, email, password, confirmPassword, and optional avatar
- * @param {FormData} formData
+ * Register a new user with email and password
+ * @param {{ email: string, password: string }} data
  * @returns {Promise<object>}
  */
-export const registerRequest = async (formData) => {
-  const response = await api.post("/auth/register", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+export const registerRequest = async (data) => {
+  const response = await api.post("/auth/register", data);
   return response.data;
 };
 
@@ -39,5 +35,14 @@ export const logoutRequest = async () => {
  */
 export const getCurrentUserRequest = async () => {
   const response = await api.get("/auth/me");
+  return response.data;
+};
+
+/**
+ * Fetch comprehensive database analysis (16 tables, counts, columns, foreign keys)
+ * @returns {Promise<object>}
+ */
+export const getDatabaseAnalysisRequest = async () => {
+  const response = await api.get("/db/analysis");
   return response.data;
 };

@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
+const dbRoutes = require("./routes/db.routes");
 const { errorHandler } = require("./middleware/errorHandler.middleware");
 const { errorResponse, successResponse } = require("./utils/apiResponse");
 
@@ -16,11 +17,26 @@ const app = express();
 // 1. Security Headers
 app.use(helmet());
 
-// 2. CORS setup - locked to client URL with credentials support for cookies
-const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+// 2. CORS setup - supports localhost:5173, 5174, etc. with credentials
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:5175",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: clientUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, mobile, Postman) or matching local dev ports
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -47,6 +63,7 @@ app.get("/api/health", (req, res) => {
 // 5. Mount API feature routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/db", dbRoutes);
 
 // 6. Handle unmatched routes (404)
 app.use((req, res) => {

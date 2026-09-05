@@ -10,7 +10,7 @@ pool
     client.release();
     console.log("✅ Database pool connected and ready.");
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`🔒 Environment: ${process.env.NODE_ENV || "development"}`);
     });

@@ -9,14 +9,11 @@ const { successResponse, errorResponse } = require("../utils/apiResponse");
  */
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-    const avatarFile = req.file;
+    const { email, password } = req.body;
 
     const { user, token } = await authService.registerUser({
-      name,
       email,
       password,
-      avatarFile,
     });
 
     // Set secure httpOnly cookie

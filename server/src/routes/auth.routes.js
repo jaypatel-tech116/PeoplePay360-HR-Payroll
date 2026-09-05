@@ -20,11 +20,10 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// POST /api/auth/register - Register with optional avatar and auto-login
+// POST /api/auth/register - Register with email and password
 router.post(
   "/register",
   authLimiter,
-  uploadAvatar,
   registerValidator,
   validate,
   authController.register

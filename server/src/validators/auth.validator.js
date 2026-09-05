@@ -1,16 +1,9 @@
 const { body } = require("express-validator");
 
 /**
- * Validation rules for user registration
+ * Validation rules for user registration (Email and Password only)
  */
 const registerValidator = [
-  body("name")
-    .trim()
-    .notEmpty()
-    .withMessage("Full name is required")
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Name must be between 2 and 100 characters"),
-
   body("email")
     .trim()
     .notEmpty()
@@ -24,20 +17,10 @@ const registerValidator = [
     .withMessage("Password is required")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long"),
-
-  body("confirmPassword")
-    .notEmpty()
-    .withMessage("Password confirmation is required")
-    .custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error("Passwords do not match");
-      }
-      return true;
-    }),
 ];
 
 /**
- * Validation rules for user login
+ * Validation rules for user login (Email and Password only)
  */
 const loginValidator = [
   body("email")
