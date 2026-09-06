@@ -1,0 +1,56 @@
+name: PeoplePay360 CI Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-client:
+    name: Build & Test Frontend (React + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './client/package-lock.json'
+
+      - name: Install Client Dependencies
+        run: npm ci
+
+      - name: Build Frontend Application
+        run: npm run build
+
+  verify-server:
+    name: Verify Backend (Node.js + Express)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './server/package-lock.json'
+
+      - name: Install Server Dependencies
+        run: npm ci
+
+      - name: Validate Server Syntax
+        run: node -c server.js

@@ -12,6 +12,12 @@
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100vw;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .navbar-brand {
@@ -22,6 +28,7 @@
   color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-lg);
+  flex-shrink: 0;
 }
 
 .navbar-brand:hover {
@@ -45,6 +52,11 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .navbar-user-pill {

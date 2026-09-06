@@ -63,10 +63,10 @@
 }
 
 .pay-sidebar-brand {
-  height: 56px;
+  height: 96px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -91,7 +91,7 @@
 .pay-nav-item {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 12px;
   padding: 10px 16px;
   border-radius: 6px;
   color: var(--pay-plum-muted);
@@ -105,8 +105,10 @@
   transition: all 0.15s ease-in-out;
 }
 
-.pay-nav-icon {
-  display: none !important;
+.pay-nav-react-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-right: 2px;
 }
 
 .pay-sidebar.collapsed .pay-nav-item {
@@ -114,8 +116,7 @@
   padding: 10px;
 }
 
-.pay-sidebar.collapsed .pay-nav-item .pay-nav-text,
-.pay-sidebar.collapsed .pay-nav-item span:not(.pay-nav-icon) {
+.pay-sidebar.collapsed .pay-nav-item .pay-nav-text {
   display: none !important;
 }
 

@@ -14,8 +14,11 @@
 
 html,
 body {
-  height: 100%;
-  width: 100%;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 body {
@@ -29,7 +32,9 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -68,3 +73,32 @@ img {
   max-width: 100%;
   display: block;
 }
+
+/* ==========================================================================
+   Clean Hidden Scrollbars for Sidebars & Navbars
+   ========================================================================== */
+.adm-sidebar,
+.hr-sidebar,
+.mgr-sidebar,
+.pay-sidebar,
+.odoo-sidebar,
+.sidebar,
+aside,
+[class*="-sidebar"] {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.adm-sidebar::-webkit-scrollbar,
+.hr-sidebar::-webkit-scrollbar,
+.mgr-sidebar::-webkit-scrollbar,
+.pay-sidebar::-webkit-scrollbar,
+.odoo-sidebar::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+aside::-webkit-scrollbar,
+[class*="-sidebar"]::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+

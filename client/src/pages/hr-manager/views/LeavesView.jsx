@@ -21,8 +21,6 @@ const LeavesView = ({
   onRefresh,
 }) => {
   const [requestSearch, setRequestSearch] = useState("");
-  // Default to list / table type view as requested by user
-  const [viewMode, setViewMode] = useState("list");
   const [activeTab, setActiveTab] = useState("All");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("All Leave Types");
   const [isProcessingId, setIsProcessingId] = useState(null);

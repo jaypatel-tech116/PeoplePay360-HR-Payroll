@@ -185,10 +185,7 @@ export default function SettingsView() {
                         gap: "10px",
                       }}
                     >
-                      <span style={{ fontSize: "1.4rem" }}>🟣</span>
-                      <span style={{ fontWeight: 800, color: "var(--adm-plum-primary)", fontSize: "1.1rem" }}>
-                        PeoplePay360
-                      </span>
+                      <img src="/Logo.png" alt="Company Logo" style={{ height: "54px", width: "auto", objectFit: "contain" }} />
                     </div>
                     <button type="button" className="adm-btn-secondary" onClick={() => alert("Upload new logo")}>
                       Change Logo

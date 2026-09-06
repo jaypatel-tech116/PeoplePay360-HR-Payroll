@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import payrollApi from "../../../api/payroll.api";
 
+const cleanName = (name) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+  return name.trim();
+};
+
 export default function EmployeesKanbanView() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +190,7 @@ export default function EmployeesKanbanView() {
                 </div>
 
                 {/* Column Cards */}
-                <div style={{ display: "flex", flexDirection: "column", padding: "10px", gap: "10px" }}>
+                <div className="mgr-kanban-cards">
                   {filteredEmployees.map((emp) => (
                     <div
                       key={emp.id}
@@ -213,7 +222,7 @@ export default function EmployeesKanbanView() {
                             flexShrink: 0,
                           }}
                         >
-                          {emp.name
+                          {cleanName(emp.name)
                             .split(" ")
                             .map((n) => n[0])
                             .slice(0, 2)
@@ -221,7 +230,7 @@ export default function EmployeesKanbanView() {
                         </div>
 
                         <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
                             <span
                               style={{
                                 fontWeight: 700,
@@ -231,10 +240,25 @@ export default function EmployeesKanbanView() {
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                               }}
+                              title={cleanName(emp.name)}
                             >
-                              {emp.name}
+                              {cleanName(emp.name)}
                             </span>
-                            <code>{emp.id}</code>
+                            <span
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                color: "#4b5563",
+                                backgroundColor: "#f3f4f6",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                flexShrink: 0,
+                                border: "1px solid #e5e7eb",
+                                fontFamily: "monospace",
+                              }}
+                            >
+                              {emp.id}
+                            </span>
                           </div>
 
                           <div style={{ fontSize: "0.76rem", color: "#6b7280", marginTop: "2px" }}>

@@ -34,6 +34,7 @@ export default function PayCyclesView({ onCreateNewCycle }) {
 
 
   const filtered = cycles.filter((c) => {
+    if (yearFilter !== "All Years" && String(c.year) !== String(yearFilter)) return false;
     if (statusFilter !== "All Status" && c.status !== statusFilter) return false;
     const q = searchQuery.toLowerCase();
     return (

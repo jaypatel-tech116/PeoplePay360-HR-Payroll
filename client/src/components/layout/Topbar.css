@@ -10,12 +10,18 @@
   position: sticky;
   top: 0;
   z-index: 30;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .topbar-left {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .topbar-toggle-btn {
@@ -37,6 +43,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
+  flex-shrink: 0;
 }
 
 .topbar-demo-switcher {

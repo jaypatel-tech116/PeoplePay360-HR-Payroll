@@ -27,8 +27,7 @@ const Navbar = () => {
         to={user ? (user.role === "EMPLOYEE" ? "/employee" : "/hr") : "/login"}
         className="navbar-brand"
       >
-        <span className="navbar-logo-icon">💼</span>
-        <span className="navbar-brand-name">PeoplePay360</span>
+        <img src="/Logo.png" alt="PeoplePay360" className="navbar-logo-img" style={{ height: "80px", width: "auto", objectFit: "contain" }} />
       </Link>
 
       <nav className="navbar-menu">

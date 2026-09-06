@@ -46,19 +46,34 @@ const ProfileView = ({ refreshKey }) => {
   }, [refreshKey]);
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
-      await updateEmployeeProfile({
+      const res = await updateEmployeeProfile({
         phone: formData.phone,
         address: formData.address,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        gender: formData.gender,
       });
+
+      if (res?.data?.profile) {
+        setFormData(res.data.profile);
+      } else {
+        const fresh = await getEmployeeProfile();
+        if (fresh?.data?.profile) {
+          setFormData(fresh.data.profile);
+        }
+      }
+
       setIsEditing(false);
       alert("Personal information updated successfully!");
     } catch (err) {
       console.error("Failed to update profile:", err);
-      alert("Failed to update profile. Please try again.");
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to update profile. Please try again.";
+      alert(msg);
     }
   };
 
@@ -92,7 +107,8 @@ const ProfileView = ({ refreshKey }) => {
               Cancel
             </button>
             <button
-              type="button"
+              type="submit"
+              form="employee-profile-form"
               className="odoo-btn-primary"
               onClick={handleSave}
             >
@@ -102,7 +118,7 @@ const ProfileView = ({ refreshKey }) => {
         </div>
 
         {/* 2-Column Edit Layout */}
-        <form onSubmit={handleSave}>
+        <form id="employee-profile-form" onSubmit={handleSave}>
           <div
             style={{
               display: "grid",

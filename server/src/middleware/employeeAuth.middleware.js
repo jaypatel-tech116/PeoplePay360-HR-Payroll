@@ -64,10 +64,20 @@ const requireEmployee = async (req, res, next) => {
     // 5. Determine employee_id
     let employeeId = dbUser.employee_id;
 
-    // If user is Admin or HR Manager viewing or testing the employee portal,
-    // fallback to employee 1 (Rahul Sharma) if they don't have an employee_id linked
-    if (!employeeId && (dbUser.role === "ADMIN" || dbUser.role === "HR_MANAGER")) {
-      employeeId = 1;
+    if (!employeeId) {
+      // First try to match employee by email
+      const [empByEmail] = await pool.query(
+        `SELECT id FROM employees WHERE email = ? LIMIT 1`,
+        [dbUser.email]
+      );
+      if (empByEmail && empByEmail.length > 0) {
+        employeeId = empByEmail[0].id;
+        await pool.query(`UPDATE users SET employee_id = ? WHERE id = ?`, [employeeId, dbUser.id]);
+      } else {
+        // Fallback to employee 1 (Rahul Sharma) for admin/manager testing
+        const [firstEmp] = await pool.query(`SELECT id FROM employees ORDER BY id ASC LIMIT 1`);
+        employeeId = firstEmp && firstEmp.length > 0 ? firstEmp[0].id : 1;
+      }
     }
 
     if (!employeeId) {

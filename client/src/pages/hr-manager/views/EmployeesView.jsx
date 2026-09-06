@@ -25,7 +25,6 @@ const EmployeesView = ({
   onRefresh,
 }) => {
   const [pipelineSearch, setPipelineSearch] = useState("");
-  const [viewMode, setViewMode] = useState("kanban");
   const [activeMenuId, setActiveMenuId] = useState(null);
 
   // Normalize pipeline lists
@@ -164,33 +163,6 @@ const EmployeesView = ({
             >
               <span>🔄</span> Refresh
             </button>
-
-            <div className="hr-view-toggles">
-              <button
-                type="button"
-                className={`hr-view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
-                onClick={() => setViewMode("grid")}
-                title="Grid View"
-              >
-                ⊞
-              </button>
-              <button
-                type="button"
-                className={`hr-view-toggle-btn ${viewMode === "kanban" ? "active" : ""}`}
-                onClick={() => setViewMode("kanban")}
-                title="Kanban Board"
-              >
-                ▦
-              </button>
-              <button
-                type="button"
-                className={`hr-view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
-                onClick={() => setViewMode("list")}
-                title="List View"
-              >
-                ☰
-              </button>
-            </div>
           </div>
         </div>
 

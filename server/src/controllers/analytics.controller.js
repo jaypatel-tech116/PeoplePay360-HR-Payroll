@@ -446,11 +446,209 @@ const getPayrollReports = async (req, res, next) => {
   }
 };
 
-/**
- * Backward-compatible Admin Analytics
- */
 const getAdminAnalytics = async (req, res, next) => {
-  return getPayrollDashboard(req, res, next);
+  try {
+    const { year, month } = req.query;
+    const currentYear = new Date().getFullYear();
+    const targetYear = parseInt(year, 10) || currentYear;
+    const targetMonth = month || "All Months";
+
+    const MONTH_NAMES = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    let targetMonthNum = null;
+    if (targetMonth && targetMonth !== "All Months" && targetMonth !== "ALL") {
+      if (!isNaN(parseInt(targetMonth, 10))) {
+        targetMonthNum = parseInt(targetMonth, 10);
+      } else {
+        const idx = MONTH_NAMES.findIndex(
+          (m) => m.toLowerCase() === targetMonth.toLowerCase()
+        );
+        if (idx !== -1) targetMonthNum = idx + 1;
+      }
+    }
+
+    // 1. Get available years dynamically from employees joining_date and payruns table
+    const [yearRows] = await pool.query(`
+      SELECT DISTINCT y FROM (
+        SELECT YEAR(joining_date) AS y FROM employees WHERE joining_date IS NOT NULL
+        UNION
+        SELECT year AS y FROM payruns WHERE year IS NOT NULL
+        UNION
+        SELECT 2026 AS y
+        UNION
+        SELECT 2025 AS y
+        UNION
+        SELECT 2024 AS y
+      ) t
+      WHERE y IS NOT NULL AND y > 2000
+      ORDER BY y DESC;
+    `);
+    let availableYears = yearRows.map((r) => r.y);
+    if (!availableYears.length) {
+      availableYears = [2026, 2025, 2024];
+    }
+
+    // 2. Active employees count
+    const [empCount] = await pool.query(`SELECT COUNT(*) AS total FROM employees WHERE status = 'ACTIVE';`);
+    const totalEmployees = empCount[0]?.total || 0;
+
+    // 3. On Leave count
+    let onLeaveQuery = `
+      SELECT COUNT(*) AS total 
+      FROM leave_requests 
+      WHERE status = 'Approved' 
+    `;
+    const onLeaveParams = [];
+    if (targetMonthNum) {
+      onLeaveQuery += ` AND YEAR(start_date) = ? AND MONTH(start_date) = ?`;
+      onLeaveParams.push(targetYear, targetMonthNum);
+    } else {
+      onLeaveQuery += ` AND (CURDATE() BETWEEN start_date AND end_date OR YEAR(start_date) = ?)`;
+      onLeaveParams.push(targetYear);
+    }
+
+    const [onLeaveRows] = await pool.query(onLeaveQuery, onLeaveParams);
+    const onLeaveToday = onLeaveRows[0]?.total || 0;
+
+    // 4. Active Contracts count
+    const [contractCount] = await pool.query(`SELECT COUNT(*) AS total FROM contracts WHERE status = 'ACTIVE';`);
+    const activeContracts = contractCount[0]?.total || 0;
+
+    // 5. Total Payroll for targetYear & targetMonth
+    let payrollSql = `
+      SELECT 
+        COALESCE(SUM(total_net), 0) AS total_payroll,
+        COUNT(id) AS payruns_count
+      FROM payruns 
+      WHERE (year = ? OR YEAR(period_start) = ?)
+    `;
+    const payrollParams = [targetYear, targetYear];
+
+    if (targetMonthNum) {
+      const monthStr = MONTH_NAMES[targetMonthNum - 1];
+      payrollSql += ` AND (month = ? OR MONTH(period_start) = ?)`;
+      payrollParams.push(monthStr, targetMonthNum);
+    }
+
+    const [yearlyPayrollRows] = await pool.query(payrollSql, payrollParams);
+    let totalPayrollYear = parseFloat(yearlyPayrollRows[0]?.total_payroll || 0);
+
+    // Fallback if 0 for specific month: try querying payslips for that month/year
+    if (totalPayrollYear === 0 && targetMonthNum) {
+      const [slipPayroll] = await pool.query(`
+        SELECT COALESCE(SUM(net_amount), 0) AS total_payroll
+        FROM payslips
+        WHERE YEAR(period_start) = ? AND MONTH(period_start) = ?;
+      `, [targetYear, targetMonthNum]);
+      totalPayrollYear = parseFloat(slipPayroll[0]?.total_payroll || 0);
+    }
+
+    if (totalPayrollYear === 0 && targetMonth === "All Months") {
+      const [allPayroll] = await pool.query(`SELECT COALESCE(SUM(total_net), 0) AS total_payroll FROM payruns;`);
+      totalPayrollYear = parseFloat(allPayroll[0]?.total_payroll || 0);
+    }
+
+    // 6. Monthly Employee Count Trend for targetYear (Jan through Dec)
+    const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyEmployeeTrend = [];
+
+    for (let m = 1; m <= 12; m++) {
+      const lastDayOfMonth = `${targetYear}-${m.toString().padStart(2, "0")}-${new Date(targetYear, m, 0).getDate()}`;
+      
+      const [countRow] = await pool.query(`
+        SELECT COUNT(*) AS count 
+        FROM employees 
+        WHERE (joining_date IS NULL OR joining_date <= ?)
+          AND (status = 'ACTIVE' OR status = 'ON_LEAVE');
+      `, [lastDayOfMonth]);
+
+      monthlyEmployeeTrend.push({
+        month: monthsShort[m - 1],
+        fullName: MONTH_NAMES[m - 1],
+        count: countRow[0]?.count || 0,
+        isSelected: targetMonthNum === m,
+      });
+    }
+
+    // 7. Leave distribution for targetYear & targetMonth
+    let leaveDistSql = `
+      SELECT 
+        COALESCE(SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending,
+        COALESCE(SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END), 0) AS approved,
+        COALESCE(SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END), 0) AS rejected,
+        COUNT(*) AS total
+      FROM leave_requests
+      WHERE (YEAR(start_date) = ? OR YEAR(created_at) = ?)
+    `;
+    const leaveDistParams = [targetYear, targetYear];
+
+    if (targetMonthNum) {
+      leaveDistSql += ` AND (MONTH(start_date) = ? OR MONTH(created_at) = ?)`;
+      leaveDistParams.push(targetMonthNum, targetMonthNum);
+    }
+
+    const [leaveDist] = await pool.query(leaveDistSql, leaveDistParams);
+
+    const lDist = leaveDist[0] || { pending: 0, approved: 0, rejected: 0, total: 0 };
+    let finalLeaveDist = lDist;
+
+    if (parseInt(lDist.total, 10) === 0) {
+      const [allLeaves] = await pool.query(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending,
+          COALESCE(SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END), 0) AS approved,
+          COALESCE(SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END), 0) AS rejected,
+          COUNT(*) AS total
+        FROM leave_requests;
+      `);
+      finalLeaveDist = allLeaves[0] || lDist;
+    }
+
+    // 8. Recent Activities from audit_logs
+    const [recentActivities] = await pool.query(`
+      SELECT a.*, u.full_name, u.email
+      FROM audit_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      ORDER BY a.created_at DESC
+      LIMIT 6;
+    `);
+
+    const periodLabel = targetMonth && targetMonth !== "All Months" 
+      ? `${targetMonth} ${targetYear}` 
+      : `Year ${targetYear}`;
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: "Admin analytics retrieved successfully.",
+      data: {
+        selectedYear: targetYear,
+        selectedMonth: targetMonth,
+        availableYears,
+        availableMonths: ["All Months", ...MONTH_NAMES],
+        kpi: {
+          totalEmployees,
+          onLeaveToday,
+          activeContracts,
+          totalPayroll: totalPayrollYear,
+          latestPayrunMonth: periodLabel,
+          periodLabel,
+        },
+        monthlyEmployeeTrend,
+        leaveDistribution: {
+          pending: parseInt(finalLeaveDist.pending, 10) || 0,
+          approved: parseInt(finalLeaveDist.approved, 10) || 0,
+          rejected: parseInt(finalLeaveDist.rejected, 10) || 0,
+          total: parseInt(finalLeaveDist.total, 10) || 0,
+        },
+        recentActivities: recentActivities || [],
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**

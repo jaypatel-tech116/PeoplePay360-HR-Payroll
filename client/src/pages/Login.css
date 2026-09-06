@@ -22,22 +22,20 @@
   box-sizing: border-box;
 }
 
-/* Sophisticated gradient overlay for readability on the left while revealing the team backdrop on the right */
+/* Sophisticated gradient overlay for optimal readability while showing office backdrop cleanly */
 .pp-login-bg-overlay {
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.97) 0%,
-    rgba(255, 255, 255, 0.92) 34%,
-    rgba(255, 255, 255, 0.55) 56%,
-    rgba(255, 255, 255, 0.18) 78%,
-    rgba(255, 255, 255, 0.05) 100%
+    105deg,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(255, 255, 255, 0.78) 40%,
+    rgba(255, 255, 255, 0.45) 75%,
+    rgba(255, 255, 255, 0.20) 100%
   );
+  backdrop-filter: brightness(0.96) contrast(1.02);
+  -webkit-backdrop-filter: brightness(0.96) contrast(1.02);
   pointer-events: none;
   z-index: 1;
 }
@@ -47,22 +45,22 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1340px;
+  max-width: 1300px;
   min-height: 100vh;
-  padding: 30px 40px;
+  padding: 40px 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  gap: 36px;
+  gap: 80px;
 }
 
 /* ==========================================================================
    Left Hero Branding & Information Panel
    ========================================================================== */
 .pp-hero-pane {
-  flex: 1 1 450px;
-  max-width: 540px;
+  flex: 1 1 500px;
+  max-width: 520px;
   min-width: 280px;
   display: flex;
   flex-direction: column;
@@ -87,15 +85,16 @@
 }
 
 .pp-brand-badge-row {
-  display: block;
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.pp-brand-logo-text {
-  font-size: 32px;
-  font-weight: 850;
-  letter-spacing: -0.6px;
-  color: #2b1129;
+.pp-hero-logo-img {
+  height: 64px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .pp-brand-360 {
@@ -120,16 +119,16 @@
 }
 
 .pp-hero-headlines {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .pp-hero-title {
-  font-size: 46px;
+  font-size: 44px;
   font-weight: 850;
   line-height: 1.14;
   color: #111827;
   letter-spacing: -1.2px;
-  margin: 0 0 16px 0;
+  margin: 0 0 14px 0;
 }
 
 .pp-hero-title-accent {
@@ -137,7 +136,7 @@
 }
 
 .pp-hero-subtext {
-  font-size: 16.5px;
+  font-size: 16px;
   line-height: 1.55;
   color: #4b5563;
   max-width: 460px;
@@ -149,93 +148,8 @@
 .pp-features-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-bottom: 36px;
-}
-
-.pp-feature-item {
-  display: flex;
-  align-items: center;
   gap: 16px;
-}
-
-.pp-feature-icon-box {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: #f5eff8;
-  color: #714B67;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(113, 75, 103, 0.08);
-}
-
-.pp-feature-text h4 {
-  margin: 0 0 2px 0;
-  font-size: 15.5px;
-  font-weight: 750;
-  color: #111827;
-}
-
-.pp-feature-text p {
-  margin: 0;
-  font-size: 13px;
-  color: #64748b;
-}
-
-/* Bottom Floating Stats Bar */
-.pp-stats-pill-bar {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 20px;
-  padding: 12px 22px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-  max-width: 530px;
-}
-
-.pp-stat-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.pp-stat-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.pp-stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.pp-stat-num {
-  font-size: 13.5px;
-  font-weight: 800;
-  color: #111827;
-  line-height: 1.15;
-}
-
-.pp-stat-lbl {
-  font-size: 10px;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.pp-stat-sep {
-  width: 1px;
-  height: 28px;
-  background-color: #e5e7eb;
-  margin: 0 12px;
+  margin-bottom: 0;
 }
 
 /* ==========================================================================
@@ -279,11 +193,16 @@
 }
 
 .pp-card-logo {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  color: #2b1129;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.pp-card-logo-img {
+  height: 80px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .pp-card-logo-360 {

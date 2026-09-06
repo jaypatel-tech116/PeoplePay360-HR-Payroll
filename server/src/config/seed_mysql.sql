@@ -48,17 +48,17 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 INSERT INTO `employees` (
   `id`, `employee_code`, `first_name`, `last_name`, `email`, `phone`, `date_of_birth`,
   `gender`, `joining_date`, `department_id`, `schedule_id`, `designation`,
-  `employee_type`, `status`, `work_location`, `national_id`, `bank_account`,
+  `employee_type`, `status`, `pipeline_stage`, `work_location`, `national_id`, `bank_account`,
   `pan_number`, `uan_number`, `address`, `city`, `state`, `country`
 ) VALUES
-(1, 'EMP001', 'Rahul', 'Sharma', 'rahul@company.com', '+91 98765 43210', '1995-01-12', 'Male', '2023-09-01', 1, 1, 'Software Developer', 'FULL_TIME', 'ACTIVE', 'Bangalore Office', 'XXXX1234', 'HDFC **** 4321', 'ABCDE1234F', '100012345678', 'Indiranagar', 'Bangalore', 'Karnataka', 'India'),
-(2, 'EMP002', 'Priya', 'Mehta', 'priya@company.com', '+91 98765 43211', '1994-04-24', 'Female', '2022-06-15', 2, 1, 'HR Manager', 'FULL_TIME', 'ACTIVE', 'Mumbai Office', 'XXXX5678', 'ICICI **** 8765', 'BCDEF2345G', '100023456789', 'Andheri West', 'Mumbai', 'Maharashtra', 'India'),
-(3, 'EMP003', 'Vikram', 'Rao', 'vikram@company.com', '+91 98765 43212', '1992-08-18', 'Male', '2023-01-10', 3, 1, 'Sales Executive', 'FULL_TIME', 'ACTIVE', 'Delhi Office', 'XXXX9012', 'SBI **** 1234', 'CDEFG3456H', '100034567890', 'Connaught Place', 'New Delhi', 'Delhi', 'India'),
-(4, 'EMP004', 'Sneha', 'Iyer', 'sneha@company.com', '+91 98765 43213', '1996-11-05', 'Female', '2024-03-01', 5, 1, 'UI/UX Designer', 'FULL_TIME', 'ACTIVE', 'Bangalore Office', 'XXXX3456', 'Axis **** 6543', 'DEFGH4567I', '100045678901', 'Koramangala', 'Bangalore', 'Karnataka', 'India'),
-(5, 'EMP005', 'Aditya', 'Gupta', 'aditya@company.com', '+91 98765 43214', '1993-07-14', 'Male', '2024-02-20', 1, 1, 'DevOps Engineer', 'FULL_TIME', 'ACTIVE', 'Bangalore Office', 'XXXX7890', 'HDFC **** 7890', 'EFGHI5678J', '100056789012', 'Whitefield', 'Bangalore', 'Karnataka', 'India'),
-(6, 'EMP006', 'Neha', 'Patel', 'neha@company.com', '+91 98765 43215', '1997-09-30', 'Female', '2023-09-15', 2, 1, 'HR Executive', 'FULL_TIME', 'ACTIVE', 'Mumbai Office', 'XXXX2345', 'Kotak **** 4321', 'FGHIJ6789K', '100067890123', 'Bandra', 'Mumbai', 'Maharashtra', 'India'),
-(7, 'EMP007', 'Rohan', 'Desai', 'rohan@company.com', '+91 98765 43216', '1991-12-02', 'Male', '2022-10-01', 4, 1, 'Marketing Specialist', 'FULL_TIME', 'INACTIVE', 'Bangalore Office', 'XXXX6789', 'ICICI **** 9012', 'GHIJK7890L', '100078901234', 'Jayanagar', 'Bangalore', 'Karnataka', 'India'),
-(8, 'EMP008', 'Meera', 'Nair', 'meera@company.com', '+91 98765 43217', '1994-03-22', 'Female', '2024-01-15', 6, 1, 'Accountant', 'FULL_TIME', 'ACTIVE', 'Bangalore Office', 'XXXX0123', 'Federal **** 5678', 'HIJKL8901M', '100089012345', 'MG Road', 'Bangalore', 'Karnataka', 'India')
+(1, 'EMP001', 'Rahul', 'Sharma', 'rahul@company.com', '+91 98765 43210', '1995-01-12', 'Male', '2023-09-01', 1, 1, 'Software Developer', 'FULL_TIME', 'ACTIVE', 'ACTIVE', 'Bangalore Office', 'XXXX1234', 'HDFC **** 4321', 'ABCDE1234F', '100012345678', 'Indiranagar', 'Bangalore', 'Karnataka', 'India'),
+(2, 'EMP002', 'Priya', 'Mehta', 'priya@company.com', '+91 98765 43211', '1994-04-24', 'Female', '2022-06-15', 2, 1, 'HR Manager', 'FULL_TIME', 'ACTIVE', 'ACTIVE', 'Mumbai Office', 'XXXX5678', 'ICICI **** 8765', 'BCDEF2345G', '100023456789', 'Andheri West', 'Mumbai', 'Maharashtra', 'India'),
+(3, 'EMP003', 'Vikram', 'Rao', 'vikram@company.com', '+91 98765 43212', '1992-08-18', 'Male', '2023-01-10', 3, 1, 'Sales Executive', 'FULL_TIME', 'ACTIVE', 'ACTIVE', 'Delhi Office', 'XXXX9012', 'SBI **** 1234', 'CDEFG3456H', '100034567890', 'Connaught Place', 'New Delhi', 'Delhi', 'India'),
+(4, 'EMP004', 'Sneha', 'Iyer', 'sneha@company.com', '+91 98765 43213', '1996-11-05', 'Female', '2024-03-01', 5, 1, 'UI/UX Designer', 'FULL_TIME', 'ACTIVE', 'ON_LEAVE', 'Bangalore Office', 'XXXX3456', 'Axis **** 6543', 'DEFGH4567I', '100045678901', 'Koramangala', 'Bangalore', 'Karnataka', 'India'),
+(5, 'EMP005', 'Aditya', 'Gupta', 'aditya@company.com', '+91 98765 43214', '1993-07-14', 'Male', '2024-02-20', 1, 1, 'DevOps Engineer', 'FULL_TIME', 'ACTIVE', 'ON_LEAVE', 'Bangalore Office', 'XXXX7890', 'HDFC **** 7890', 'EFGHI5678J', '100056789012', 'Whitefield', 'Bangalore', 'Karnataka', 'India'),
+(6, 'EMP006', 'Neha', 'Patel', 'neha@company.com', '+91 98765 43215', '1997-09-30', 'Female', '2023-09-15', 2, 1, 'HR Executive', 'FULL_TIME', 'ACTIVE', 'NEW_JOINER', 'Mumbai Office', 'XXXX2345', 'Kotak **** 4321', 'FGHIJ6789K', '100067890123', 'Bandra', 'Mumbai', 'Maharashtra', 'India'),
+(7, 'EMP007', 'Rohan', 'Desai', 'rohan@company.com', '+91 98765 43216', '1991-12-02', 'Male', '2022-10-01', 4, 1, 'Marketing Specialist', 'FULL_TIME', 'INACTIVE', 'EXITING', 'Bangalore Office', 'XXXX6789', 'ICICI **** 9012', 'GHIJK7890L', '100078901234', 'Jayanagar', 'Bangalore', 'Karnataka', 'India'),
+(8, 'EMP008', 'Meera', 'Nair', 'meera@company.com', '+91 98765 43217', '1994-03-22', 'Female', '2024-01-15', 6, 1, 'Accountant', 'FULL_TIME', 'ACTIVE', 'ON_LEAVE', 'Bangalore Office', 'XXXX0123', 'Federal **** 5678', 'HIJKL8901M', '100089012345', 'MG Road', 'Bangalore', 'Karnataka', 'India')
 ON DUPLICATE KEY UPDATE `email` = VALUES(`email`);
 
 -- ----------------------------------------------------------------------------

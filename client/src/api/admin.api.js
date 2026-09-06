@@ -3,8 +3,8 @@ import api from "./axios";
 /**
  * 1. Admin Dashboard Analytics & Overview
  */
-export const getAdminOverview = async () => {
-  const response = await api.get("/analytics/admin");
+export const getAdminOverview = async (params) => {
+  const response = await api.get("/analytics/admin", { params });
   return response.data?.data || response.data;
 };
 

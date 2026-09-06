@@ -80,7 +80,9 @@ const Register = () => {
     <div className="register-page-container">
       <div className="register-card">
         <div className="register-header">
-          <div className="register-badge">PeoplePay360</div>
+          <div className="register-logo-wrap" style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+            <img src="/Logo.png" alt="PeoplePay360" style={{ height: "80px", width: "auto", objectFit: "contain" }} />
+          </div>
           <h1 className="register-title">Create Account</h1>
           <p className="register-subtitle">Sign up with your email and password</p>
         </div>

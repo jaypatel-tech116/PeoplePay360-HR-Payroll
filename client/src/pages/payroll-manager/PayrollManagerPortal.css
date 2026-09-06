@@ -36,7 +36,10 @@
 /* Master Shell */
 .mgr-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   background-color: var(--mgr-bg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--mgr-text-dark);
@@ -49,13 +52,15 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-height: 100vh;
-  position: sticky;
-  top: 0;
   height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   z-index: 50;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
-  transition: width 0.2s ease-in-out;
 }
 
 .mgr-sidebar.collapsed {
@@ -63,10 +68,10 @@
 }
 
 .mgr-sidebar-brand {
-  height: 56px;
+  height: 96px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -114,7 +119,7 @@
 .mgr-nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 8px 14px;
   border-radius: 6px;
   color: var(--mgr-plum-muted);
@@ -126,6 +131,12 @@
   width: 100%;
   text-align: left;
   transition: all 0.15s ease-in-out;
+}
+
+.mgr-nav-react-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-right: 2px;
 }
 
 .mgr-nav-icon-glyph {
@@ -220,7 +231,10 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
+  max-height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Topbar */
@@ -235,6 +249,13 @@
   position: sticky;
   top: 0;
   z-index: 40;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mgr-topbar-left {
@@ -705,6 +726,37 @@
   border-bottom: 1px solid var(--mgr-border);
   display: flex;
   justify-content: space-between;
+}
+
+.mgr-kanban-cards {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 210px);
+  min-height: 540px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.mgr-kanban-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mgr-kanban-cards::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.mgr-kanban-cards::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.mgr-kanban-cards::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 .mgr-kanban-card {

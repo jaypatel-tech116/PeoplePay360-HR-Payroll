@@ -188,3 +188,17 @@
     z-index: 39;
   }
 }
+
+/* Collapsed Sidebar Specs */
+.portal-sidebar.collapsed {
+  width: 72px;
+}
+
+.portal-sidebar.collapsed .sidebar-item-label {
+  display: none !important;
+}
+
+.portal-sidebar.collapsed .sidebar-nav-link {
+  justify-content: center;
+  padding: 10px 4px;
+}

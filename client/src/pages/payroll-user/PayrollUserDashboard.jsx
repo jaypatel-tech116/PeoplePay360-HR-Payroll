@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+  FiGrid,
+  FiRotateCw,
+  FiFileText,
+  FiBarChart2,
+  FiSliders,
+  FiCheckSquare,
+  FiUsers,
+  FiBriefcase,
+  FiCalendar,
+  FiSun,
+  FiLogOut,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import "../payroll-manager/PayrollManagerPortal.css";
 
 // View components matching the unified PeoplePay360 payroll interface
@@ -54,53 +70,33 @@ const PayrollUserDashboard = () => {
     {
       title: "MAIN",
       items: [
-        { id: "dashboard", label: "Dashboard", icon: "📊" },
+        { id: "dashboard", label: "Dashboard", icon: <FiGrid className="mgr-nav-react-icon" /> },
       ],
     },
     {
       title: "PAYROLL",
       items: [
-        { id: "pay-cycles", label: "Payruns", icon: "🔄" },
-        { id: "pay-slips", label: "Payslips", icon: "📄" },
-        { id: "reports", label: "Reports", icon: "📈" },
+        { id: "pay-cycles", label: "Payruns", icon: <FiRotateCw className="mgr-nav-react-icon" /> },
+        { id: "pay-slips", label: "Payslips", icon: <FiFileText className="mgr-nav-react-icon" /> },
+        { id: "reports", label: "Reports", icon: <FiBarChart2 className="mgr-nav-react-icon" /> },
       ],
     },
     {
       title: "CONFIGURATION",
       items: [
-        { id: "salary-structures", label: "Salary Structures", icon: "📐" },
-        { id: "salary-rules", label: "Salary Rules", icon: "⚖️" },
+        { id: "salary-structures", label: "Salary Structures", icon: <FiSliders className="mgr-nav-react-icon" /> },
+        { id: "salary-rules", label: "Salary Rules", icon: <FiCheckSquare className="mgr-nav-react-icon" /> },
       ],
     },
     {
       title: "HR DATA",
       items: [
-        { id: "employees", label: "Employees", icon: "👥" },
-        { id: "contracts", label: "Contracts", icon: "💼" },
-        { id: "attendance", label: "Attendance", icon: "📅" },
-        { id: "time-off", label: "Time Off", icon: "🌴" },
+        { id: "employees", label: "Employees", icon: <FiUsers className="mgr-nav-react-icon" /> },
+        { id: "contracts", label: "Contracts", icon: <FiBriefcase className="mgr-nav-react-icon" /> },
+        { id: "attendance", label: "Attendance", icon: <FiCalendar className="mgr-nav-react-icon" /> },
+        { id: "time-off", label: "Time Off", icon: <FiSun className="mgr-nav-react-icon" /> },
       ],
     },
-  ];
-
-  // Screen shortcuts for directly previewing all screens
-  const screenShortcuts = [
-    { id: "dashboard", label: "1. Dashboard" },
-    { id: "pay-cycles", label: "2. Payruns" },
-    { id: "create-cycle", label: "3. Create Payrun" },
-    { id: "process-payroll", label: "4. Process Payrun" },
-    { id: "verify-payroll", label: "5. Verify Payrun" },
-    { id: "processing", label: "6. Processing" },
-    { id: "completed", label: "7. Completed" },
-    { id: "pay-slips", label: "8. Payslips" },
-    { id: "payslip-detail", label: "9. Payslip Detail" },
-    { id: "salary-structures", label: "10. Structures (Read-Only)" },
-    { id: "salary-rules", label: "11. Rules (Read-Only)" },
-    { id: "employees", label: "12. Employees" },
-    { id: "contracts", label: "13. Contracts" },
-    { id: "attendance", label: "14. Attendance" },
-    { id: "time-off", label: "15. Time Off" },
-    { id: "reports", label: "16. Reports" },
   ];
 
   // Helper to select a payslip and navigate to detail view
@@ -123,18 +119,32 @@ const PayrollUserDashboard = () => {
     <div className="mgr-shell">
       {/* Sidebar matching Odoo Plum #714B67 design */}
       <aside className={`mgr-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        <div className="mgr-sidebar-brand">
-          <div className="mgr-logo-text">
-            {isSidebarCollapsed ? "P" : "PeoplePay360"}
-          </div>
+        <div
+          className="mgr-sidebar-brand"
+          style={{
+            justifyContent: "center",
+            padding: "8px 10px"
+          }}
+        >
+          {isSidebarCollapsed ? (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "38px", width: "auto", maxWidth: "48px", objectFit: "contain" }}
+            />
+          ) : (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "60px", width: "auto", maxWidth: "90%", objectFit: "contain" }}
+            />
+          )}
         </div>
 
         <div className="mgr-sidebar-menu-wrapper">
           {menuSections.map((section, sIdx) => (
             <div key={sIdx} className="mgr-sidebar-section">
-              {!isSidebarCollapsed && (
-                <div className="mgr-sidebar-section-title">{section.title}</div>
-              )}
+              {!isSidebarCollapsed && <div className="mgr-sidebar-section-title">{section.title}</div>}
               <ul className="mgr-sidebar-menu">
                 {section.items.map((item) => {
                   const isActive =
@@ -151,7 +161,7 @@ const PayrollUserDashboard = () => {
                         onClick={() => setActiveTab(item.id)}
                         title={item.label}
                       >
-                        <span className="mgr-nav-icon-glyph">{item.icon}</span>
+                        <span className="mgr-nav-icon-glyph" style={{ display: "inline-flex", alignItems: "center" }}>{item.icon}</span>
                         <span className="mgr-nav-text">{item.label}</span>
                       </button>
                     </li>
@@ -162,154 +172,117 @@ const PayrollUserDashboard = () => {
           ))}
         </div>
 
-        <div className="mgr-sidebar-footer">
+        <div
+          className="mgr-sidebar-footer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexDirection: isSidebarCollapsed ? "column" : "row",
+            justifyContent: isSidebarCollapsed ? "center" : "space-between",
+            gap: "8px",
+            padding: isSidebarCollapsed ? "12px 6px" : "10px 12px"
+          }}
+        >
+          <div style={{ position: "relative", flex: 1, minWidth: 0, width: isSidebarCollapsed ? "auto" : "100%" }}>
+            <div
+              className="mgr-user-pill"
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              style={{ width: "100%", boxSizing: "border-box" }}
+              title={displayName}
+            >
+              <div className="mgr-user-avatar">{userInitials}</div>
+              {!isSidebarCollapsed && (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", textAlign: "left", lineHeight: 1.15, flex: 1, minWidth: 0 }}>
+                    <span className="mgr-user-name" style={{ fontSize: "0.82rem", fontWeight: 700 }}>
+                      {displayName}
+                    </span>
+                    <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.75)" }}>
+                      {displayRole}
+                    </span>
+                  </div>
+                  <FiChevronDown className="mgr-user-caret" />
+                </>
+              )}
+            </div>
+
+            {/* Profile Dropdown */}
+            {isProfileMenuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 8px)",
+                  left: isSidebarCollapsed ? "10px" : 0,
+                  width: "190px",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                  border: "1px solid #e5e7eb",
+                  zIndex: 100,
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#111827" }}>
+                    {displayName}
+                  </div>
+                  <div style={{ fontSize: "0.74rem", color: "var(--mgr-plum-primary)", fontWeight: 600, marginTop: "1px" }}>
+                    {displayRole}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#6b7280", marginTop: "2px" }}>
+                    {displayEmail}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    color: "#dc2626",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <FiLogOut /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            className="mgr-collapse-btn"
+            className="mgr-collapse-toggle-btn"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0
+            }}
           >
-            {isSidebarCollapsed ? "→" : "←"}
+            {isSidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
           </button>
         </div>
       </aside>
 
-      {/* Main Container */}
+      {/* Main Container without horizontal topbar */}
       <div className="mgr-main">
-        {/* Top Header Bar */}
-        <header className="mgr-topbar">
-          <div className="mgr-topbar-left">
-            <span className="mgr-topbar-appname" style={{ fontSize: "0.95rem", fontWeight: 600, color: "rgba(255,255,255,0.9)", letterSpacing: "0.02em" }}>
-              Payroll Operations
-            </span>
-            <div className="mgr-topbar-search-box">
-              <span style={{ color: "rgba(255,255,255,0.7)" }}>🔍</span>
-              <input
-                type="text"
-                className="mgr-topbar-search-input"
-                placeholder="Search employees, payruns, reports..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="mgr-topbar-right">
-            {/* Quick Screen Jumper */}
-            <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
-              <select
-                value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  backgroundColor: "rgba(0,0,0,0.25)",
-                  color: "#ffffff",
-                  fontSize: "0.78rem",
-                  cursor: "pointer",
-                  outline: "none",
-                }}
-                title="Jump to any screen directly"
-              >
-                {screenShortcuts.map((s) => (
-                  <option key={s.id} value={s.id} style={{ background: "#58374f", color: "#fff" }}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Notifications & Settings Icons */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "10px" }}>
-              <button
-                type="button"
-                className="mgr-topbar-icon-btn"
-                title="Notifications"
-                onClick={() => alert("No new notifications at this time.")}
-              >
-                🔔
-              </button>
-              <button
-                type="button"
-                className="mgr-topbar-icon-btn"
-                title="Settings"
-                onClick={() => alert("Payroll Settings & Configuration (View-Only)")}
-              >
-                ⚙️
-              </button>
-            </div>
-
-            {/* User Profile Pill */}
-            <div style={{ position: "relative" }}>
-              <div
-                className="mgr-user-pill"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              >
-                <div className="mgr-user-avatar">{userInitials}</div>
-                <div style={{ display: "flex", flexDirection: "column", textAlign: "left", lineHeight: 1.15 }}>
-                  <span className="mgr-user-name" style={{ fontSize: "0.82rem", fontWeight: 700 }}>
-                    {displayName}
-                  </span>
-                  <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.75)" }}>
-                    {displayRole}
-                  </span>
-                </div>
-                <span className="mgr-user-caret">⌵</span>
-              </div>
-
-              {/* Profile Dropdown */}
-              {isProfileMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "46px",
-                    width: "220px",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-                    border: "1px solid #e5e7eb",
-                    zIndex: 100,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
-                    <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#111827" }}>
-                      {displayName}
-                    </div>
-                    <div style={{ fontSize: "0.74rem", color: "var(--mgr-plum-primary)", fontWeight: 600, marginTop: "1px" }}>
-                      {displayRole}
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: "#6b7280", marginTop: "2px" }}>
-                      {displayEmail}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      color: "#dc2626",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <span>🚪</span> Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
 
         {/* View Content Renderer */}
         <main>

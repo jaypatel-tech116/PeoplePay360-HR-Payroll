@@ -2,6 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
+  FiGrid,
+  FiUser,
+  FiFileText,
+  FiCalendar,
+  FiClock,
+  FiCreditCard,
+  FiLogOut,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+import {
   getEmployeeDashboard,
   getEmployeeAttendance,
   punchAttendance,
@@ -239,9 +251,27 @@ const EmployeeDashboard = () => {
   return (
     <div className="odoo-shell">
       {/* Left Odoo Plum Sidebar */}
-      <aside className="odoo-sidebar">
-        <div className="odoo-sidebar-brand">
-          <span className="odoo-logo-text">odoo</span>
+      <aside className={`odoo-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div
+          className="odoo-sidebar-brand"
+          style={{
+            justifyContent: "center",
+            padding: "8px 10px"
+          }}
+        >
+          {isSidebarCollapsed ? (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "38px", width: "auto", maxWidth: "48px", objectFit: "contain" }}
+            />
+          ) : (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "60px", width: "auto", maxWidth: "90%", objectFit: "contain" }}
+            />
+          )}
         </div>
 
         <ul className="odoo-sidebar-menu">
@@ -250,8 +280,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
               onClick={() => handleTabChange("dashboard")}
+              title="Dashboard"
             >
-              <span>Dashboard</span>
+              <FiGrid className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">Dashboard</span>
             </button>
           </li>
 
@@ -260,8 +292,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "profile" ? "active" : ""}`}
               onClick={() => handleTabChange("profile")}
+              title="My Profile"
             >
-              <span>My Profile</span>
+              <FiUser className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Profile</span>
             </button>
           </li>
 
@@ -270,8 +304,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "contract" ? "active" : ""}`}
               onClick={() => handleTabChange("contract")}
+              title="My Contract"
             >
-              <span>My Contract</span>
+              <FiFileText className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Contract</span>
             </button>
           </li>
 
@@ -280,8 +316,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "schedule" ? "active" : ""}`}
               onClick={() => handleTabChange("schedule")}
+              title="My Schedule"
             >
-              <span>My Schedule</span>
+              <FiCalendar className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Schedule</span>
             </button>
           </li>
 
@@ -290,8 +328,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "attendance" ? "active" : ""}`}
               onClick={() => handleTabChange("attendance")}
+              title="My Attendance"
             >
-              <span>My Attendance</span>
+              <FiClock className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Attendance</span>
             </button>
           </li>
 
@@ -300,8 +340,10 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "leaves" ? "active" : ""}`}
               onClick={() => handleTabChange("leaves")}
+              title="My Leaves"
             >
-              <span>My Leaves</span>
+              <FiCalendar className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Leaves</span>
             </button>
           </li>
 
@@ -310,15 +352,27 @@ const EmployeeDashboard = () => {
               type="button"
               className={`odoo-nav-item ${activeTab === "payslips" ? "active" : ""}`}
               onClick={() => handleTabChange("payslips")}
+              title="My Payslips"
             >
-              <span>My Payslips</span>
+              <FiCreditCard className="odoo-nav-react-icon" />
+              <span className="odoo-nav-text">My Payslips</span>
             </button>
           </li>
         </ul>
 
-        {/* User Profile Pill at Bottom-Left */}
-        <div className="odoo-sidebar-footer">
-          <div className="odoo-sidebar-user-container">
+        {/* User Profile Pill at Bottom-Left with Logout Only */}
+        <div
+          className="odoo-sidebar-footer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexDirection: isSidebarCollapsed ? "column" : "row",
+            justifyContent: isSidebarCollapsed ? "center" : "space-between",
+            gap: "8px",
+            padding: isSidebarCollapsed ? "12px 6px" : "10px 12px"
+          }}
+        >
+          <div className="odoo-sidebar-user-container" style={{ flex: 1, minWidth: 0, width: isSidebarCollapsed ? "auto" : "100%" }}>
             <div
               className="odoo-user-dropdown odoo-sidebar-user-pill"
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -327,35 +381,42 @@ const EmployeeDashboard = () => {
               <div className="odoo-avatar-circle">
                 {displayInitials}
               </div>
-              <div className="odoo-user-meta">
-                <span className="odoo-user-fullname">
-                  {displayName}
-                </span>
-                <span className="odoo-user-role-label">Employee</span>
-              </div>
-              <span className="odoo-caret">▼</span>
+              {!isSidebarCollapsed && (
+                <>
+                  <div className="odoo-user-meta">
+                    <span className="odoo-user-fullname">
+                      {displayName}
+                    </span>
+                    <span className="odoo-user-role-label">Employee</span>
+                  </div>
+                  <FiChevronDown className="odoo-caret" />
+                </>
+              )}
             </div>
 
             {isProfileMenuOpen && (
-              <div className="odoo-sidebar-profile-dropdown">
-                <div className="odoo-profile-dropdown-header">
-                  <div className="odoo-profile-dropdown-name">
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: isSidebarCollapsed ? "16px" : "60px",
+                  left: isSidebarCollapsed ? "78px" : "12px",
+                  width: "200px",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+                  border: "1px solid #e5e7eb",
+                  zIndex: 9999,
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
                     {displayName}
                   </div>
-                  <div className="odoo-profile-dropdown-email">
+                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                     {employeeInfo?.email || user?.email || "employee@company.com"}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="odoo-profile-dropdown-item"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    handleTabChange("profile");
-                  }}
-                >
-                  My Profile
-                </button>
                 <button
                   type="button"
                   className="odoo-profile-dropdown-item logout"
@@ -365,27 +426,53 @@ const EmployeeDashboard = () => {
                       handleLogout();
                     }
                   }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    color: "#dc2626",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
-                  Sign Out
+                  <FiLogOut /> Sign Out
                 </button>
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            className="odoo-collapse-toggle-btn"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0
+            }}
+          >
+            {isSidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
+          </button>
         </div>
       </aside>
 
-      {/* Main Canvas */}
+      {/* Main Canvas without Horizontal Topbar */}
       <div className="odoo-main">
-        {/* Topbar Header */}
-        <header className="odoo-topbar">
-          <div className="odoo-topbar-left">
-            <span className="odoo-topbar-appname">PeoplePay360</span>
-          </div>
-
-          <div className="odoo-topbar-right">
-          </div>
-        </header>
-
         {/* Dynamic View Body */}
         <main className="odoo-body">
           {activeTab === "dashboard" && (

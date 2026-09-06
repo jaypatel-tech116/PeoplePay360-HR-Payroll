@@ -333,7 +333,7 @@ const getProfile = async (req, res, next) => {
           workSchedule: emp.schedule_name || "General (Mon - Fri)",
           gender: emp.gender || "Male",
           status: emp.status === "ACTIVE" ? "Active" : emp.status,
-          address: emp.address ? `${emp.address}, ${emp.city || "Bangalore"}, ${emp.state || "Karnataka"}` : "123, Green Park, Bangalore, Karnataka - 560001, India",
+          address: emp.address || "123, Green Park, Bangalore, Karnataka - 560001, India",
           emergencyContact: "+91 9876543211 (Spouse)",
         },
       },
@@ -345,12 +345,24 @@ const getProfile = async (req, res, next) => {
 
 /**
  * 3. PATCH /api/employee/me/profile
- * Allows employee to update allowed personal details (phone, address)
+ * Allows employee to update personal details (phone, address, names, gender, email)
  */
 const updateProfile = async (req, res, next) => {
   try {
     const employeeId = req.employeeId;
-    const { phone, address, firstName, lastName } = req.body;
+    const {
+      phone,
+      address,
+      firstName,
+      first_name,
+      lastName,
+      last_name,
+      gender,
+      email,
+    } = req.body;
+
+    const fName = firstName !== undefined ? firstName : first_name;
+    const lName = lastName !== undefined ? lastName : last_name;
 
     const updates = [];
     const params = [];
@@ -363,13 +375,21 @@ const updateProfile = async (req, res, next) => {
       updates.push("address = ?");
       params.push(address);
     }
-    if (firstName !== undefined) {
+    if (fName !== undefined) {
       updates.push("first_name = ?");
-      params.push(firstName);
+      params.push(fName);
     }
-    if (lastName !== undefined) {
+    if (lName !== undefined) {
       updates.push("last_name = ?");
-      params.push(lastName);
+      params.push(lName);
+    }
+    if (gender !== undefined) {
+      updates.push("gender = ?");
+      params.push(gender);
+    }
+    if (email !== undefined && email.trim() !== "") {
+      updates.push("email = ?");
+      params.push(email.trim());
     }
 
     if (updates.length > 0) {
@@ -377,9 +397,64 @@ const updateProfile = async (req, res, next) => {
       await pool.query(`UPDATE employees SET ${updates.join(", ")} WHERE id = ?`, params);
     }
 
+    // Keep user account synchronized if name changed
+    if (fName !== undefined || lName !== undefined || email !== undefined) {
+      const [empRows] = await pool.query(`SELECT first_name, last_name, email FROM employees WHERE id = ?`, [employeeId]);
+      if (empRows.length > 0) {
+        const currentEmp = empRows[0];
+        const fullName = `${currentEmp.first_name || ''} ${currentEmp.last_name || ''}`.trim();
+        await pool.query(`UPDATE users SET full_name = ? WHERE employee_id = ? OR id = ?`, [
+          fullName,
+          employeeId,
+          req.user?.id || 0,
+        ]);
+      }
+    }
+
+    // Fetch updated profile
+    const [rows] = await pool.query(
+      `SELECT e.*, 
+              d.name AS department_name, 
+              s.name AS schedule_name,
+              CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+       FROM employees e
+       LEFT JOIN departments d ON e.department_id = d.id
+       LEFT JOIN working_schedules s ON e.schedule_id = s.id
+       LEFT JOIN employees m ON e.manager_id = m.id
+       WHERE e.id = ?
+       LIMIT 1`,
+      [employeeId]
+    );
+
+    const emp = rows[0] || {};
+
+    const updatedProfile = {
+      id: emp.id,
+      employeeCode: emp.employee_code,
+      department: emp.department_name || "Engineering",
+      firstName: emp.first_name,
+      lastName: emp.last_name,
+      fullName: formatFullName(emp.first_name, emp.last_name),
+      initials: formatInitials(emp.first_name, emp.last_name),
+      jobPosition: emp.designation || "Software Developer",
+      manager: emp.manager_name || "Priya Mehta",
+      email: emp.email,
+      employeeType: emp.employee_type === "FULL_TIME" ? "Full Time" : emp.employee_type,
+      phone: emp.phone || "+91 9876543210",
+      joiningDate: formatDate(emp.joining_date),
+      dateOfBirth: formatDate(emp.date_of_birth),
+      workSchedule: emp.schedule_name || "General (Mon - Fri)",
+      gender: emp.gender || "Male",
+      status: emp.status === "ACTIVE" ? "Active" : emp.status,
+      address: emp.address || "123, Green Park, Bangalore, Karnataka - 560001, India",
+    };
+
     return successResponse(res, {
       statusCode: 200,
       message: "Personal details updated successfully.",
+      data: {
+        profile: updatedProfile,
+      },
     });
   } catch (error) {
     next(error);

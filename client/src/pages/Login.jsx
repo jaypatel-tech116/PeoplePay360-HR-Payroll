@@ -111,12 +111,6 @@ const Login = () => {
         <div className="pp-hero-pane">
           {/* Header Logo & Tagline */}
           <div className="pp-hero-header">
-            <div className="pp-brand-badge-row">
-              <span className="pp-brand-logo-text">
-                PeoplePay<span className="pp-brand-360">360</span>
-              </span>
-              <div className="pp-brand-underline" />
-            </div>
             <div className="pp-platform-badge">
               ALL-IN-ONE HR &amp; PAYROLL PLATFORM
             </div>
@@ -195,77 +189,6 @@ const Login = () => {
               </div>
             </div>
           </div>
-
-          {/* Bottom Floating Stats Bar */}
-          <div className="pp-stats-pill-bar">
-            <div className="pp-stat-cell">
-              <div className="pp-stat-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#714B67" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <div className="pp-stat-info">
-                <span className="pp-stat-num">500+</span>
-                <span className="pp-stat-lbl">Happy Employees</span>
-              </div>
-            </div>
-            <div className="pp-stat-sep" />
-            <div className="pp-stat-cell">
-              <div className="pp-stat-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#714B67" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-                  <line x1="9" y1="22" x2="9" y2="22" />
-                  <line x1="8" y1="6" x2="8.01" y2="6" />
-                  <line x1="16" y1="6" x2="16.01" y2="6" />
-                  <line x1="12" y1="6" x2="12.01" y2="6" />
-                  <line x1="8" y1="10" x2="8.01" y2="10" />
-                  <line x1="16" y1="10" x2="16.01" y2="10" />
-                  <line x1="12" y1="10" x2="12.01" y2="10" />
-                  <line x1="8" y1="14" x2="8.01" y2="14" />
-                  <line x1="16" y1="14" x2="16.01" y2="14" />
-                  <line x1="12" y1="14" x2="12.01" y2="14" />
-                  <line x1="8" y1="18" x2="8.01" y2="18" />
-                  <line x1="16" y1="18" x2="16.01" y2="18" />
-                  <line x1="12" y1="18" x2="12.01" y2="18" />
-                </svg>
-              </div>
-              <div className="pp-stat-info">
-                <span className="pp-stat-num">50+</span>
-                <span className="pp-stat-lbl">Companies Trust Us</span>
-              </div>
-            </div>
-            <div className="pp-stat-sep" />
-            <div className="pp-stat-cell">
-              <div className="pp-stat-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#714B67" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </svg>
-              </div>
-              <div className="pp-stat-info">
-                <span className="pp-stat-num">99.9%</span>
-                <span className="pp-stat-lbl">Uptime &amp; Reliability</span>
-              </div>
-            </div>
-            <div className="pp-stat-sep" />
-            <div className="pp-stat-cell">
-              <div className="pp-stat-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#714B67" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </div>
-              <div className="pp-stat-info">
-                <span className="pp-stat-num">Global</span>
-                <span className="pp-stat-lbl">Built for Tomorrow</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Floating Login Card */}
@@ -274,7 +197,7 @@ const Login = () => {
             {/* Card Brand Header */}
             <div className="pp-card-header">
               <div className="pp-card-logo">
-                PeoplePay<span className="pp-card-logo-360">360</span>
+                <img src="/Logo.png" alt="PeoplePay360" className="pp-card-logo-img" />
               </div>
               <h2 className="pp-card-title">Welcome back</h2>
               <p className="pp-card-subtitle">Sign in to continue to your account</p>
@@ -291,127 +214,6 @@ const Login = () => {
                 <span>{error}</span>
               </div>
             )}
-
-            {/* 1-Click Role Fill Buttons for effortless testing */}
-            <div style={{ marginBottom: "20px" }}>
-              <div
-                style={{
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                  textAlign: "center",
-                }}
-              >
-                Quick Fill Demo Account
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ email: "payroll@gmail.com", password: "payroll" })}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: formData.email === "payroll@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
-                    background: formData.email === "payroll@gmail.com" ? "#fbf5fa" : "#ffffff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>💼 Payroll Mgr</span>
-                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>payroll@gmail.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ email: "payuser@gmail.com", password: "payuser" })}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: formData.email === "payuser@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
-                    background: formData.email === "payuser@gmail.com" ? "#fbf5fa" : "#ffffff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>📋 Payroll User</span>
-                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>payuser@gmail.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ email: "hr@gmail.com", password: "hrhr" })}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: formData.email === "hr@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
-                    background: formData.email === "hr@gmail.com" ? "#fbf5fa" : "#ffffff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>👥 HR Manager</span>
-                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>hr@gmail.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ email: "employee@gmail.com", password: "123456" })}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: formData.email === "employee@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
-                    background: formData.email === "employee@gmail.com" ? "#fbf5fa" : "#ffffff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>👤 Employee</span>
-                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>employee@gmail.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ email: "admin@gmail.com", password: "admin" })}
-                  style={{
-                    gridColumn: "span 2",
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: formData.email === "admin@gmail.com" ? "2px solid #714B67" : "1px solid #e2e8f0",
-                    background: formData.email === "admin@gmail.com" ? "#fbf5fa" : "#ffffff",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    display: "flex",
-                    flexDirection: "row",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "8px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#714B67" }}>🔑 Admin</span>
-                  <span style={{ fontSize: "0.68rem", color: "#64748b" }}>admin@gmail.com</span>
-                </button>
-              </div>
-            </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="pp-login-form" noValidate>

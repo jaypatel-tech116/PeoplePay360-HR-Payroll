@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { MOCK_EMPLOYEES } from "../adminMockData";
+import EditEmployeeModal from "../modals/EditEmployeeModal";
 
 export default function EmployeeDetailsView({ employee, onBack }) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [currentEmp, setCurrentEmp] = useState(employee || MOCK_EMPLOYEES[0]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const emp = employee || MOCK_EMPLOYEES[0];
+  const emp = currentEmp;
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -53,7 +56,7 @@ export default function EmployeeDetailsView({ employee, onBack }) {
               fontWeight: 700,
             }}
           >
-            {emp.avatar || emp.name.split(" ").map((n) => n[0]).join("")}
+            {emp.avatar || (emp.name ? emp.name.split(" ").map((n) => n[0]).join("") : "E")}
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -69,8 +72,8 @@ export default function EmployeeDetailsView({ employee, onBack }) {
         </div>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <button type="button" className="adm-btn-primary" onClick={() => alert(`Editing ${emp.name}...`)}>
-            <span>✏️</span> Edit
+          <button type="button" className="adm-btn-primary" onClick={() => setIsEditModalOpen(true)}>
+            Edit
           </button>
           <button
             type="button"
@@ -260,6 +263,30 @@ export default function EmployeeDetailsView({ employee, onBack }) {
           </button>
         </div>
       )}
+
+      {/* Edit Employee Modal */}
+      <EditEmployeeModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        employee={emp}
+        onSuccess={(updatedData) => {
+          setIsEditModalOpen(false);
+          if (updatedData) {
+            setCurrentEmp((prev) => ({
+              ...prev,
+              ...updatedData,
+              name: updatedData.first_name && updatedData.last_name ? `${updatedData.first_name} ${updatedData.last_name}` : (updatedData.name || prev.name),
+              email: updatedData.email || prev.email,
+              phone: updatedData.phone || prev.phone,
+              jobTitle: updatedData.designation || updatedData.jobTitle || prev.jobTitle,
+              employmentType: updatedData.employee_type || updatedData.employmentType || prev.employmentType,
+              status: updatedData.status ? (updatedData.status === "ACTIVE" ? "Active" : updatedData.status) : prev.status,
+              wage: updatedData.wage || prev.wage,
+              workLocation: updatedData.work_location || updatedData.workLocation || prev.workLocation,
+            }));
+          }
+        }}
+      />
     </div>
   );
 }

@@ -111,42 +111,7 @@ const DashboardView = ({
             <div className="odoo-header-date">{currentDateText}</div>
           </div>
 
-          {/* 4 Mini Metric Cards (Employee Code removed per requirements) */}
-          <div className="odoo-mini-stats-grid">
-            <div className="odoo-mini-stat-card">
-              <div className="odoo-mini-stat-icon">🏢</div>
-              <div className="odoo-mini-stat-content">
-                <span className="odoo-mini-stat-label">Department</span>
-                <span className="odoo-mini-stat-value">{emp.department}</span>
-              </div>
-            </div>
 
-            <div className="odoo-mini-stat-card">
-              <div className="odoo-mini-stat-icon">💼</div>
-              <div className="odoo-mini-stat-content">
-                <span className="odoo-mini-stat-label">Job Position</span>
-                <span className="odoo-mini-stat-value">{emp.jobPosition}</span>
-              </div>
-            </div>
-
-            <div className="odoo-mini-stat-card">
-              <div className="odoo-mini-stat-icon">📄</div>
-              <div className="odoo-mini-stat-content">
-                <span className="odoo-mini-stat-label">Employment Type</span>
-                <span className="odoo-mini-stat-value">{emp.employeeType}</span>
-              </div>
-            </div>
-
-            <div className="odoo-mini-stat-card">
-              <div className="odoo-mini-stat-icon">📅</div>
-              <div className="odoo-mini-stat-content">
-                <span className="odoo-mini-stat-label">Leave Balance</span>
-                <span className="odoo-mini-stat-value">
-                  {lb.remaining} / {lb.totalAllocated} Days
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* 3-Column Middle Section */}
           <div

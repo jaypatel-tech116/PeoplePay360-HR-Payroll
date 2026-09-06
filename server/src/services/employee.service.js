@@ -253,6 +253,23 @@ const updateEmployee = async (id, data) => {
     await pool.query(`UPDATE employees SET ${updates.join(", ")} WHERE id = ?;`, params);
   }
 
+  if (data.wage !== undefined && data.wage !== null) {
+    const wageNum = parseFloat(data.wage);
+    if (!isNaN(wageNum)) {
+      await pool.query(`UPDATE contracts SET wage = ? WHERE employee_id = ?`, [wageNum, id]);
+    }
+  }
+
+  if (data.first_name || data.last_name || data.email) {
+    const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+    if (fullName) {
+      await pool.query(`UPDATE users SET full_name = ? WHERE employee_id = ?`, [fullName, id]);
+    }
+    if (data.email) {
+      await pool.query(`UPDATE users SET email = ? WHERE employee_id = ?`, [data.email, id]);
+    }
+  }
+
   return getEmployeeById(id);
 };
 

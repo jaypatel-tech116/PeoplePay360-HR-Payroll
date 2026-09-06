@@ -67,13 +67,23 @@ const ReportsView = () => {
   const absentPct = Math.round((absentCount / (totalEmployees || 1)) * 100);
   const halfDayPct = Math.round((halfDayCount / (totalEmployees || 1)) * 100);
 
-  // Detailed rows for attendance
+  // Detailed rows for attendance (10 per page pagination)
   const detailedList = attendanceReport?.detailed || [
-    { id: 1, code: "EMP001", name: "Rahul Sharma", department: "Engineering", presentDays: 20, absentDays: 3, onLeave: 2, halfDay: 1, totalWorkingDays: 26, attendancePct: "88%" },
-    { id: 2, code: "EMP002", name: "Priya Mehta", department: "Human Resources", presentDays: 21, absentDays: 2, onLeave: 1, halfDay: 2, totalWorkingDays: 26, attendancePct: "92%" },
-    { id: 3, code: "EMP003", name: "Vikram Rao", department: "Sales", presentDays: 19, absentDays: 4, onLeave: 2, halfDay: 1, totalWorkingDays: 26, attendancePct: "80%" },
-    { id: 4, code: "EMP004", name: "Sneha Iyer", department: "Product", presentDays: 18, absentDays: 5, onLeave: 2, halfDay: 1, totalWorkingDays: 26, attendancePct: "76%" },
-    { id: 5, code: "EMP005", name: "Aditya Gupta", department: "Engineering", presentDays: 22, absentDays: 2, onLeave: 1, halfDay: 1, totalWorkingDays: 26, attendancePct: "92%" },
+    { id: 1, code: "EMP001", name: "Rahul Sharma", department: "Engineering", presentDays: 22, absentDays: 2, onLeave: 1, halfDay: 1, totalWorkingDays: 26, attendancePct: "88%", remainingLeaves: 18 },
+    { id: 2, code: "EMP002", name: "Priya Mehta", department: "Human Resources", presentDays: 24, absentDays: 1, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "92%", remainingLeaves: 21 },
+    { id: 3, code: "EMP003", name: "Vikram Rao", department: "Sales", presentDays: 20, absentDays: 4, onLeave: 1, halfDay: 1, totalWorkingDays: 26, attendancePct: "80%", remainingLeaves: 15 },
+    { id: 4, code: "EMP004", name: "Sneha Iyer", department: "Product", presentDays: 19, absentDays: 5, onLeave: 2, halfDay: 0, totalWorkingDays: 26, attendancePct: "76%", remainingLeaves: 14 },
+    { id: 5, code: "EMP005", name: "Aditya Gupta", department: "Engineering", presentDays: 24, absentDays: 1, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "92%", remainingLeaves: 22 },
+    { id: 6, code: "EMP006", name: "Ananya Roy", department: "Marketing", presentDays: 23, absentDays: 2, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "88%", remainingLeaves: 19 },
+    { id: 7, code: "EMP007", name: "Karan Verma", department: "Engineering", presentDays: 25, absentDays: 0, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "96%", remainingLeaves: 24 },
+    { id: 8, code: "EMP008", name: "Divya Patel", department: "Finance", presentDays: 21, absentDays: 3, onLeave: 1, halfDay: 1, totalWorkingDays: 26, attendancePct: "84%", remainingLeaves: 17 },
+    { id: 9, code: "EMP009", name: "Siddharth Nair", department: "Operations", presentDays: 22, absentDays: 2, onLeave: 2, halfDay: 0, totalWorkingDays: 26, attendancePct: "85%", remainingLeaves: 16 },
+    { id: 10, code: "EMP010", name: "Pooja Reddy", department: "Human Resources", presentDays: 24, absentDays: 1, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "92%", remainingLeaves: 20 },
+    { id: 11, code: "EMP011", name: "Manish Kumar", department: "Sales", presentDays: 20, absentDays: 4, onLeave: 2, halfDay: 0, totalWorkingDays: 26, attendancePct: "77%", remainingLeaves: 13 },
+    { id: 12, code: "EMP012", name: "Ritu Kapoor", department: "Product", presentDays: 23, absentDays: 2, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "88%", remainingLeaves: 19 },
+    { id: 13, code: "EMP013", name: "Aman Shah", department: "Engineering", presentDays: 24, absentDays: 1, onLeave: 0, halfDay: 1, totalWorkingDays: 26, attendancePct: "92%", remainingLeaves: 23 },
+    { id: 14, code: "EMP014", name: "Kavita Joshi", department: "Marketing", presentDays: 22, absentDays: 3, onLeave: 1, halfDay: 0, totalWorkingDays: 26, attendancePct: "85%", remainingLeaves: 18 },
+    { id: 15, code: "EMP015", name: "Rohan Malhotra", department: "Finance", presentDays: 25, absentDays: 1, onLeave: 0, halfDay: 0, totalWorkingDays: 26, attendancePct: "96%", remainingLeaves: 25 },
   ];
 
   const deptWiseList = attendanceReport?.departmentWise || [
@@ -93,6 +103,27 @@ const ReportsView = () => {
       (r.department || "").toLowerCase().includes(q)
     );
   });
+
+  // 10 items per page pagination logic
+  const itemsPerPage = 10;
+  const totalDetailedCount = filteredDetailed.length;
+  const totalPages = Math.max(1, Math.ceil(totalDetailedCount / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalDetailedCount);
+  const currentTableRows = filteredDetailed.slice(startIndex, endIndex);
+
+  const getPageNumbers = (current, total) => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, "...", total];
+    }
+    if (current >= total - 3) {
+      return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", current - 1, current, current + 1, "...", total];
+  };
 
   if (isLoading) return <SkeletonReports />;
 
@@ -530,7 +561,10 @@ const ReportsView = () => {
                     type="text"
                     placeholder="Search employee..."
                     value={searchEmployee}
-                    onChange={(e) => setSearchEmployee(e.target.value)}
+                    onChange={(e) => {
+                      setSearchEmployee(e.target.value);
+                      setCurrentPage(1);
+                    }}
                   />
                 </div>
 
@@ -564,71 +598,94 @@ const ReportsView = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDetailed.map((row, idx) => (
-                    <tr key={row.id || idx}>
-                      <td style={{ color: "#9ca3af" }}>{idx + 1}</td>
-                      <td>{row.code}</td>
-                      <td className="hr-emp-name-cell">{row.name}</td>
-                      <td>{row.department || row.dept || "-"}</td>
-                      <td>{row.presentDays || row.present || 0}</td>
-                      <td>{row.absentDays || row.absent || 0}</td>
-                      <td>{row.onLeave || 0}</td>
-                      <td>{row.halfDay || 0}</td>
-                      <td>{row.totalWorkingDays || row.total || 26}</td>
-                      <td>
-                        <span
-                          className={`hr-badge ${
-                            (parseInt(row.attendancePct || row.pct) >= 80)
-                              ? "hr-badge-green"
-                              : "hr-badge-amber"
-                          }`}
-                        >
-                          {row.attendancePct || `${row.pct}%`}
-                        </span>
-                      </td>
-                      <td>
-                        <strong style={{ color: "#15803d", fontSize: "0.86rem" }}>
-                          {row.remainingLeaves !== undefined ? `${row.remainingLeaves} d` : "30 d"}
-                        </strong>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button
-                          type="button"
-                          className="hr-btn-view"
-                          onClick={() => setSelectedReportEmployee(row)}
-                          title="View detailed employee attendance & leave report"
-                        >
-                          <span>👁</span> View
-                        </button>
+                  {currentTableRows.length === 0 ? (
+                    <tr>
+                      <td colSpan="12" style={{ textAlign: "center", color: "#6b7280", padding: "24px" }}>
+                        No employee attendance records found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    currentTableRows.map((row, idx) => (
+                      <tr key={row.id || idx}>
+                        <td style={{ color: "#9ca3af" }}>{startIndex + idx + 1}</td>
+                        <td>{row.code}</td>
+                        <td className="hr-emp-name-cell">{row.name}</td>
+                        <td>{row.department || row.dept || "-"}</td>
+                        <td>{row.presentDays || row.present || 0}</td>
+                        <td>{row.absentDays || row.absent || 0}</td>
+                        <td>{row.onLeave || 0}</td>
+                        <td>{row.halfDay || 0}</td>
+                        <td>{row.totalWorkingDays || row.total || 26}</td>
+                        <td>
+                          <span
+                            className={`hr-badge ${
+                              (parseInt(row.attendancePct || row.pct) >= 80)
+                                ? "hr-badge-green"
+                                : "hr-badge-amber"
+                            }`}
+                          >
+                            {row.attendancePct || `${row.pct}%`}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style={{ color: "#15803d", fontSize: "0.86rem" }}>
+                            {row.remainingLeaves !== undefined ? `${row.remainingLeaves} d` : "30 d"}
+                          </strong>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            type="button"
+                            className="hr-btn-view"
+                            onClick={() => setSelectedReportEmployee(row)}
+                            title="View detailed employee attendance & leave report"
+                          >
+                            <span>👁</span> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
+            {/* Pagination Footer (10 items per page) */}
             <div className="hr-pagination-footer">
-              <span>Showing 1 to {filteredDetailed.length} of {totalEmployees} employees</span>
+              <span>
+                Showing {totalDetailedCount === 0 ? 0 : startIndex + 1} to {endIndex} of {totalDetailedCount} employees
+              </span>
               <div className="hr-pagination-controls">
                 <button
                   type="button"
                   className="hr-page-btn"
+                  disabled={currentPage === 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  title="Previous Page"
                 >
                   ‹
                 </button>
-                <button
-                  type="button"
-                  className={`hr-page-btn ${currentPage === 1 ? "active" : ""}`}
-                  onClick={() => setCurrentPage(1)}
-                >
-                  1
-                </button>
+                {getPageNumbers(currentPage, totalPages).map((pNum, pIdx) =>
+                  pNum === "..." ? (
+                    <span key={`dots-${pIdx}`} style={{ padding: "0 4px", color: "#9ca3af", fontSize: "0.85rem" }}>
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={pNum}
+                      type="button"
+                      className={`hr-page-btn ${currentPage === pNum ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pNum)}
+                    >
+                      {pNum}
+                    </button>
+                  )
+                )}
                 <button
                   type="button"
                   className="hr-page-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  title="Next Page"
                 >
                   ›
                 </button>

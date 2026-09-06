@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { FiUsers, FiCalendar, FiClock, FiBarChart2, FiLogOut, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import hrApi from "../../api/hr.api";
 import EmployeesView from "./views/EmployeesView";
 import LeavesView from "./views/LeavesView";
@@ -232,8 +233,20 @@ const HrManagerDashboard = () => {
     <div className="hr-shell">
       {/* 1. Left Odoo Plum Sidebar */}
       <aside className={`hr-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        <div className="hr-sidebar-brand">
-          <span className="hr-logo-text">odoo</span>
+        <div className="hr-sidebar-brand" style={{ justifyContent: "center", padding: "8px 10px" }}>
+          {isSidebarCollapsed ? (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "38px", width: "auto", maxWidth: "48px", objectFit: "contain" }}
+            />
+          ) : (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "60px", width: "auto", maxWidth: "90%", objectFit: "contain" }}
+            />
+          )}
         </div>
 
         <ul className="hr-sidebar-menu">
@@ -244,7 +257,7 @@ const HrManagerDashboard = () => {
               onClick={() => handleTabChange("employees")}
               title="Employees"
             >
-              <span className="hr-nav-icon">👥</span>
+              <FiUsers className="hr-nav-react-icon" style={{ fontSize: "1.2rem" }} />
               <span className="hr-nav-text">Employees</span>
             </button>
           </li>
@@ -256,7 +269,7 @@ const HrManagerDashboard = () => {
               onClick={() => handleTabChange("leaves")}
               title="Leaves"
             >
-              <span className="hr-nav-icon">🌴</span>
+              <FiCalendar className="hr-nav-react-icon" style={{ fontSize: "1.2rem" }} />
               <span className="hr-nav-text">Leaves</span>
             </button>
           </li>
@@ -268,7 +281,7 @@ const HrManagerDashboard = () => {
               onClick={() => handleTabChange("attendance")}
               title="Attendance"
             >
-              <span className="hr-nav-icon">⏱️</span>
+              <FiClock className="hr-nav-react-icon" style={{ fontSize: "1.2rem" }} />
               <span className="hr-nav-text">Attendance</span>
             </button>
           </li>
@@ -280,14 +293,24 @@ const HrManagerDashboard = () => {
               onClick={() => handleTabChange("reports")}
               title="Reports"
             >
-              <span className="hr-nav-icon">📈</span>
+              <FiBarChart2 className="hr-nav-react-icon" style={{ fontSize: "1.2rem" }} />
               <span className="hr-nav-text">Reports</span>
             </button>
           </li>
         </ul>
 
-        <div className="hr-sidebar-footer">
-          <div className="hr-sidebar-user-container">
+        <div
+          className="hr-sidebar-footer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexDirection: isSidebarCollapsed ? "column" : "row",
+            justifyContent: isSidebarCollapsed ? "center" : "space-between",
+            gap: "8px",
+            padding: isSidebarCollapsed ? "12px 6px" : "10px 12px"
+          }}
+        >
+          <div className="hr-sidebar-user-container" style={{ flex: 1, minWidth: 0, width: isSidebarCollapsed ? "auto" : "100%" }}>
             <div
               className="hr-user-pill hr-sidebar-user-pill"
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -296,38 +319,61 @@ const HrManagerDashboard = () => {
               <div className="hr-user-avatar">{userInitials}</div>
               {!isSidebarCollapsed && (
                 <>
-                  <span className="hr-user-name">{user?.name || "HR Manager"}</span>
-                  <span className="hr-user-caret">⌵</span>
+                  <div className="hr-user-details-box" style={{ display: "flex", flexDirection: "column", textAlign: "left", lineHeight: 1.15, flex: 1, minWidth: 0 }}>
+                    <span className="hr-user-name" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#fff" }}>
+                      {user?.name || "HR Manager"}
+                    </span>
+                    <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.75)" }}>
+                      HR Manager
+                    </span>
+                  </div>
+                  <FiChevronDown className="hr-user-caret" />
                 </>
               )}
             </div>
 
             {isProfileMenuOpen && (
-              <div className="hr-sidebar-profile-dropdown">
-                <div className="hr-profile-dropdown-header">
-                  <div className="hr-profile-dropdown-name">
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: isSidebarCollapsed ? "16px" : "60px",
+                  left: isSidebarCollapsed ? "78px" : "12px",
+                  width: "200px",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+                  border: "1px solid #e5e7eb",
+                  zIndex: 9999,
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
                     {user?.name || "HR Manager"}
                   </div>
-                  <div className="hr-profile-dropdown-email">
+                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                     {user?.email || "hr@gmail.com"}
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="hr-profile-dropdown-item"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    handleTabChange("employees");
+                  onClick={handleLogout}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    color: "#dc2626",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
-                  <span>👥</span> Employees Directory
-                </button>
-                <button
-                  type="button"
-                  className="hr-profile-dropdown-item logout"
-                  onClick={handleLogout}
-                >
-                  <span>↪</span> Sign Out
+                  <FiLogOut /> Sign Out
                 </button>
               </div>
             )}
@@ -335,41 +381,30 @@ const HrManagerDashboard = () => {
 
           <button
             type="button"
-            className="hr-collapse-btn"
+            className="hr-collapse-toggle-btn"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0
+            }}
           >
-            {isSidebarCollapsed ? "›" : "‹"}
+            {isSidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
           </button>
         </div>
       </aside>
 
-      {/* 2. Main Content Canvas */}
+      {/* 2. Main Content Canvas without topbar */}
       <div className="hr-main">
-        {/* Topbar Header */}
-        <header className="hr-topbar">
-          <div className="hr-topbar-left">
-            <span className="hr-topbar-appname">PeoplePay360</span>
-
-            <div className="hr-topbar-search-box">
-              <span className="hr-topbar-search-icon">🔍</span>
-              <input
-                type="text"
-                className="hr-topbar-search-input"
-                placeholder={
-                  activeTab === "leaves"
-                    ? "Search employees, leaves, departments..."
-                    : "Search employees, contracts, leaves..."
-                }
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="hr-topbar-right">
-          </div>
-        </header>
 
         {/* Dynamic Views */}
         {activeTab === "employees" && (

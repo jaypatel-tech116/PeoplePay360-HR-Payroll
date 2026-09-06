@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import hrApi from "../../../api/hr.api";
+import "../../HrPage.css";
 
 const NewEmployeeModal = ({ isOpen, onClose, onSuccess, onAdd }) => {
   const [departments, setDepartments] = useState([]);

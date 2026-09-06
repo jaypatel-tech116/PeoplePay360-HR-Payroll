@@ -1,6 +1,22 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+  FiGrid,
+  FiUsers,
+  FiBriefcase,
+  FiFileText,
+  FiClock,
+  FiCalendar,
+  FiSun,
+  FiDollarSign,
+  FiBarChart2,
+  FiSettings,
+  FiLogOut,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import "./AdminPortal.css";
 
 // 16 Views matching all screens from reference images
@@ -39,37 +55,17 @@ const AdminDashboard = () => {
 
   // Sidebar primary navigation menu
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: "🏠" },
-    { id: "users-roles", label: "Stakeholders & Users", icon: "👥" },
-    { id: "employees", label: "Employees", icon: "👥" },
-    { id: "departments", label: "Departments", icon: "🏢" },
-    { id: "contracts", label: "Contracts", icon: "📄" },
-    { id: "working-schedules", label: "Working Schedules", icon: "⏰" },
-    { id: "attendance", label: "Attendance", icon: "📅" },
-    { id: "time-off", label: "Time Off", icon: "🏖️" },
-    { id: "pay-cycles", label: "Payroll", icon: "💵" },
-    { id: "reports", label: "Reports", icon: "📈" },
-    { id: "settings", label: "Settings", icon: "⚙️" },
-  ];
-
-  // Direct 16-Screen Quick Jumper
-  const screenShortcuts = [
-    { id: "dashboard", label: "1. Dashboard (Overview)" },
-    { id: "employees", label: "2. Employees (List)" },
-    { id: "employee-detail", label: "3. Employee Details" },
-    { id: "departments", label: "4. Departments" },
-    { id: "contracts", label: "5. Contracts" },
-    { id: "working-schedules", label: "6. Working Schedules" },
-    { id: "attendance", label: "7. Attendance" },
-    { id: "time-off", label: "8. Time Off Requests" },
-    { id: "pay-cycles", label: "9. Pay Cycles" },
-    { id: "create-cycle", label: "10. Create Pay Cycle" },
-    { id: "pay-slips", label: "11. Pay Slips" },
-    { id: "reports", label: "12. Payroll Reports" },
-    { id: "salary-structures", label: "13. Salary Structures" },
-    { id: "salary-rules", label: "14. Salary Rules" },
-    { id: "users-roles", label: "15. Users & Roles" },
-    { id: "settings", label: "16. Settings" },
+    { id: "dashboard", label: "Dashboard", icon: <FiGrid className="adm-nav-react-icon" /> },
+    { id: "users-roles", label: "Stakeholders & Users", icon: <FiUsers className="adm-nav-react-icon" /> },
+    { id: "employees", label: "Employees", icon: <FiUsers className="adm-nav-react-icon" /> },
+    { id: "departments", label: "Departments", icon: <FiBriefcase className="adm-nav-react-icon" /> },
+    { id: "contracts", label: "Contracts", icon: <FiFileText className="adm-nav-react-icon" /> },
+    { id: "working-schedules", label: "Working Schedules", icon: <FiClock className="adm-nav-react-icon" /> },
+    { id: "attendance", label: "Attendance", icon: <FiCalendar className="adm-nav-react-icon" /> },
+    { id: "time-off", label: "Time Off", icon: <FiSun className="adm-nav-react-icon" /> },
+    { id: "pay-cycles", label: "Payroll", icon: <FiDollarSign className="adm-nav-react-icon" /> },
+    { id: "reports", label: "Reports", icon: <FiBarChart2 className="adm-nav-react-icon" /> },
+    { id: "settings", label: "Settings", icon: <FiSettings className="adm-nav-react-icon" /> },
   ];
 
   const handleSelectEmployee = (emp) => {
@@ -81,10 +77,26 @@ const AdminDashboard = () => {
     <div className="adm-shell">
       {/* 1. Sidebar */}
       <aside className={`adm-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        <div className="adm-sidebar-brand">
-          <div className="adm-logo-text">
-            {isSidebarCollapsed ? "P" : "PeoplePay360"}
-          </div>
+        <div
+          className="adm-sidebar-brand"
+          style={{
+            justifyContent: "center",
+            padding: "8px 10px"
+          }}
+        >
+          {isSidebarCollapsed ? (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "38px", width: "auto", maxWidth: "48px", objectFit: "contain" }}
+            />
+          ) : (
+            <img
+              src="/Logo.png"
+              alt="PeoplePay360"
+              style={{ height: "60px", width: "auto", maxWidth: "90%", objectFit: "contain" }}
+            />
+          )}
         </div>
 
         <ul className="adm-sidebar-menu">
@@ -103,129 +115,127 @@ const AdminDashboard = () => {
                   className={`adm-nav-item ${isActive ? "active" : ""}`}
                   onClick={() => setActiveTab(item.id)}
                   title={item.label}
+                  style={{ display: "flex", alignItems: "center", width: "100%" }}
                 >
-                  <span>{item.label}</span>
+                  <span className="adm-nav-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0 }}>
+                    {item.icon}
+                  </span>
+                  <span className="adm-nav-text" style={{ marginLeft: "12px" }}>
+                    {item.label}
+                  </span>
                 </button>
               </li>
             );
           })}
         </ul>
 
-        <div className="adm-sidebar-footer">
+        <div
+          className="adm-sidebar-footer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexDirection: isSidebarCollapsed ? "column" : "row",
+            justifyContent: isSidebarCollapsed ? "center" : "space-between",
+            gap: "8px",
+            padding: isSidebarCollapsed ? "12px 6px" : "10px 12px"
+          }}
+        >
+          <div style={{ position: "relative", flex: 1, minWidth: 0, width: isSidebarCollapsed ? "auto" : "100%" }}>
+            <div
+              className="adm-user-pill"
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              style={{ width: "100%", boxSizing: "border-box" }}
+              title="Admin"
+            >
+              <div className="adm-user-avatar">A</div>
+              {!isSidebarCollapsed && (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", textAlign: "left", lineHeight: 1.15, flex: 1, minWidth: 0 }}>
+                    <span className="adm-user-name" style={{ fontSize: "0.82rem", fontWeight: 700 }}>
+                      Admin
+                    </span>
+                    <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.75)" }}>
+                      Administrator
+                    </span>
+                  </div>
+                  <FiChevronDown className="adm-user-caret" />
+                </>
+              )}
+            </div>
+
+            {isProfileMenuOpen && (
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: isSidebarCollapsed ? "16px" : "60px",
+                  left: isSidebarCollapsed ? "78px" : "12px",
+                  width: "200px",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+                  border: "1px solid #e5e7eb",
+                  zIndex: 9999,
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
+                    {user?.name || "System Administrator"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                    {user?.email || "admin@company.com"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    color: "#dc2626",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <FiLogOut /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            className="adm-collapse-btn"
+            className="adm-collapse-toggle-btn"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0
+            }}
           >
-            {isSidebarCollapsed ? "→" : "←"}
+            {isSidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
           </button>
         </div>
       </aside>
 
-      {/* 2. Main Area */}
+      {/* 2. Main Area without horizontal topbar */}
       <div className="adm-main">
-        {/* Topbar */}
-        <header className="adm-topbar">
-          <div className="adm-topbar-left">
-            <span className="adm-topbar-appname">PeoplePay360</span>
-            <div className="adm-topbar-search-box">
-              <span style={{ color: "rgba(255,255,255,0.7)" }}>🔍</span>
-              <input
-                type="text"
-                className="adm-topbar-search-input"
-                placeholder="Search employees, payroll, leaves..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="adm-topbar-right">
-            {/* Quick Screen Jumper */}
-            <div style={{ display: "flex", alignItems: "center", marginRight: "4px" }}>
-              <select
-                value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
-                style={{
-                  padding: "4px 8px",
-                  borderRadius: "5px",
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  backgroundColor: "rgba(0,0,0,0.22)",
-                  color: "#ffffff",
-                  fontSize: "0.76rem",
-                  cursor: "pointer",
-                  outline: "none",
-                }}
-                title="Jump directly to any of the 16 Admin screens"
-              >
-                {screenShortcuts.map((s) => (
-                  <option key={s.id} value={s.id} style={{ background: "#58374f", color: "#fff" }}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Admin User Profile Pill */}
-            <div style={{ position: "relative" }}>
-              <div
-                className="adm-user-pill"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              >
-                <div className="adm-user-avatar">A</div>
-                <span className="adm-user-name">Admin</span>
-                <span className="adm-user-caret">⌵</span>
-              </div>
-
-              {isProfileMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "40px",
-                    width: "200px",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "8px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-                    border: "1px solid #e5e7eb",
-                    zIndex: 100,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6" }}>
-                    <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#111827" }}>
-                      {user?.name || "System Administrator"}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                      {user?.email || "admin@company.com"}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      color: "#dc2626",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <span>🚪</span> Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
 
         {/* 3. Sub-Module Secondary Bar for Payroll & Settings */}
         {["pay-cycles", "create-cycle", "pay-slips", "salary-structures", "salary-rules"].includes(activeTab) && (
