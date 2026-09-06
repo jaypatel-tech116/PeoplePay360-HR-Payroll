@@ -23,6 +23,7 @@ const LeavesView = ({
   const [requestSearch, setRequestSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("All Leave Types");
+  const [viewMode, setViewMode] = useState("list");
   const [isProcessingId, setIsProcessingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;

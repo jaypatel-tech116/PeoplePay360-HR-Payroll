@@ -13,4 +13,13 @@ const api = axios.create({
   },
 });
 
+// Attach Bearer token from localStorage for Incognito / third-party cookie fallback
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default api;

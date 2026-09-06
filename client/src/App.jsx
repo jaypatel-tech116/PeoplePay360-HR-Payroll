@@ -54,7 +54,11 @@ const NavigationWrapper = () => {
   const isPortal = [
     "/admin",
     "/employee",
+    "/hr",
     "/hr-manager",
+    "/hr manager",
+    "/hr%20manager",
+    "/hrmanager",
     "/payroll-manager",
     "/payroll-user",
     "/login",
@@ -80,6 +84,11 @@ function App() {
               <Route path="/" element={<HomeRedirect />} />
               <Route path="/dashboard" element={<HomeRedirect />} />
               <Route path="/hr" element={<Navigate to="/hr-manager" replace />} />
+              <Route path="/hr manager" element={<Navigate to="/hr-manager" replace />} />
+              <Route path="/hr%20manager" element={<Navigate to="/hr-manager" replace />} />
+              <Route path="/hrmanager" element={<Navigate to="/hr-manager" replace />} />
+              <Route path="/hr_manager" element={<Navigate to="/hr-manager" replace />} />
+              <Route path="/hr/manager" element={<Navigate to="/hr-manager" replace />} />
 
               {/* Public Authentication */}
               <Route path="/login" element={<Login />} />

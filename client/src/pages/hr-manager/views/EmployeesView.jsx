@@ -47,7 +47,7 @@ const EmployeesView = ({
     }
   };
 
-  if (isLoading) return viewMode === "kanban" ? <SkeletonKanban cols={4} cardsPerCol={3} /> : <SkeletonListPage rows={8} cols={6} />;
+  if (isLoading) return <SkeletonKanban cols={4} cardsPerCol={3} />;
 
   return (
     <div className="hr-content-body">
